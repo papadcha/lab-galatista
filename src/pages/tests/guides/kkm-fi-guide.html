@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  color: #2c2c2a;
+}
+.guide-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  border-bottom: 0.5px solid #e5e3dc;
+  padding: 14px 20px 12px;
+  z-index: 10;
+}
+.label  { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title  { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding: 0 20px 30px; }
+.sel-row { display:flex; align-items:center; gap:12px; margin: 14px 0;
+            padding:10px 12px; background:#f5f5f3; border-radius:8px;
+            border:0.5px solid #ddd; flex-wrap:wrap; }
+.sel-row label { font-size:13px; color:#666; }
+.sel-row select { font-size:13px; border:0.5px solid #ccc; border-radius:6px; padding:4px 8px; }
+.qty-badge { font-size:12px; font-weight:500; color:#0c447c; background:#e6f1fb;
+              padding:3px 8px; border-radius:6px; }
+.group-title {
+  font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin: 22px 0 8px; padding-bottom: 6px;
+  border-bottom: 0.5px solid #e5e3dc;
+}
+.steps { display:flex; flex-direction:column; }
+.step  { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num   { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+          border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+          font-size:12px; font-weight:500; color:#666; }
+.ttl   { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc   { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.qty   { display:inline-block; margin-top:5px; font-size:12px; font-weight:500;
+          color:#0c447c; background:#e6f1fb; padding:3px 8px; border-radius:6px; }
+.note  { display:inline-block; margin-top:5px; font-size:12px;
+          color:#854f0b; background:#faeeda; padding:3px 8px; border-radius:6px; }
+.fml   { font-family:monospace; font-size:12px; background:#f5f5f3;
+          border:0.5px solid #ddd; border-radius:6px; padding:3px 8px;
+          display:inline-block; margin-top:5px; }
+.svg-wrap { margin-top:12px; border:0.5px solid #e5e3dc; border-radius:8px;
+             background:#faf9f7; padding:12px; text-align:center; }
+.svg-wrap svg { max-width:100%; height:auto; }
+.footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 0.5px solid #e5e3dc;
+  padding: 14px 20px;
+  text-align: right;
+}
+.btn-primary {
+  font-size:14px; font-weight:500; padding:9px 20px;
+  background:#2c2c2a; color:#fff; border:none;
+  border-radius:8px; cursor:pointer;
+}
+.btn-primary:hover { background:#444; }
+
+.fi-banner { background:#e6f1fb; border:0.5px solid #b3d1f0; border-radius:8px;
+  padding:10px 14px; margin:14px 0; font-size:13px; color:#0c447c; display:none; }
+.fi-banner.show { display:block; }
+.branch-section { background:#f9f9f7; border:0.5px solid #e5e3dc; border-radius:8px;
+  padding:14px; margin:14px 0; text-align:center; }
+.branch-section p { font-size:13px; color:#666; margin:0 0 10px; }
+.branch-btns { display:flex; gap:10px; justify-content:center; }
+.branch-btn { font-size:13px; padding:7px 16px; border:0.5px solid #ccc;
+  border-radius:6px; background:#fff; cursor:pointer; }
+.branch-btn:hover { background:#f5f5f3; }
+.branch-btn.primary { background:#2c2c2a; color:#fff; border-color:#2c2c2a; }
+.branch-btn.primary:hover { background:#444; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">EN 933-1 / EN 933-3</p>
+  <p class="title">Κοκκομετρική Ανάλυση — Δείκτης Πλακοειδούς</p>
+</div>
+<div class="guide-body">
+  <div class="sel-row">
+    <label>d<sub>max</sub> αδρανούς:</label>
+    <select id="dmax-sel">
+      <option value="4">4 mm</option>
+      <option value="8">8 mm</option>
+      <option value="16" selected>16 mm</option>
+      <option value="22.4">22.4 mm</option>
+      <option value="31.5">31.5 mm</option>
+      <option value="45">45 mm</option>
+      <option value="63">63 mm</option>
+    </select>
+    <span class="qty-badge" id="qty-badge"></span>
+  </div>
+  <div class="fi-banner" id="fi-banner">
+    ✓ Ο Δείκτης Πλακοειδούς (FI) συμπεριλαμβάνεται στη διαδικασία.
+  </div>
+  <div id="sc"></div>
+  <div class="branch-section" id="branch-area" style="display:none;">
+    <p>Μετά το κοσκίνισμα — εκτελείτε και Δείκτη Πλακοειδούς;</p>
+    <div class="branch-btns">
+      <button class="branch-btn" id="btn-no-fi">Μόνο ΚΚΜ</button>
+      <button class="branch-btn primary" id="btn-fi">ΚΚΜ + Δείκτης Πλακοειδούς</button>
+    </div>
+  </div>
+</div>
+<div class="footer">
+  <button class="btn-primary" id="btn-done">Καταχώρηση αποτελεσμάτων →</button>
+</div>
+<script>
+function el(id) { return document.getElementById(id); }
+
+const MIN_SAMPLE_KKM = [[4,0.2],[8,0.6],[16,2.6],[32,10],[63,40]];
+
+function getMinSample(d) {
+  for (const [k,v] of MIN_SAMPLE_KKM) { if (d <= k) return v; }
+  return 40;
+}
+
+function getQ() {
+  const d = parseFloat(el('dmax-sel').value);
+  return { dmax: d, minSample: getMinSample(d) };
+}
+
+let withFI = false;
+let fiChosen = false;
+
+const GROUPS_KKM = [
+  {
+    label: 'Προετοιμασία δείγματος',
+    steps: q => [
+      {
+        ttl: 'Λήψη & μείωση δείγματος',
+        dsc: 'Μείωση κατά EN 932-2 σε δοκίμιο ≥ ελάχιστης μάζας.',
+        qty: `Αναφορά EN 933-1 Table 1: ελάχ. δοκίμιο ${q.minSample} kg για d_max=${q.dmax}mm`,
+      },
+      {
+        ttl: 'Ξήρανση 110±5°C → M₁',
+        dsc: 'Ξήρανση σε σταθερή μάζα (ζύγιση κάθε 1h, διαφορά ≤0.1%). Ψύξη σε δεσικατόρο. Ζύγιση M₁.',
+      },
+    ],
+  },
+  {
+    label: 'Πλύση 0.063mm',
+    steps: q => [
+      {
+        ttl: 'Εμβάπτιση & ανακίνηση',
+        dsc: 'Τοποθέτηση δοκιμίου σε δοχείο, προσθήκη νερού μέχρι κάλυψη. Ανακίνηση για πλήρη αποχωρισμό λεπτών. Προαιρετική εμβάπτιση 24h.',
+      },
+      {
+        ttl: 'Έκχυση στο 0.063mm',
+        dsc: 'Κόσκινο 0.063mm με guard 1–2mm από πάνω. Έκχυση αιώρησης. Συνέχεια πλύσης μέχρι νερό καθαρό.',
+        note: 'Προσοχή: μην υπερφορτώσετε το κόσκινο 0.063mm',
+      },
+      {
+        ttl: 'Ξήρανση & ζύγιση M₂',
+        dsc: 'Ξήρανση κατακρατούμενου 0.063mm στους 110±5°C σε σταθερή μάζα. Ζύγιση M₂.',
+      },
+    ],
+  },
+  {
+    label: 'Κοσκίνισμα',
+    steps: q => [
+      {
+        ttl: 'Στήλη κόσκινων φθίνουσα',
+        dsc: 'Τοποθέτηση πλυμένου & ξηρού δοκιμίου στη στήλη. Κόσκινα σε φθίνουσα σειρά από πάνω, πυθμένας + καπάκι.',
+        qty: `Κόσκινα ανάλογα με είδος αδρανούς — τελευταίο πάντα 0.063mm`,
+      },
+      {
+        ttl: 'Κοσκίνισμα',
+        dsc: 'Χειροκίνητο ή μηχανικό. Τέλος: κατακρατούμενο δεν αλλάζει >1% σε 1 min.',
+        note: q.dmax >= 4 && withFI
+          ? 'Κράτησε ξεχωριστά τα κλάσματα 4–80mm — χρειάζονται για τα Πλακοειδή'
+          : null,
+      },
+      {
+        ttl: 'Ζύγιση R_i + πυθμένας P',
+        dsc: 'Ζύγιση κάθε κόσκινου ξεχωριστά → R₁, R₂, ... Rn. Ζύγιση πυθμένα → P.',
+      },
+      {
+        ttl: 'Επαλήθευση ισοζυγίου',
+        dsc: 'Έλεγχος: αν διαφορά M₂ και (ΣR_i + P) > 1% M₂ → επανάληψη δοκιμής.',
+        fml: '|M₂ − (ΣRᵢ + P)| / M₂ × 100 < 1%',
+      },
+    ],
+  },
+  {
+    label: 'Υπολογισμός ΚΚΜ',
+    steps: q => [
+      {
+        ttl: '% κατακρατούμενο ανά κόσκινο',
+        dsc: 'Για κάθε κόσκινο: Rᵢ/M₁ × 100.',
+      },
+      {
+        ttl: '% αθροιστικό διερχόμενο',
+        dsc: 'Αθροιστικό % διερχόμενο από πάνω κόσκινο προς τα κάτω. Για 0.063mm:',
+        fml: 'f = [(M₁ − M₂) + P] / M₁ × 100  (%)',
+        note: '0.063mm: 1 δεκαδικό — όλα τα άλλα: ακέραιος',
+      },
+    ],
+  },
+];
+
+const GROUPS_FI = [
+  {
+    label: 'Πλακοειδή — ραβδωτά κόσκινα',
+    isFI: true,
+    steps: q => [
+      {
+        ttl: 'Κλάσματα 4–80mm στα ραβδωτά',
+        dsc: 'Κάθε κλάσμα d_i/D_i (από τα R_i) κοσκινίζεται στο αντίστοιχο ραβδωτό κόσκινο (πλάτος D_i/2 κατά Table 1 EN 933-3).',
+        note: 'Χειροκίνητο κοσκίνισμα — τέλος: κατακρατούμενο δεν αλλάζει >1% σε 1 min',
+      },
+      {
+        ttl: 'Ζύγιση διερχόμενου m_i',
+        dsc: 'Ζύγιση υλικού που διέρχεται από κάθε ραβδωτό κόσκινο → m_i.',
+      },
+      {
+        ttl: 'Υπολογισμός FI',
+        dsc: 'M₁(FI) = ΣR_i (κλάσματα 4–80mm), M₂(FI) = Σm_i',
+        fml: 'FI = (M₂ / M₁) × 100  (ακέραιος)',
+      },
+      {
+        ttl: 'FI ανά κλάσμα (προαιρετικό)',
+        dsc: 'Αν απαιτείται από προδιαγραφή:',
+        fml: 'FIᵢ = (mᵢ / Rᵢ) × 100',
+      },
+    ],
+  },
+];
+
+function getAllGroups() {
+  const q = getQ();
+  const base = GROUPS_KKM.map(g => ({ ...g, steps: g.steps(q) }));
+  if (withFI) {
+    // Εισαγωγή FI μεταξύ κοσκινίσματος και υπολογισμού ΚΚΜ
+    const fiGroups = GROUPS_FI.map(g => ({ ...g, steps: g.steps(q) }));
+    return [base[0], base[1], base[2], ...fiGroups, base[3]];
+  }
+  return base;
+}
+
+function render() {
+  const q = getQ();
+  el('qty-badge').textContent = `EN 933-1: ≥${q.minSample} kg`;
+  el('fi-banner').classList.toggle('show', withFI);
+
+  const sc = el('sc');
+  sc.innerHTML = '';
+  let stepNum = 1;
+  const groups = getAllGroups();
+
+  groups.forEach(g => {
+    const groupDiv = document.createElement('div');
+    groupDiv.innerHTML = `<div class="group-title">${g.label}</div>`;
+    const stepsDiv = document.createElement('div');
+    stepsDiv.className = 'steps';
+
+    g.steps.forEach(s => {
+      if (!s || !s.ttl) return;
+      const d2 = document.createElement('div');
+      d2.className = 'step';
+      d2.innerHTML = `
+        <div class="num">${stepNum++}</div>
+        <div style="flex:1">
+          <p class="ttl">${s.ttl}</p>
+          <p class="dsc">${s.dsc || ''}</p>
+          ${s.qty  ? `<span class="qty">${s.qty}</span><br>` : ''}
+          ${s.fml  ? `<span class="fml">${s.fml}</span><br>` : ''}
+          ${s.note ? `<span class="note">${s.note}</span>` : ''}
+        </div>`;
+      stepsDiv.appendChild(d2);
+    });
+
+    groupDiv.appendChild(stepsDiv);
+    sc.appendChild(groupDiv);
+  });
+
+  el('branch-area').style.display = fiChosen ? 'none' : 'block';
+}
+
+el('dmax-sel').onchange = render;
+el('btn-fi').onclick = function() { withFI=true; fiChosen=true; render(); };
+el('btn-no-fi').onclick = function() { withFI=false; fiChosen=true; el('branch-area').style.display='none'; render(); };
+el('btn-done').onclick = function() { window.parent.TestsPage.closeGuidePanel(); };
+
+render();
+</script>
+</body>
+</html>

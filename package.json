@@ -1,0 +1,20 @@
+{
+  "name": "lab-galatista",
+  "version": "1.0.0",
+  "description": "Εργαστήριο Λατομείων Γαλάτιστας — Σύστημα Ποιοτικού Ελέγχου",
+  "main": "main.js",
+  "scripts": {
+    "start": "npx electron ."
+  },
+  "keywords": [],
+  "author": "Λατομεία Γαλάτιστας ΑΕ",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.3.3"
+  },
+  "dependencies": {
+    "nodemailer": "^8.0.7",
+    "puppeteer": "^25.0.4",
+    "puppeteer-core": "^25.0.4"
+  }
+}

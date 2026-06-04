@@ -1,0 +1,75 @@
+<svg width="100%" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Stain test μπλε μεθυλενίου — εξέλιξη από αρνητικό σε θετικό</title>
+  <desc>Τρεις φάσεις stain test κατακόρυφα: αρνητικό, οριακό, θετικό</desc>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      text { font-family: Arial, sans-serif; }
+      .th { font-size:14px; font-weight:500; }
+      .ts { font-size:12px; }
+    </style>
+  </defs>
+
+  <!-- ΦΑΣΗ 1: ΑΡΝΗΤΙΚΟ -->
+  <circle cx="200" cy="100" r="55" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <g stroke="#dddbd3" stroke-width="0.4" opacity="0.7">
+    <line x1="152" y1="84"  x2="248" y2="84"/> <line x1="148" y1="97"  x2="252" y2="97"/>
+    <line x1="148" y1="110" x2="252" y2="110"/><line x1="150" y1="123" x2="250" y2="123"/>
+    <line x1="178" y1="52"  x2="178" y2="148"/><line x1="192" y1="46"  x2="192" y2="154"/>
+    <line x1="206" y1="45"  x2="206" y2="155"/><line x1="220" y1="48"  x2="220" y2="152"/>
+    <line x1="234" y1="55"  x2="234" y2="145"/>
+  </g>
+  <circle cx="200" cy="100" r="17" fill="#2563a8" fill-opacity="0.85"/>
+  <text class="th" x="320" y="88"  fill="#2c2c2a">&#913;&#961;&#957;&#951;&#964;&#953;&#954;&#972;</text>
+  <text class="ts" x="320" y="104" fill="#5f5e5a">&#967;&#969;&#961;&#943;&#962; halo</text>
+  <text class="ts" x="320" y="118" fill="#5f5e5a">&#8594; +5 ml MB</text>
+  <circle cx="302" cy="84" r="9" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <text class="ts" x="302" y="88" text-anchor="middle" fill="#2c2c2a">1</text>
+  <line x1="256" y1="100" x2="296" y2="100" stroke="#c8c6be" stroke-width="0.8" stroke-dasharray="3 2"/>
+  <line x1="200" y1="162" x2="200" y2="195" stroke="#c8c6be" stroke-width="1" marker-end="url(#arr)"/>
+
+  <!-- ΦΑΣΗ 2: ΟΡΙΑΚΟ -->
+  <circle cx="200" cy="260" r="55" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <g stroke="#dddbd3" stroke-width="0.4" opacity="0.7">
+    <line x1="152" y1="244" x2="248" y2="244"/><line x1="148" y1="257" x2="252" y2="257"/>
+    <line x1="148" y1="270" x2="252" y2="270"/><line x1="150" y1="283" x2="250" y2="283"/>
+    <line x1="178" y1="212" x2="178" y2="308"/><line x1="192" y1="206" x2="192" y2="314"/>
+    <line x1="206" y1="205" x2="206" y2="315"/><line x1="220" y1="208" x2="220" y2="312"/>
+    <line x1="234" y1="215" x2="234" y2="305"/>
+  </g>
+  <circle cx="200" cy="260" r="26" fill="#a8c4e0" fill-opacity="0.25"/>
+  <circle cx="200" cy="260" r="26" fill="none" stroke="#6a9cc4" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
+  <circle cx="200" cy="260" r="17" fill="#2563a8" fill-opacity="0.85"/>
+  <text class="th" x="320" y="248" fill="#2c2c2a">&#927;&#961;&#953;&#945;&#954;&#972;</text>
+  <text class="ts" x="320" y="264" fill="#5f5e5a">halo &#949;&#956;&#966;&#945;&#957;&#943;&#950;&#949;&#964;&#945;&#953;</text>
+  <text class="ts" x="320" y="278" fill="#5f5e5a">&#945;&#955;&#955;&#940; &#949;&#958;&#945;&#966;&#945;&#957;&#943;&#950;&#949;&#964;&#945;&#953;</text>
+  <text class="ts" x="320" y="292" fill="#5f5e5a">&#8594; +5 ml &#942; +2 ml</text>
+  <circle cx="302" cy="244" r="9" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <text class="ts" x="302" y="248" text-anchor="middle" fill="#2c2c2a">2</text>
+  <line x1="256" y1="260" x2="296" y2="260" stroke="#c8c6be" stroke-width="0.8" stroke-dasharray="3 2"/>
+  <line x1="200" y1="322" x2="200" y2="355" stroke="#c8c6be" stroke-width="1" marker-end="url(#arr)"/>
+
+  <!-- ΦΑΣΗ 3: ΘΕΤΙΚΟ -->
+  <circle cx="200" cy="420" r="55" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <g stroke="#dddbd3" stroke-width="0.4" opacity="0.7">
+    <line x1="152" y1="404" x2="248" y2="404"/><line x1="148" y1="417" x2="252" y2="417"/>
+    <line x1="148" y1="430" x2="252" y2="430"/><line x1="150" y1="443" x2="250" y2="443"/>
+    <line x1="178" y1="372" x2="178" y2="468"/><line x1="192" y1="366" x2="192" y2="474"/>
+    <line x1="206" y1="365" x2="206" y2="475"/><line x1="220" y1="368" x2="220" y2="472"/>
+    <line x1="234" y1="375" x2="234" y2="465"/>
+  </g>
+  <circle cx="200" cy="420" r="26" fill="#a8c4e0" fill-opacity="0.55"/>
+  <circle cx="200" cy="420" r="26" fill="none" stroke="#2563a8" stroke-width="1.5" opacity="0.85"/>
+  <circle cx="200" cy="420" r="17" fill="#2563a8" fill-opacity="0.9"/>
+  <line x1="200" y1="394" x2="200" y2="378" stroke="#444441" stroke-width="0.8" marker-end="url(#arr)"/>
+  <text class="ts" x="200" y="373" text-anchor="middle" fill="#444441">halo ~1mm</text>
+  <text class="th" x="320" y="408" fill="#2c2c2a">&#920;&#949;&#964;&#953;&#954;&#972;</text>
+  <text class="ts" x="320" y="424" fill="#5f5e5a">halo &#963;&#964;&#945;&#952;&#949;&#961;&#972;</text>
+  <text class="ts" x="320" y="438" fill="#5f5e5a">&#947;&#953;&#945; 5 &#963;&#965;&#957;&#949;&#967;&#972;&#956;&#949;&#957;&#945; min</text>
+  <text class="ts" x="320" y="452" fill="#5f5e5a">&#8594; &#954;&#945;&#964;&#945;&#947;&#961;&#945;&#966;&#942; V&#8321;</text>
+  <circle cx="302" cy="404" r="9" fill="#2563a8" stroke="#1e4f8c" stroke-width="1"/>
+  <text class="ts" x="302" y="408" text-anchor="middle" fill="#f0efeb">3</text>
+  <line x1="256" y1="420" x2="296" y2="420" stroke="#c8c6be" stroke-width="0.8" stroke-dasharray="3 2"/>
+</svg>

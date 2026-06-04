@@ -1,0 +1,89 @@
+<!--
+ * index.html
+ * Εργαστήριο Λατομείων Γαλάτιστας
+ * ─────────────────────────────────────────────────────────────
+ * Έκδοση : 0.99.3
+ * Ημ/νία  : 2026-06-02
+ -->
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Εργαστήριο Λατομείων Γαλάτιστας</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/reports-print.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ================================================
+         SIDEBAR — Κλειδωμένο, δεν αλλάζει ποτέ
+         ================================================ -->
+    <nav id="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/logo.png" class="logo-img" alt="Λατομεία Γαλάτιστας">
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">⬛</span>
+          <span class="nav-label">Αρχική</span>
+        </li>
+        <li class="nav-item" data-page="samples">
+          <span class="nav-icon">✎</span>
+          <span class="nav-label">Καταχώρηση</span>
+        </li>
+        <li class="nav-item" data-page="history">
+          <span class="nav-icon">≡</span>
+          <span class="nav-label">Ιστορικό</span>
+        </li>
+        <li class="nav-item" data-page="reports">
+          <span class="nav-icon">▤</span>
+          <span class="nav-label">Εκθέσεις</span>
+        </li>
+        <li class="nav-item" data-page="settings">
+          <span class="nav-icon">⚙</span>
+          <span class="nav-label">Ρυθμίσεις</span>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="ce-badge">
+          <span class="ce-mark">CE</span>
+          <span class="ce-info" id="sidebar-ce-number">1128-CPR-0196</span>
+        </div>
+        <div class="ce-expiry" id="sidebar-ce-expiry"></div>
+        <div id="sidebar-ce-warn" style="display:none;"></div>
+      </div>
+    </nav>
+
+    <!-- ================================================
+         CONTENT AREA — Φορτώνει δυναμικά κάθε σελίδα
+         ================================================ -->
+    <main id="content">
+      <div id="page-container"></div>
+    </main>
+
+  </div>
+
+  <!-- Global Modal -->
+  <div id="modal-overlay" class="hidden">
+    <div id="modal">
+      <div id="modal-header">
+        <div id="modal-title"></div>
+        <button id="modal-close" onclick="App.closeModal()">✕</button>
+      </div>
+      <div id="modal-body">
+        <div id="modal-content"></div>
+      </div>
+      <div id="modal-actions"></div>
+    </div>
+  </div>
+
+  <!-- Global Toasts -->
+  <div id="toast-container"></div>
+
+  <script src="main-app.js"></script>
+</body>
+</html>

@@ -1,0 +1,3778 @@
+/* ============================================================
+   main.css
+   Εργαστήριο Λατομείων Γαλάτιστας
+   ─────────────────────────────────────────────────────────────
+   Έκδοση : 0.99.3
+   Ημ/νία  : 2026-06-02
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* --- Μεταβλητές --- */
+:root {
+  --bg:           #0f1117;
+  --bg-panel:     #171b26;
+  --bg-card:      #1e2333;
+  --bg-input:     #252b3b;
+  --bg-hover:     #2a3147;
+
+  --border:       #2d3452;
+  --border-light: #374060;
+
+  --text:         #e8ecf4;
+  --text-muted:   #8892aa;
+  --text-dim:     #4a5470;
+
+  --accent:       #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: #1e3a6e;
+
+  --ok:           #16a34a;
+  --ok-bg:        #052e16;
+  --ok-light:     #22c55e;
+
+  --warn:         #d97706;
+  --warn-bg:      #2d1a00;
+  --warn-light:   #f59e0b;
+
+  --fail:         #dc2626;
+  --fail-bg:      #2d0707;
+  --fail-light:   #ef4444;
+
+  --sidebar-w:    220px;
+  --radius:       6px;
+  --radius-lg:    10px;
+
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+/* --- Reset --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+
+#app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* --- Sidebar --- */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.sidebar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-img {
+  width: 140px;
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: invert(1) brightness(0.55);
+}
+
+/* --- Nav Menu --- */
+.nav-menu {
+  list-style: none;
+  padding: 12px 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: var(--accent-light);
+  color: #fff;
+}
+
+.nav-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+}
+
+/* --- Sidebar Footer --- */
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.ce-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ce-mark {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 1px;
+}
+
+.ce-info {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.ce-expiry-warn {
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  cursor: default;
+}
+.ce-expiry-warn.warn {
+  background: rgba(245,158,11,0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.ce-expiry-warn.urgent {
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.ce-expiry-warn.expired {
+  background: rgba(220,38,38,0.2);
+  color: #dc2626;
+  border: 1px solid rgba(220,38,38,0.4);
+}
+
+/* CE Expiry Toast */
+.ce-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  max-width: 420px;
+  width: calc(100% - 48px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  animation: ceToastIn 0.3s ease;
+}
+.ce-toast-icon { font-size: 20px; flex-shrink: 0; }
+.ce-toast-body { flex: 1; }
+.ce-toast-title { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+.ce-toast-msg   { font-size: 12px; color: var(--text-muted); }
+.ce-toast-actions { display: flex; gap: 8px; margin-top: 10px; }
+@keyframes ceToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* --- Periodic Stats Tabs --- */
+.periodic-stab {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -2px;
+}
+.periodic-stab:hover { color: var(--text); }
+.periodic-stab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- Init Banner --- */
+.init-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.init-banner-icon { font-size: 18px; flex-shrink: 0; }
+.init-banner-body { flex: 1; }
+.init-banner-title { font-weight: 600; font-size: 13px; color: #f59e0b; }
+.init-banner-msg   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* --- Main Content --- */
+#content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+#page-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 14px 32px 12px;
+}
+
+.page {
+  display: block;
+  animation: fadeIn 0.2s ease;
+  width: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+/* Buttons στο header — vertically aligned με τον τίτλο */
+.page-header .header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.header-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.stat-card.highlight {
+  border-color: var(--fail);
+  background: var(--fail-bg);
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  line-height: 1;
+}
+
+.stat-card.highlight .stat-value { color: var(--fail-light); }
+
+.quick-actions {
+  grid-column: 1 / 3;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.quick-actions h2,
+.recent-samples h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.action-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
+}
+
+.action-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.action-btn.primary:hover { background: var(--accent-hover); }
+
+.recent-samples {
+  grid-column: 1 / -1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+
+.data-table tr:hover td { background: var(--bg-hover); }
+
+.data-table.full-width { width: 100%; }
+
+.empty-msg {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 32px !important;
+  font-style: italic;
+}
+
+/* ============================================================
+   FORMS
+   ============================================================ */
+
+.form-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 28px 12px;
+  margin-bottom: 8px;
+}
+
+.form-card h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group.full-width { grid-column: 1 / -1; }
+
+.form-group.required label::after {
+  content: ' *';
+  color: var(--fail-light);
+}
+
+label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="email"],
+input[type="number"],
+select,
+textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 14px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+  width: 100%;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+
+input::placeholder,
+textarea::placeholder { color: var(--text-dim); }
+
+select option { background: var(--bg-panel); }
+
+textarea { resize: vertical; min-height: 80px; }
+
+.input-with-action {
+  display: flex;
+  gap: 6px;
+}
+
+.input-with-action input { flex: 1; }
+
+.icon-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 12px;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn-primary,
+.btn-secondary {
+  padding: 10px 22px;
+  border-radius: var(--radius);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-light);
+}
+
+.btn-danger {
+  background: var(--fail-bg);
+  color: var(--fail-light);
+  border: 1px solid var(--fail);
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.btn-danger:hover { background: var(--fail); color: #fff; }
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  transition: all 0.15s ease;
+}
+
+.btn-sm:hover { background: var(--bg-hover); }
+
+/* ============================================================
+   BREADCRUMB & STEPS
+   ============================================================ */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bc-step {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+.bc-step.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.bc-step.done {
+  color: var(--ok-light);
+  border-color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.bc-arrow { color: var(--text-dim); font-size: 16px; }
+
+.form-step { display: none; }
+.form-step.active { display: block; }
+
+/* --- Sample Info Bar --- */
+.sample-info-bar {
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.info-bar-cat {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Χρώματα ανά κατηγορία */
+.sample-info-bar--fine {
+  background: #EAB308;
+  border-color: #EAB308;
+}
+.sample-info-bar--fine .info-bar-cat { color: #1a1400; }
+
+.sample-info-bar--coarse {
+  background: #3B82F6;
+  border-color: #3B82F6;
+}
+.sample-info-bar--coarse .info-bar-cat { color: #fff; }
+
+.sample-info-bar--allin {
+  background: #F97316;
+  border-color: #F97316;
+}
+.sample-info-bar--allin .info-bar-cat { color: #fff; }
+
+/* ============================================================
+   ΕΠΙΛΟΓΗ ΔΟΚΙΜΗΣ
+   ============================================================ */
+
+.test-selection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.test-card {
+  background: var(--bg-input);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.test-card:hover {
+  border-color: var(--border-light);
+  background: var(--bg-hover);
+}
+
+.test-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.test-card.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.test-card.done {
+  border-color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.test-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.test-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  gap: 8px;
+}
+
+.test-card-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.test-card-status {
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.status-done {
+  background: var(--ok-bg);
+  color: var(--ok-light);
+  border: 1px solid var(--ok);
+}
+
+.status-pending {
+  background: var(--bg-card);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+/* ============================================================
+   ΚΟΚΚΟΜΕΤΡΙΑ FORM
+   ============================================================ */
+
+.sieve-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.sieve-table th {
+  background: var(--bg-input);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  border-bottom: 2px solid var(--border);
+}
+
+.sieve-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.sieve-table tr.active-row td {
+  background: var(--accent-light);
+}
+
+.sieve-table tr:hover td { background: var(--bg-hover); }
+
+.sieve-table input[type="number"] {
+  width: 110px;
+  padding: 6px 10px;
+  text-align: right;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.passing-display {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 60px;
+  display: inline-block;
+  text-align: right;
+}
+
+.sieve-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+}
+
+/* Nav buttons μέσα στον πίνακα */
+.sieve-nav {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-ok {
+  background: var(--ok-bg);
+  color: var(--ok-light);
+  border: 1px solid var(--ok);
+}
+
+.badge-warn {
+  background: var(--warn-bg);
+  color: var(--warn-light);
+  border: 1px solid var(--warn);
+}
+
+.badge-fail {
+  background: var(--fail-bg);
+  color: var(--fail-light);
+  border: 1px solid var(--fail);
+}
+
+.badge-none {
+  background: var(--bg-card);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.badge-cat-fine {
+  background: #EAB308;
+  color: #1a1400;
+  border: 1px solid #EAB308;
+}
+
+.badge-cat-coarse {
+  background: #3B82F6;
+  color: #fff;
+  border: 1px solid #3B82F6;
+}
+
+.badge-cat-allin {
+  background: #F97316;
+  color: #fff;
+  border: 1px solid #F97316;
+}
+
+/* ============================================================
+   SETTINGS TABS
+   ============================================================ */
+
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 10px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: -1px;
+}
+
+.tab-btn:hover { color: var(--text); }
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ============================================================
+   FILTER BAR
+   ============================================================ */
+
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+}
+
+.search-input {
+  flex: 1;
+}
+
+/* ============================================================
+   MB FORM SPECIAL
+   ============================================================ */
+
+.volume-warning {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--warn-light);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mb-result {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mb-result > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.mb-result-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+
+.mb-result-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text);
+}
+
+.mb-result-unit {
+  font-size: 13px;
+  color: var(--text-muted);
+  align-self: flex-end;
+  margin-bottom: 4px;
+}
+
+/* ============================================================
+   SE FORM SPECIAL
+   ============================================================ */
+
+.se-measurements {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.se-row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+.se-row.warning-row {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.se-row-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 80px;
+}
+
+.se-value-display {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+
+.se-diff-warning {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--warn-light);
+  font-size: 12px;
+  font-weight: 600;
+  display: none;
+}
+
+.se-diff-warning.visible { display: flex; align-items: center; gap: 8px; }
+
+/* ============================================================
+   MISC
+   ============================================================ */
+
+.info-text {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.add-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.add-form input { flex: 1; }
+
+.preview-code {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+.preview-code strong {
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+}
+
+.coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 16px;
+  color: var(--text-dim);
+}
+
+.cs-icon { font-size: 48px; }
+.cs-text { font-size: 18px; font-weight: 600; }
+
+/* ============================================================
+   TOAST NOTIFICATIONS
+   ============================================================ */
+
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.toast {
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 260px;
+  animation: slideIn 0.2s ease;
+  border: 1px solid;
+}
+
+.toast-ok   { background: var(--ok-bg);   color: var(--ok-light);   border-color: var(--ok); }
+.toast-warn { background: var(--warn-bg); color: var(--warn-light); border-color: var(--warn); }
+.toast-fail { background: var(--fail-bg); color: var(--fail-light); border-color: var(--fail); }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+#modal-overlay.hidden { display: none; }
+
+#modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  min-width: 400px;
+  max-width: 1100px;
+  width: 94%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px;
+  min-height: 0;  /* κρίσιμο για flex child overflow */
+}
+
+/* Το grid 2col γεμίζει το modal-body */
+.tests-grid-2col {
+  min-height: 0;
+}
+
+#modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
+/* 2-column layout για αποτελέσματα δοκιμών */
+.tests-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: stretch;  /* ίσο ύψος */
+}
+
+.tests-col-left {
+  display: flex;
+  flex-direction: column;
+}
+.tests-col-left .test-section {
+  flex: 1;
+}
+
+.tests-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.tests-col-right .test-section {
+  flex: 1;  /* ισόποση κατανομή ύψους */
+}
+
+.tests-col-right .test-section {
+  padding: 10px 14px;
+}
+
+.tests-col-right .test-section-title {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  font-size: 10px;
+}
+
+.tests-col-right .big-value {
+  font-size: 26px;
+  padding-right: 14px;
+  margin: 2px 0;
+}
+
+/* Τιμές FI/SE/MB δεξιά-στοιχισμένες με padding */
+.test-section .big-value {
+  justify-content: flex-end;
+  text-align: right;
+  padding-right: 12px;
+  font-size: 24px;   /* μικρότερο από 30px default */
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+/* ============================================================
+   DASHBOARD — Αρχική Οθόνη
+   ============================================================ */
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  transition: all 0.15s ease;
+}
+
+.stat-clickable {
+  cursor: pointer;
+}
+
+.stat-clickable:hover {
+  border-color: var(--border-light);
+  background: var(--bg-hover);
+}
+
+.stat-active {
+  border-color: var(--accent) !important;
+  background: var(--accent-light) !important;
+}
+
+.stat-active .stat-label { color: #93c5fd; }
+.stat-active .stat-value { color: #fff; }
+.stat-active .stat-sub   { color: #93c5fd; }
+
+.stat-danger { border-color: var(--fail); }
+.stat-danger.stat-has-data .stat-value { color: var(--fail-light); }
+
+.stat-info { cursor: default; }
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Πίνακας */
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.btn-sm-action {
+  padding: 7px 14px;
+  font-size: 12px;
+}
+
+/* ============================================================
+   SAMPLE VIEW MODAL
+   ============================================================ */
+
+.sample-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: var(--bg-input);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.sample-info-grid .full-width { grid-column: 1 / -1; }
+
+.info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-right: 6px;
+}
+
+.tests-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.test-section {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.test-section.test-ok   { border-color: var(--ok); }
+.test-section.test-warn { border-color: var(--warn); }
+.test-section.test-fail { border-color: var(--fail); }
+.test-section.test-empty { opacity: 0.5; }
+
+.test-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.test-section-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.test-weights {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.mini-table th {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.mini-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.mini-table tr:last-child td { border-bottom: none; }
+
+.diameters-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.big-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 30px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text);
+}
+
+/* Modal header */
+#modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 0;
+  border-bottom: none;
+}
+
+#modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+
+#modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+/* ============================================================
+   ΠΡΟΣΘΗΚΕΣ v1.1 — Πλάνο Δοκιμών & Καταχώρηση
+   Append στο τέλος του main.css
+   ============================================================ */
+
+/* --- Subtitle στο page-header --- */
+.page-subtitle {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --- Intro paragraph σε form-card --- */
+.form-card-intro {
+  margin: -4px 0 10px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.form-card-intro em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* --- Hint κάτω από input --- */
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ============================================================
+   ΠΛΑΝΟ ΔΟΚΙΜΩΝ — Step 2
+   ============================================================ */
+
+.plan-summary {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  font-size: 13px;
+}
+
+.plan-summary-row {
+  display: contents;
+}
+
+.plan-summary .plan-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.plan-summary .plan-value {
+  color: var(--text);
+}
+
+.plan-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.plan-check-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plan-check-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.plan-check-card input[type="checkbox"] {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.plan-check-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.plan-check-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-check-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.plan-check-title strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.plan-check-std {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+}
+
+.plan-check-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   ΕΠΙΒΕΒΑΙΩΣΗ — Step 3
+   ============================================================ */
+
+.confirm-block {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+
+.confirm-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 20px;
+  font-size: 13px;
+}
+
+.confirm-grid > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.confirm-grid-full {
+  grid-column: 1 / -1;
+}
+
+.confirm-grid .lbl {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.confirm-grid code {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.confirm-plan-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ============================================================
+   SUCCESS CARD
+   ============================================================ */
+
+.success-card {
+  text-align: center;
+  padding: 36px 24px;
+}
+
+.success-card .success-icon {
+  font-size: 48px;
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok-light);
+  margin: 0 auto 18px auto;
+  border: 2px solid var(--ok);
+}
+
+.success-card h2 {
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.success-card .form-actions {
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* ============================================================
+   BADGES — extra variants
+   ============================================================ */
+
+.badge-info {
+  background: var(--accent-light);
+  color: #93c5fd;
+  border: 1px solid var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.badge-info small {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.8;
+}
+
+/* ============================================================
+   FULL-WIDTH FORM GROUP (αν δεν υπάρχει ήδη)
+   ============================================================ */
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   TEXTAREA — βασικό style αν δεν υπάρχει
+   ============================================================ */
+.form-card textarea,
+.form-group textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-card textarea:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ============================================================
+   TEXT-MUTED inline
+   ============================================================ */
+.text-muted {
+  color: var(--text-muted);
+}
+/* ============================================================
+   ΠΡΟΣΘΗΚΕΣ v1.1 — Πλάνο Δοκιμών & Καταχώρηση
+   Append στο τέλος του main.css
+   ============================================================ */
+
+/* --- Subtitle στο page-header --- */
+.page-subtitle {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --- Intro paragraph σε form-card --- */
+.form-card-intro {
+  margin: -4px 0 10px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.form-card-intro em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* --- Hint κάτω από input --- */
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ============================================================
+   ΠΛΑΝΟ ΔΟΚΙΜΩΝ — Step 2
+   ============================================================ */
+
+.plan-summary {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  font-size: 13px;
+}
+
+.plan-summary-row {
+  display: contents;
+}
+
+.plan-summary .plan-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.plan-summary .plan-value {
+  color: var(--text);
+}
+
+.plan-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.plan-check-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plan-check-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.plan-check-card input[type="checkbox"] {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.plan-check-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.plan-check-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-check-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.plan-check-title strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.plan-check-std {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+}
+
+.plan-check-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   ΕΠΙΒΕΒΑΙΩΣΗ — Step 3
+   ============================================================ */
+
+.confirm-block {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+
+.confirm-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 20px;
+  font-size: 13px;
+}
+
+.confirm-grid > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.confirm-grid-full {
+  grid-column: 1 / -1;
+}
+
+.confirm-grid .lbl {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.confirm-grid code {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.confirm-plan-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ============================================================
+   SUCCESS CARD
+   ============================================================ */
+
+.success-card {
+  text-align: center;
+  padding: 36px 24px;
+}
+
+.success-card .success-icon {
+  font-size: 48px;
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok-light);
+  margin: 0 auto 18px auto;
+  border: 2px solid var(--ok);
+}
+
+.success-card h2 {
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.success-card .form-actions {
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* ============================================================
+   BADGES — extra variants
+   ============================================================ */
+
+.badge-info {
+  background: var(--accent-light);
+  color: #93c5fd;
+  border: 1px solid var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.badge-info small {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.8;
+}
+
+/* ============================================================
+   FULL-WIDTH FORM GROUP (αν δεν υπάρχει ήδη)
+   ============================================================ */
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   TEXTAREA — βασικό style αν δεν υπάρχει
+   ============================================================ */
+.form-card textarea,
+.form-group textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-card textarea:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ============================================================
+   TEXT-MUTED inline
+   ============================================================ */
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   TESTS PAGE — v1.1
+   ============================================================ */
+
+.test-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Run badge μέσα στο test card */
+.run-badge {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Status classes για test cards */
+.test-card-status.status-active {
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* History peek (στο κάτω μέρος του card) */
+.history-peek {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* History strip */
+.history-strip {
+  grid-column: 1 / -1;  /* Εκτείνεται σε όλο το πλάτος */
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+.history-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.history-table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-top: 4px;
+}
+
+.reject-reason {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 280px;
+}
+
+/* Global utility */
+.hidden { display: none !important; }
+
+/* Tests split layout */
+#tests-split {
+  display: block;
+}
+
+#tests-split.guide-open {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: start;
+  align-content: start;
+}
+
+/* Tests form area */
+#tests-form-area {
+  margin-top: 8px;
+  min-width: 0; /* prevent grid blowout */
+}
+
+/* Guide panel */
+#tests-guide-panel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  overflow: hidden;
+  min-width: 0;
+  height: calc(100vh - 200px);
+  max-height: calc(100vh - 200px);
+  min-height: 300px;
+  position: sticky;
+  top: 0;
+  margin-top: 8px;
+  align-self: start;
+}
+
+#tests-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-input);
+  flex-shrink: 0;
+}
+
+#tests-guide-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+#tests-guide-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+#tests-guide-close:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+#tests-guide-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  display: block;
+}
+
+
+/* ============================================================
+   HISTORY PAGE
+   ============================================================ */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: 140px;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Clickable row */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.clickable-row:hover {
+  background: var(--bg-hover) !important;
+}
+
+/* Primary small button */
+.btn-primary-sm {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary-sm:hover {
+  opacity: 0.85;
+}
+
+/* Sample info bar στo tests page */
+.sample-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 0 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sample-info-bar em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+/* btn-sm για tests page header */
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+.btn-sm:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* ============================================================
+   ΠΡΟΣΘΗΚΕΣ v1.1 — Πλάνο Δοκιμών & Καταχώρηση
+   Append στο τέλος του main.css
+   ============================================================ */
+
+/* --- Subtitle στο page-header --- */
+.page-subtitle {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --- Intro paragraph σε form-card --- */
+.form-card-intro {
+  margin: -4px 0 10px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.form-card-intro em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* --- Hint κάτω από input --- */
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ============================================================
+   ΠΛΑΝΟ ΔΟΚΙΜΩΝ — Step 2
+   ============================================================ */
+
+.plan-summary {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  font-size: 13px;
+}
+
+.plan-summary-row {
+  display: contents;
+}
+
+.plan-summary .plan-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.plan-summary .plan-value {
+  color: var(--text);
+}
+
+.plan-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.plan-check-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plan-check-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.plan-check-card input[type="checkbox"] {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.plan-check-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.plan-check-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-check-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.plan-check-title strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.plan-check-std {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+}
+
+.plan-check-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   ΕΠΙΒΕΒΑΙΩΣΗ — Step 3
+   ============================================================ */
+
+.confirm-block {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+
+.confirm-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 20px;
+  font-size: 13px;
+}
+
+.confirm-grid > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.confirm-grid-full {
+  grid-column: 1 / -1;
+}
+
+.confirm-grid .lbl {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.confirm-grid code {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.confirm-plan-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ============================================================
+   SUCCESS CARD
+   ============================================================ */
+
+.success-card {
+  text-align: center;
+  padding: 36px 24px;
+}
+
+.success-card .success-icon {
+  font-size: 48px;
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok-light);
+  margin: 0 auto 18px auto;
+  border: 2px solid var(--ok);
+}
+
+.success-card h2 {
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.success-card .form-actions {
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* ============================================================
+   BADGES — extra variants
+   ============================================================ */
+
+.badge-info {
+  background: var(--accent-light);
+  color: #93c5fd;
+  border: 1px solid var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.badge-info small {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.8;
+}
+
+/* ============================================================
+   FULL-WIDTH FORM GROUP (αν δεν υπάρχει ήδη)
+   ============================================================ */
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   TEXTAREA — βασικό style αν δεν υπάρχει
+   ============================================================ */
+.form-card textarea,
+.form-group textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-card textarea:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ============================================================
+   TEXT-MUTED inline
+   ============================================================ */
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   TESTS PAGE — v1.1
+   ============================================================ */
+
+.test-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Run badge μέσα στο test card */
+.run-badge {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Status classes για test cards */
+.test-card-status.status-active {
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* History peek (στο κάτω μέρος του card) */
+.history-peek {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* History strip */
+.history-strip {
+  grid-column: 1 / -1;  /* Εκτείνεται σε όλο το πλάτος */
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+.history-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.history-table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-top: 4px;
+}
+
+.reject-reason {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 280px;
+}
+
+/* Tests split layout */
+#tests-split {
+  display: block;
+}
+
+#tests-split.guide-open {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: start;
+  align-content: start;
+}
+
+/* Tests form area */
+#tests-form-area {
+  margin-top: 8px;
+  min-width: 0; /* prevent grid blowout */
+}
+
+/* Guide panel */
+#tests-guide-panel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  overflow: hidden;
+  min-width: 0;
+  height: calc(100vh - 200px);
+  max-height: calc(100vh - 200px);
+  min-height: 300px;
+  position: sticky;
+  top: 0;
+  margin-top: 8px;
+  align-self: start;
+}
+
+#tests-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-input);
+  flex-shrink: 0;
+}
+
+#tests-guide-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+#tests-guide-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+#tests-guide-close:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+#tests-guide-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  display: block;
+}
+
+
+/* ============================================================
+   HISTORY PAGE
+   ============================================================ */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: 140px;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Clickable row */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.clickable-row:hover {
+  background: var(--bg-hover) !important;
+}
+
+/* Primary small button */
+.btn-primary-sm {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary-sm:hover {
+  opacity: 0.85;
+}
+
+/* Sample info bar στo tests page */
+.sample-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 0 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sample-info-bar em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+/* btn-sm για tests page header */
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+.btn-sm:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ============================================================
+   SETTINGS PAGE
+   ============================================================ */
+
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.settings-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  padding: 10px 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.settings-tab:hover {
+  color: var(--text);
+}
+
+.settings-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.settings-panel {
+  display: none;
+}
+
+.settings-panel.active {
+  display: block;
+}
+/* ============================================================
+   ΠΡΟΣΘΗΚΕΣ v1.1 — Πλάνο Δοκιμών & Καταχώρηση
+   Append στο τέλος του main.css
+   ============================================================ */
+
+/* --- Subtitle στο page-header --- */
+.page-subtitle {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --- Intro paragraph σε form-card --- */
+.form-card-intro {
+  margin: -4px 0 10px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.form-card-intro em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* --- Hint κάτω από input --- */
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ============================================================
+   ΠΛΑΝΟ ΔΟΚΙΜΩΝ — Step 2
+   ============================================================ */
+
+.plan-summary {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  font-size: 13px;
+}
+
+.plan-summary-row {
+  display: contents;
+}
+
+.plan-summary .plan-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.plan-summary .plan-value {
+  color: var(--text);
+}
+
+.plan-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.plan-check-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plan-check-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.plan-check-card input[type="checkbox"] {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.plan-check-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.plan-check-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-check-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.plan-check-title strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.plan-check-std {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+}
+
+.plan-check-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   ΕΠΙΒΕΒΑΙΩΣΗ — Step 3
+   ============================================================ */
+
+.confirm-block {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+
+.confirm-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 20px;
+  font-size: 13px;
+}
+
+.confirm-grid > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.confirm-grid-full {
+  grid-column: 1 / -1;
+}
+
+.confirm-grid .lbl {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.confirm-grid code {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.confirm-plan-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ============================================================
+   SUCCESS CARD
+   ============================================================ */
+
+.success-card {
+  text-align: center;
+  padding: 36px 24px;
+}
+
+.success-card .success-icon {
+  font-size: 48px;
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok-light);
+  margin: 0 auto 18px auto;
+  border: 2px solid var(--ok);
+}
+
+.success-card h2 {
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.success-card .form-actions {
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* ============================================================
+   BADGES — extra variants
+   ============================================================ */
+
+.badge-info {
+  background: var(--accent-light);
+  color: #93c5fd;
+  border: 1px solid var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.badge-info small {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.8;
+}
+
+/* ============================================================
+   FULL-WIDTH FORM GROUP (αν δεν υπάρχει ήδη)
+   ============================================================ */
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   TEXTAREA — βασικό style αν δεν υπάρχει
+   ============================================================ */
+.form-card textarea,
+.form-group textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-card textarea:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ============================================================
+   TEXT-MUTED inline
+   ============================================================ */
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   TESTS PAGE — v1.1
+   ============================================================ */
+
+.test-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Run badge μέσα στο test card */
+.run-badge {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Status classes για test cards */
+.test-card-status.status-active {
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* History peek (στο κάτω μέρος του card) */
+.history-peek {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* History strip */
+.history-strip {
+  grid-column: 1 / -1;  /* Εκτείνεται σε όλο το πλάτος */
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+.history-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.history-table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-top: 4px;
+}
+
+.reject-reason {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 280px;
+}
+
+/* Tests split layout */
+#tests-split {
+  display: block;
+}
+
+#tests-split.guide-open {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: start;
+  align-content: start;
+}
+
+/* Tests form area */
+#tests-form-area {
+  margin-top: 8px;
+  min-width: 0; /* prevent grid blowout */
+}
+
+/* Guide panel */
+#tests-guide-panel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  overflow: hidden;
+  min-width: 0;
+  height: calc(100vh - 200px);
+  max-height: calc(100vh - 200px);
+  min-height: 300px;
+  position: sticky;
+  top: 0;
+  margin-top: 8px;
+  align-self: start;
+}
+
+#tests-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-input);
+  flex-shrink: 0;
+}
+
+#tests-guide-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+#tests-guide-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+#tests-guide-close:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+#tests-guide-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  display: block;
+}
+
+
+/* ============================================================
+   HISTORY PAGE
+   ============================================================ */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: 140px;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Clickable row */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.clickable-row:hover {
+  background: var(--bg-hover) !important;
+}
+
+/* Primary small button */
+.btn-primary-sm {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary-sm:hover {
+  opacity: 0.85;
+}
+
+/* Sample info bar στo tests page */
+.sample-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 0 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sample-info-bar em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+/* btn-sm για tests page header */
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+.btn-sm:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ============================================================
+   SETTINGS PAGE
+   ============================================================ */
+
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.settings-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  padding: 10px 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.settings-tab:hover {
+  color: var(--text);
+}
+
+.settings-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.settings-panel {
+  display: none;
+}
+
+.settings-panel.active {
+  display: block;
+}
+
+/* ============================================================
+   REPORTS PAGE
+   ============================================================ */
+
+/* Stats cards για περιοδική αναφορά */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   REPORT PAGE (για PDF)
+   ============================================================ */
+
+.report-page {
+  background: #fff;
+  color: #111;
+  padding: 32px 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #111;
+}
+
+.report-lab-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.report-lab-address {
+  color: #555;
+}
+
+.report-ce-info {
+  text-align: right;
+}
+
+.report-ce-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #555;
+}
+
+.report-ce-number {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.report-ce-body {
+  color: #555;
+}
+
+.report-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 16px 0;
+  padding: 10px;
+  border: 1px solid #111;
+}
+
+.report-meta-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+.report-meta-table td {
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+}
+
+.meta-label {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #555;
+  width: 20%;
+}
+
+.meta-value {
+  width: 30%;
+}
+
+.report-section-divider {
+  border-top: 1px solid #ddd;
+  margin: 16px 0;
+}
+
+.report-section {
+  margin-bottom: 20px;
+  break-inside: avoid;
+}
+
+.report-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #f0f0f0;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border-left: 3px solid #111;
+}
+
+.report-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.report-data-table th {
+  background: #f0f0f0;
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  text-align: center;
+  font-weight: 600;
+}
+
+.report-data-table td {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.report-row-ok td  { background: #f0fdf4; }
+.report-row-fail td { background: #fef2f2; color: #dc2626; font-weight: 700; }
+.report-row-total td { background: #f0f0f0; font-weight: 700; }
+
+.result-value  { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+.result-big    { font-size: 15px; font-weight: 700; }
+
+.report-meta-row {
+  display: flex;
+  gap: 20px;
+  font-size: 11px;
+  color: #555;
+  margin-top: 6px;
+}
+
+.report-chart {
+  margin-top: 12px;
+  border: 1px solid #ddd;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.report-footer {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+  font-size: 10px;
+  color: #888;
+  display: flex;
+  justify-content: space-between;
+}
+
+@media print {
+  .report-page {
+    border: none;
+    padding: 0;
+  }
+  .report-section {
+    break-inside: avoid;
+  }
+}
+
+/* ============================================================
+   CLOUD SYNC STEPS
+   ============================================================ */
+.cloud-step {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.cloud-step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cloud-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.cloud-step-num.ok   { background: var(--ok);   color: #fff; }
+.cloud-step-num.fail { background: var(--fail);  color: #fff; }
+.cloud-step-num.warn { background: var(--warn);  color: #fff; }
+
+.cloud-step-status {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cloud-step-status.ok   { color: var(--ok-light);   }
+.cloud-step-status.fail { color: var(--fail-light);  }
+
+.cloud-step-body {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}

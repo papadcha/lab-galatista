@@ -1,0 +1,48 @@
+# ---- Node / Electron ----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ---- Electron build output ----
+dist/
+build/
+out/
+*.AppImage
+*.exe
+*.dmg
+*.deb
+*.snap
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+venv/
+.venv/
+env/
+
+# ---- PyInstaller (Windows build) ----
+*.spec.bak
+
+# ---- Βάση δεδομένων (πραγματικά δεδομένα — backup μέσω rclone, rebuild μέσω seed_data.py/setup_db.sh) ----
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.backup_before_*
+database/laboratory.db.backup*
+
+# ---- Runtime config (μηχανο-ειδικά paths + cloud remote) ----
+lab-config.json
+
+# ---- Bundled binaries ανά πλατφόρμα (κατεβαίνουν ξεχωριστά) ----
+resources/python/
+resources/rclone/
+
+# ---- OS junk ----
+.DS_Store
+Thumbs.db
+*~
+*.swp

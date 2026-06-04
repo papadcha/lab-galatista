@@ -1,0 +1,612 @@
+<!--
+ * settings.html
+ * Εργαστήριο Λατομείων Γαλάτιστας
+ * ─────────────────────────────────────────────────────────────
+ * Έκδοση : 0.99.3
+ * Ημ/νία  : 2026-06-02
+ -->
+<!--
+  ──────────────────────────────────────────────────────────────
+  ΣΕΛΙΔΑ: Ρυθμίσεις (settings.html)  — v2
+  ──────────────────────────────────────────────────────────────
+  Tabs:
+    1. Εργαστήριο  — στοιχεία + CE
+    2. Αδρανή      — είδη υλικών + κόσκινα (ΝΕΟ)
+    3. Πηγές       — λατομεία/πηγές υλικού
+    4. Τεχνικοί    — add/deactivate
+    5. Προδιαγραφές — όρια κοκκομετρίας ανά προϊόν
+    6. Email       — SMTP
+  ──────────────────────────────────────────────────────────────
+-->
+
+<div class="page">
+
+  <div class="page-header">
+    <h1>Ρυθμίσεις</h1>
+    <p class="page-subtitle">
+      Διαχείριση στοιχείων εργαστηρίου, ειδών αδρανών,
+      πηγών υλικού, τεχνικών και προδιαγραφών.
+    </p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="settings-tabs">
+    <button class="settings-tab active" data-tab="lab"
+            onclick="SettingsPage.switchTab('lab')">
+      🏢 Εργαστήριο
+    </button>
+    <button class="settings-tab" data-tab="materials"
+            onclick="SettingsPage.switchTab('materials')">
+      🪨 Αδρανή
+    </button>
+    <button class="settings-tab" data-tab="sources"
+            onclick="SettingsPage.switchTab('sources')">
+      ⛏ Προέλευση Υλικού
+    </button>
+    <button class="settings-tab" data-tab="technicians"
+            onclick="SettingsPage.switchTab('technicians')">
+      👷 Τεχνικοί
+    </button>
+    <button class="settings-tab" data-tab="specs"
+            onclick="SettingsPage.switchTab('specs')">
+      📊 Προδιαγραφές
+    </button>
+    <button class="settings-tab" data-tab="email"
+            onclick="SettingsPage.switchTab('email')">
+      📧 Email
+    </button>
+    <button class="settings-tab" data-tab="storage"
+            onclick="SettingsPage.switchTab('storage')">
+      💾 Αποθήκευση
+    </button>
+  </div>
+
+  <!-- ① ΕΡΓΑΣΤΗΡΙΟ -->
+  <div class="settings-panel active" id="tab-lab">
+    <div class="form-card">
+      <h2>Στοιχεία Εργαστηρίου</h2>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Επωνυμία</label>
+          <input type="text" id="lab-name" placeholder="πχ ΛΑΤΟΜΕΙΑ ΓΑΛΑΤΙΣΤΑΣ ΑΕ">
+        </div>
+        <div class="form-group full-width">
+          <label>Διεύθυνση</label>
+          <input type="text" id="lab-address" placeholder="Οδός, Πόλη, ΤΚ">
+        </div>
+        <div class="form-group">
+          <label>Τηλέφωνο</label>
+          <input type="text" id="lab-phone" placeholder="πχ 2310 000000">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="lab-email" placeholder="lab@example.com">
+        </div>
+      </div>
+
+      <h3 style="margin:20px 0 12px;font-size:14px;color:var(--text-muted);
+                 text-transform:uppercase;letter-spacing:0.5px;">
+        Πιστοποίηση CE
+      </h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Αριθμός Πιστοποιητικού</label>
+          <input type="text" id="lab-ce-number" placeholder="πχ 1128-CPR-0196">
+        </div>
+        <div class="form-group">
+          <label>Φορέας Πιστοποίησης</label>
+          <input type="text" id="lab-ce-body" placeholder="πχ EUROCERT Α.Ε.">
+        </div>
+        <div class="form-group">
+          <label>Ισχύς Από</label>
+          <input type="text" id="lab-ce-from" placeholder="πχ 01/04/2025">
+        </div>
+        <div class="form-group">
+          <label>Ισχύς Έως</label>
+          <input type="text" id="lab-ce-to" placeholder="πχ 31/03/2028">
+        </div>
+      </div>
+
+      <h3 style="margin:20px 0 12px;font-size:14px;color:var(--text-muted);
+                 text-transform:uppercase;letter-spacing:0.5px;">
+        Αναφορές PDF
+      </h3>
+      <div class="form-group">
+        <label>Γραμματοσειρά PDF</label>
+        <select id="lab-pdf-font" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
+          <option value="LiberationSans">Liberation Sans (Arial-compatible)</option>
+          <option value="DejaVuSans">DejaVu Sans</option>
+          <option value="FreeSans">FreeSans (GNU)</option>
+          <option value="Carlito">Carlito (Calibri-compatible)</option>
+        </select>
+        <small class="form-hint">Χρησιμοποιείται σε όλα τα PDF δελτία αποτελεσμάτων.</small>
+      </div>
+
+      <h3 style="margin:20px 0 12px;font-size:14px;color:var(--text-muted);
+                 text-transform:uppercase;letter-spacing:0.5px;">
+        Workflow Guide
+      </h3>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+          <input type="checkbox" id="lab-guide-enabled" onchange="SettingsPage.saveGuideEnabled(this.checked)"
+                 style="width:16px;height:16px;">
+          <span>Εμφάνιση οδηγού βημάτων κατά την έναρξη δοκιμής</span>
+        </label>
+        <small class="form-hint">
+          Ο οδηγός εμφανίζει τα βήματα της διαδικασίας πριν τη φόρμα καταχώρησης.
+          Μπορεί να απενεργοποιηθεί για έμπειρους χρήστες.
+        </small>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-primary" onclick="SettingsPage.saveLab()">
+          ✓ Αποθήκευση
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② ΑΔΡΑΝΗ (ΝΕΟ) -->
+  <div class="settings-panel" id="tab-materials">
+
+    <!-- Λίστα ειδών αδρανών -->
+    <div class="form-card" id="materials-list-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  margin-bottom:16px;">
+        <div>
+          <h2 style="margin:0;">Είδη Αδρανών</h2>
+          <p style="margin:4px 0 0;font-size:12px;color:var(--text-muted);">
+            Κάντε κλικ σε είδος για διαχείριση κόσκινων
+          </p>
+        </div>
+        <button class="btn-primary"
+                onclick="SettingsPage.showAddProduct()">
+          + Νέο Είδος
+        </button>
+      </div>
+
+      <table class="data-table full-width">
+        <thead>
+          <tr>
+            <th>Όνομα / Εύρος</th>
+            <th>Κατηγορία</th>
+            <th>Πρότυπο</th>
+            <th>Κόσκινα — κλικ για επεξεργασία</th>
+            <th>Κατάσταση</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="products-list">
+          <tr>
+            <td colspan="7" class="empty-msg">Φόρτωση...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Διαχείριση κόσκινων (εμφανίζεται όταν επιλεγεί προϊόν) -->
+    <div class="form-card" id="sieves-card" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  margin-bottom:4px;">
+        <div>
+          <h2 style="margin:0;" id="sieves-card-title">Κόσκινα</h2>
+          <p style="margin:4px 0 0;font-size:12px;color:var(--text-muted);"
+             id="sieves-card-subtitle"></p>
+        </div>
+        <button class="btn-sm" style="padding:6px 12px;"
+                onclick="SettingsPage.closeSievesCard()">
+          ✕ Κλείσιμο
+        </button>
+      </div>
+
+      <p style="font-size:12px;color:var(--text-muted);margin:8px 0 16px;">
+        Προσθέστε κόσκινα με free entry (πχ <code>0.075</code>, <code>37.5</code>) ή επιλέξτε από την αυτόματη λίστα ISO.
+        Δεξί κλικ σε κόσκινο για αφαίρεση. Κόκκινο <strong>⚠</strong> = πιθανή ασυμφωνία με εύρος κόκκου.
+      </p>
+
+      <div id="sieves-selector">
+        <!-- Δημιουργείται δυναμικά από JS -->
+      </div>
+
+      <div class="form-actions" style="margin-top:16px;">
+        <button class="btn-primary" onclick="SettingsPage.saveSieves()">
+          ✓ Αποθήκευση Κόσκινων
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ③ ΠΗΓΕΣ ΥΛΙΚΟΥ -->
+  <div class="settings-panel" id="tab-sources">
+    <div class="form-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  margin-bottom:16px;">
+        <h2 style="margin:0;">Προέλευση Υλικού</h2>
+        <button class="btn-primary"
+                onclick="SettingsPage.showAddSource()">
+          + Νέα Προέλευση
+        </button>
+      </div>
+
+      <table class="data-table full-width">
+        <thead>
+          <tr>
+            <th>Κωδικός</th>
+            <th>Επωνυμία</th>
+            <th>Τοποθεσία</th>
+            <th>Κατάσταση</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="sources-list">
+          <tr>
+            <td colspan="5" class="empty-msg">Φόρτωση...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ④ ΤΕΧΝΙΚΟΙ -->
+  <div class="settings-panel" id="tab-technicians">
+    <div class="form-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  margin-bottom:16px;">
+        <h2 style="margin:0;">Τεχνικοί</h2>
+        <button class="btn-primary"
+                onclick="SettingsPage.showAddTechnician()">
+          + Νέος Τεχνικός
+        </button>
+      </div>
+
+      <table class="data-table full-width">
+        <thead>
+          <tr>
+            <th>Ονοματεπώνυμο</th>
+            <th>Κατάσταση</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="technicians-list">
+          <tr>
+            <td colspan="3" class="empty-msg">Φόρτωση...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ⑤ ΠΡΟΔΙΑΓΡΑΦΕΣ -->
+  <div class="settings-panel" id="tab-specs">
+    <div class="form-card">
+      <h2>Προδιαγραφές Κοκκομετρίας</h2>
+      <p class="form-card-intro">
+        Όρια διερχόμενου (%) ανά κόσκινο για κάθε προϊόν.
+        Χρησιμοποιούνται στα γραφήματα κοκκομετρίας και στους
+        ελέγχους συμμόρφωσης των αναφορών.
+      </p>
+
+      <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;">
+        <div class="filter-group">
+          <label>Προϊόν</label>
+          <select id="spec-product" onchange="SettingsPage.loadSpecs()">
+            <option value="">— Επιλέξτε —</option>
+          </select>
+        </div>
+        <div class="filter-group" id="spec-existing-wrap" style="display:none;">
+          <label>Προδιαγραφή</label>
+          <select id="spec-existing" onchange="SettingsPage.selectSpec()">
+            <option value="">— Επιλέξτε —</option>
+          </select>
+        </div>
+        <div class="filter-group" style="align-self:flex-end;">
+          <button class="btn-secondary" id="btn-new-spec" onclick="SettingsPage.newSpec()" style="display:none;">
+            + Νέα Προδιαγραφή
+          </button>
+        </div>
+      </div>
+
+      <div id="spec-edit-area" style="display:none;margin-bottom:12px;">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="filter-group">
+            <label>Τύπος</label>
+            <select id="spec-type">
+              <option value="EN">EN</option>
+              <option value="ΕΤΕΠ">ΕΤΕΠ</option>
+              <option value="CE">CE</option>
+              <option value="INTERNAL">Εσωτερική</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Όνομα</label>
+            <input type="text" id="spec-name" placeholder="πχ EN 12620 — GF85" style="min-width:200px;">
+          </div>
+        </div>
+      </div>
+
+      <div id="specs-table-area">
+        <p class="form-card-intro">Επιλέξτε προϊόν για εμφάνιση ορίων.</p>
+      </div>
+
+      <div class="form-actions" id="specs-actions" style="display:none;">
+        <button class="btn-secondary" onclick="SettingsPage.deleteSpec()" style="color:var(--fail);">
+          ✕ Διαγραφή
+        </button>
+        <button class="btn-primary" onclick="SettingsPage.saveSpecs()">
+          ✓ Αποθήκευση
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ EMAIL / SMTP -->
+  <div class="settings-panel" id="tab-email">
+    <div class="form-card">
+      <h2>Ρυθμίσεις Email</h2>
+      <p class="form-card-intro">
+        Χρησιμοποιείται για αποστολή αναφορών μέσω email.
+        Δοκιμάστε τη σύνδεση πριν αποθηκεύσετε.
+      </p>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>SMTP Server</label>
+          <input type="text" id="smtp-host"
+                 placeholder="πχ smtp.gmail.com">
+        </div>
+        <div class="form-group">
+          <label>Port</label>
+          <input type="number" id="smtp-port"
+                 value="587" placeholder="587">
+          <small class="form-hint">587 = TLS, 465 = SSL</small>
+        </div>
+        <div class="form-group">
+          <label>Username / Email</label>
+          <input type="email" id="smtp-user"
+                 placeholder="lab@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password / App Password</label>
+          <input type="password" id="smtp-pass"
+                 placeholder="••••••••">
+          <small class="form-hint">
+            Για Gmail: χρησιμοποιήστε App Password
+          </small>
+        </div>
+        <div class="form-group full-width">
+          <label>Εμφανιζόμενο Όνομα Αποστολέα</label>
+          <input type="text" id="smtp-from"
+                 placeholder="πχ Εργαστήριο Λατομείων Γαλάτιστας">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-secondary"
+                onclick="SettingsPage.testSmtp()">
+          🔌 Δοκιμή Σύνδεσης
+        </button>
+        <button class="btn-primary"
+                onclick="SettingsPage.saveSmtp()">
+          ✓ Αποθήκευση
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ΑΠΟΘΗΚΕΥΣΗ ===================== -->
+  <div class="settings-panel hidden" id="tab-storage">
+
+    <div class="form-card">
+      <h3 class="form-card-title">📁 Φάκελος Δεδομένων</h3>
+      <p class="form-card-intro">Ο φάκελος όπου αποθηκεύονται τα PDF και τα αντίγραφα ασφαλείας.</p>
+
+      <div class="form-group">
+        <label>Τρέχων Φάκελος</label>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="text" id="data-folder-path" readonly
+                 placeholder="Δεν έχει οριστεί"
+                 style="flex:1;cursor:default;color:var(--text-muted);">
+          <button class="btn-primary"
+                  onclick="SettingsPage.selectDataFolder()">
+            📂 Επιλογή
+          </button>
+          <button class="btn-secondary"
+                  onclick="SettingsPage.clearDataFolder()">
+            ✕
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card" style="margin-top:16px;">
+      <h3 class="form-card-title">🗄 Backup Βάσης Δεδομένων</h3>
+      <p class="form-card-intro">Αυτόματο αντίγραφο ασφαλείας κατά την εκκίνηση. Μπορείτε να κάνετε και χειροκίνητο οποτεδήποτε.</p>
+      <div class="form-actions">
+        <button class="btn-primary"
+                onclick="SettingsPage.manualBackup()">
+          💾 Backup Τώρα
+        </button>
+        <button class="btn-secondary"
+                onclick="SettingsPage.openDataFolder()">
+          📂 Άνοιγμα Φακέλου
+        </button>
+      </div>
+    </div>
+
+    <div class="form-card" style="margin-top:16px;">
+      <h3 class="form-card-title">☁ Cloud Sync</h3>
+      <p class="form-card-intro">Συγχρονισμός με cloud storage μέσω rclone. Γίνεται αυτόματα κατά την εκκίνηση αν υπάρχει σύνδεση.</p>
+
+      <!-- Βήμα 1: Έλεγχος rclone -->
+      <div id="cloud-step-1" class="cloud-step">
+        <div class="cloud-step-header">
+          <span class="cloud-step-num">1</span>
+          <span>Εγκατάσταση rclone</span>
+          <span id="cloud-step-1-status" class="cloud-step-status"></span>
+        </div>
+        <div id="cloud-step-1-body" class="cloud-step-body hidden">
+          <p style="color:var(--text-muted);font-size:13px;margin-bottom:8px;">
+            Το rclone δεν βρέθηκε. Εγκαταστήστε το με:
+          </p>
+          <code style="display:block;background:var(--bg);padding:8px 12px;border-radius:6px;font-size:12px;">
+            sudo pacman -S rclone
+          </code>
+          <p style="color:var(--text-muted);font-size:12px;margin-top:6px;">
+            ή επισκεφθείτε το <a href="https://rclone.org/install/" 
+            onclick="SettingsPage.openLink('https://rclone.org/install/');return false;"
+            style="color:var(--accent);">rclone.org/install</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Βήμα 2: Επιλογή remote -->
+      <div id="cloud-step-2" class="cloud-step">
+        <div class="cloud-step-header">
+          <span class="cloud-step-num">2</span>
+          <span>Επιλογή Cloud Service</span>
+          <span id="cloud-step-2-status" class="cloud-step-status"></span>
+        </div>
+        <div id="cloud-step-2-body" class="cloud-step-body hidden">
+          <div id="cloud-remotes-list" style="margin-bottom:10px;"></div>
+          <button class="btn-secondary btn-sm"
+                  onclick="SettingsPage.openRcloneConfig()">
+            + Νέο Remote (rclone config)
+          </button>
+        </div>
+      </div>
+
+      <!-- Βήμα 3: Remote path -->
+      <div id="cloud-step-3" class="cloud-step">
+        <div class="cloud-step-header">
+          <span class="cloud-step-num">3</span>
+          <span>Φάκελος στο Cloud</span>
+          <span id="cloud-step-3-status" class="cloud-step-status"></span>
+        </div>
+        <div id="cloud-step-3-body" class="cloud-step-body hidden">
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>Remote Path</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="cloud-remote-path"
+                     placeholder="πχ mega:lab-galatista"
+                     style="flex:1;">
+              <button class="btn-secondary btn-sm"
+                      onclick="SettingsPage.testCloudConnection()">
+                🔍 Έλεγχος
+              </button>
+            </div>
+            <small id="cloud-test-result" class="form-hint"></small>
+          </div>
+          <button class="btn-primary btn-sm"
+                  onclick="SettingsPage.saveCloudPath()">
+            ✓ Αποθήκευση
+          </button>
+        </div>
+      </div>
+
+      <!-- Status & Actions -->
+      <div id="cloud-actions" class="hidden" style="margin-top:14px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn-primary"
+                  onclick="SettingsPage.syncNow()">
+            ☁ Sync Τώρα
+          </button>
+          <button class="btn-secondary"
+                  onclick="SettingsPage.restoreFromCloud()">
+            ↓ Επαναφορά από Cloud
+          </button>
+          <button class="btn-secondary btn-sm"
+                  onclick="SettingsPage.changeCloudPath()">
+            ✎ Αλλαγή
+          </button>
+        </div>
+        <div id="cloud-last-sync" style="margin-top:8px;font-size:12px;color:var(--text-muted);"></div>
+      </div>
+
+
+    <!-- CE Period Management -->
+    <div class="form-card" style="margin-top:16px;">
+      <h3 class="form-card-title">📋 Διαχείριση CE Περιόδων</h3>
+      <p class="form-card-intro">Κάθε CE περίοδος έχει ξεχωριστό φάκελο δεδομένων. Όταν το εξωτερικό εργαστήριο εκδώσει νέα έκθεση, καταχωρείστε νέα υποπερίοδο με τα αποτελέσματα.</p>
+
+      <!-- Τρέχουσα CE Period -->
+      <div id="ce-current-card" style="background:var(--bg);border:1px solid var(--border);
+           border-radius:8px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">
+              Τρέχουσα CE Period
+            </div>
+            <div id="ce-current-number" style="font-size:16px;font-weight:600;">—</div>
+            <div id="ce-current-dates"  style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+            <div id="ce-current-folder" style="font-size:11px;color:var(--text-muted);margin-top:4px;
+                 font-family:monospace;word-break:break-all;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <span id="ce-expiry-badge" style="display:none;padding:4px 10px;border-radius:20px;
+                  font-size:11px;font-weight:600;white-space:nowrap;"></span>
+            <button class="btn-secondary btn-sm"
+                    onclick="SettingsPage.showEditCePeriodModal()">
+              ✎ Επεξεργασία
+            </button>
+          </div>
+        </div>
+
+        <!-- Ενεργή Υποπερίοδος -->
+        <div id="ce-subperiod-card" style="margin-top:10px;padding:10px;
+             background:var(--surface);border-radius:6px;display:none;">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">
+            Ενεργή Υποπερίοδος
+          </div>
+          <div id="ce-sub-report"  style="font-size:13px;font-weight:500;"></div>
+          <div id="ce-sub-from"    style="font-size:12px;color:var(--text-muted);"></div>
+          <div id="ce-sub-values"  style="font-size:12px;color:var(--text-muted);margin-top:4px;"></div>
+          <div style="margin-top:8px;display:flex;gap:6px;">
+            <button class="btn-secondary btn-sm"
+                    onclick="SettingsPage.showEditSubperiodModal()">
+              ✎ Επεξεργασία
+            </button>
+            <button class="btn-secondary btn-sm"
+                    onclick="SettingsPage.deleteActiveSubperiod()"
+                    style="color:var(--fail);">
+              ✕ Διαγραφή
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="btn-primary"
+                onclick="SettingsPage.showNewSubperiodModal()">
+          + Νέα Υποπερίοδος
+        </button>
+        <button class="btn-secondary"
+                onclick="SettingsPage.showNewCePeriodModal()">
+          🔄 Νέα CE Period
+        </button>
+        <button class="btn-secondary"
+                onclick="SettingsPage.showCleanStartModal()"
+                style="color:var(--fail);border-color:var(--fail);">
+          🗑 Clean Start
+        </button>
+      </div>
+
+      <!-- Ιστορικό CE Periods -->
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;
+             letter-spacing:0.5px;margin-bottom:8px;">Ιστορικό</div>
+        <div id="ce-history-list">
+          <div style="color:var(--text-muted);font-size:13px;">Φόρτωση...</div>
+        </div>
+      </div>
+    </div>
+
+
+    </div>
+
+  </div>
+
+</div>

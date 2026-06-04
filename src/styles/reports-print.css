@@ -1,0 +1,262 @@
+/* ============================================================
+   reports-print.css
+   Εργαστήριο Λατομείων Γαλάτιστας
+   ─────────────────────────────────────────────────────────────
+   Έκδοση : 0.99.3
+   Ημ/νία  : 2026-06-02
+   ─────────────────────────────────────────────────────────────
+   Ιστορικό:
+     0.99.3 — print-footer-wrap + print-footer-report
+     0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
+   ============================================================ */
+@media print {
+  /* Κρύψε όλο το UI */
+  #sidebar,
+  #main-content > *:not(#page-reports),
+  .report-controls,
+  .report-options,
+  .single-report-controls,
+  .single-report-actions,
+  .report-preview-header,
+  .report-filter-bar,
+  .app-toast,
+  button { display: none !important; }
+
+  /* Εμφάνισε μόνο το print container */
+  html, body { background: white !important; margin: 0; padding: 0; }
+
+  #report-print-container {
+    display: block !important;
+  }
+}
+
+/* ── Page setup ─────────────────────────────────────────── */
+@page {
+  size: A4 portrait;
+  margin: 16mm 14mm 14mm 14mm;
+}
+
+@page landscape-page {
+  size: A4 landscape;
+  margin: 12mm 12mm 12mm 12mm;
+}
+
+.print-page--landscape {
+  page: landscape-page;
+}
+
+/* ── Reset ──────────────────────────────────────────────── */
+.print-document * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  box-sizing: border-box;
+}
+
+/* ── Σελίδες ────────────────────────────────────────────── */
+.print-page {
+  width: 100%;
+  page-break-after: always;
+  page-break-inside: avoid;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #111;
+  background: #fff;
+}
+
+.print-page:last-child {
+  page-break-after: auto;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid #1a3a6b;
+  margin-bottom: 10px;
+}
+
+.print-header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.print-header-logo img {
+  height: 36px;
+  width: auto;
+  filter: none;
+}
+
+.print-header-name {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a3a6b;
+}
+
+.print-header-address {
+  font-size: 9px;
+  color: #555;
+}
+
+.print-header-ce {
+  text-align: right;
+  font-size: 9px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.print-header-ce-number {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a3a6b;
+  display: block;
+}
+
+.print-header--compact .print-header-address { display: none; }
+.print-header--compact .print-header-name { font-size: 13px; }
+
+/* ── Τίτλος δελτίου ─────────────────────────────────────── */
+.print-doc-title {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border: 1.5px solid #333;
+  padding: 5px 0;
+  margin-bottom: 10px;
+}
+
+/* ── Meta table ─────────────────────────────────────────── */
+.print-meta-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 10.5px;
+}
+
+.print-meta-table td {
+  padding: 4px 8px;
+  border: 0.5px solid #ccc;
+}
+
+.print-meta-table .meta-label {
+  background: #f0f0f0;
+  font-weight: 600;
+  width: 22%;
+}
+
+/* ── Section title ──────────────────────────────────────── */
+.print-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a3a6b;
+  border-left: 3px solid #1a3a6b;
+  padding: 3px 8px;
+  margin: 12px 0 6px 0;
+  background: #f5f7fb;
+}
+
+/* ── Data table ─────────────────────────────────────────── */
+.print-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  margin-bottom: 8px;
+}
+
+.print-data-table th {
+  background: #f0f0f0;
+  padding: 4px 6px;
+  border: 0.5px solid #ccc;
+  text-align: center;
+  font-weight: 600;
+}
+
+.print-data-table td {
+  padding: 3px 6px;
+  border: 0.5px solid #ccc;
+  text-align: center;
+}
+
+.print-data-table .row-fail td {
+  background: #fef2f2;
+  color: #c00;
+  font-weight: 700;
+}
+
+.print-data-table .row-total td {
+  background: #f0f0f0;
+  font-weight: 700;
+}
+
+/* ── Report sections (reuse existing styles) ────────────── */
+.report-section {
+  margin-bottom: 12px;
+}
+
+.report-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a3a6b;
+  border-left: 3px solid #1a3a6b;
+  padding: 3px 8px;
+  margin: 0 0 6px 0;
+  background: #f5f7fb;
+}
+
+.report-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.report-data-table th {
+  background: #f0f0f0;
+  padding: 4px 6px;
+  border: 0.5px solid #ccc;
+  text-align: center;
+  font-weight: 600;
+}
+
+.report-data-table td {
+  padding: 3px 6px;
+  border: 0.5px solid #ccc;
+  text-align: center;
+}
+
+.report-row-total td { background: #f0f0f0; font-weight: 700; }
+.report-row-fail td  { background: #fef2f2; color: #c00; font-weight: 700; }
+.report-row-ok td    { background: #f0fdf4; }
+.result-big { font-size: 14px; font-weight: 700; }
+.meta-label { background: #f0f0f0; font-weight: 600; text-align: left; }
+
+/* ── Chart ──────────────────────────────────────────────── */
+.print-chart-container {
+  width: 100%;
+  margin: 8px 0;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+.print-footer-wrap {
+  margin-top: 16px;
+}
+
+.print-footer-report {
+  text-align: right;
+  font-size: 8px;
+  color: #666;
+  margin-bottom: 3px;
+  font-style: italic;
+}
+
+.print-footer {
+  padding-top: 6px;
+  border-top: 0.5px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  font-size: 8.5px;
+  color: #888;
+}

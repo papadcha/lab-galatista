@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  color: #2c2c2a;
+}
+.guide-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  border-bottom: 0.5px solid #e5e3dc;
+  padding: 14px 20px 12px;
+  z-index: 10;
+}
+.label  { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title  { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding: 0 20px 30px; }
+.sel-row { display:flex; align-items:center; gap:12px; margin: 14px 0;
+            padding:10px 12px; background:#f5f5f3; border-radius:8px;
+            border:0.5px solid #ddd; flex-wrap:wrap; }
+.sel-row label { font-size:13px; color:#666; }
+.sel-row select { font-size:13px; border:0.5px solid #ccc; border-radius:6px; padding:4px 8px; }
+.qty-badge { font-size:12px; font-weight:500; color:#0c447c; background:#e6f1fb;
+              padding:3px 8px; border-radius:6px; }
+.group-title {
+  font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin: 22px 0 8px; padding-bottom: 6px;
+  border-bottom: 0.5px solid #e5e3dc;
+}
+.steps { display:flex; flex-direction:column; }
+.step  { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num   { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+          border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+          font-size:12px; font-weight:500; color:#666; }
+.ttl   { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc   { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.qty   { display:inline-block; margin-top:5px; font-size:12px; font-weight:500;
+          color:#0c447c; background:#e6f1fb; padding:3px 8px; border-radius:6px; }
+.note  { display:inline-block; margin-top:5px; font-size:12px;
+          color:#854f0b; background:#faeeda; padding:3px 8px; border-radius:6px; }
+.fml   { font-family:monospace; font-size:12px; background:#f5f5f3;
+          border:0.5px solid #ddd; border-radius:6px; padding:3px 8px;
+          display:inline-block; margin-top:5px; }
+.svg-wrap { margin-top:12px; border:0.5px solid #e5e3dc; border-radius:8px;
+             background:#faf9f7; padding:12px; text-align:center; }
+.svg-wrap svg { max-width:100%; height:auto; }
+.footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 0.5px solid #e5e3dc;
+  padding: 14px 20px;
+  text-align: right;
+}
+.btn-primary {
+  font-size:14px; font-weight:500; padding:9px 20px;
+  background:#2c2c2a; color:#fff; border:none;
+  border-radius:8px; cursor:pointer;
+}
+.btn-primary:hover { background:#444; }
+
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">EN 933-9</p>
+  <p class="title">Μπλε Μεθυλενίου (MB)</p>
+</div>
+<div class="guide-body">
+  <div class="sel-row">
+    <label>d<sub>max</sub> αδρανούς:</label>
+    <select id="dmax-sel">
+      <option value="2">2 mm</option>
+      <option value="4" selected>4 mm</option>
+      <option value="5.6">5.6 mm</option>
+      <option value="8">8 mm</option>
+      <option value="11.2">11.2 mm</option>
+      <option value="16">16 mm</option>
+      <option value="22.4">22.4 mm</option>
+      <option value="31.5">31.5 mm</option>
+    </select>
+    <label>Τύπος:</label>
+    <select id="cat-sel">
+      <option value="FINE" selected>Λεπτόκοκκο</option>
+      <option value="ALL_IN">All-In</option>
+    </select>
+    <span class="qty-badge" id="qty-badge"></span>
+  </div>
+  <div id="sc"></div>
+</div>
+<div class="footer">
+  <button class="btn-primary" id="btn-done">Καταχώρηση αποτελεσμάτων →</button>
+</div>
+<script>
+function el(id) { return document.getElementById(id); }
+
+const MIN_SAMPLE = [[4,0.2],[8,0.6],[16,2.6],[32,10],[63,40]];
+
+function getMinSample(d) {
+  for (const [k,v] of MIN_SAMPLE) { if (d <= k) return v; }
+  return 35;
+}
+
+function getQ() {
+  const d   = parseFloat(el('dmax-sel').value);
+  const cat = el('cat-sel').value;
+  return { dmax: d, cat, minSample: getMinSample(d) };
+}
+
+const MB_STAIN_SVG = `<svg width="100%" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Stain test μπλε μεθυλενίου — εξέλιξη από αρνητικό σε θετικό</title>
+  <desc>Τρεις φάσεις stain test κατακόρυφα: αρνητικό, οριακό, θετικό</desc>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <style>
+      text { font-family: Arial, sans-serif; }
+      .th { font-size:14px; font-weight:500; }
+      .ts { font-size:12px; }
+    </style>
+  </defs>
+
+  <!-- ΦΑΣΗ 1: ΑΡΝΗΤΙΚΟ -->
+  <circle cx="200" cy="100" r="55" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <g stroke="#dddbd3" stroke-width="0.4" opacity="0.7">
+    <line x1="152" y1="84"  x2="248" y2="84"/> <line x1="148" y1="97"  x2="252" y2="97"/>
+    <line x1="148" y1="110" x2="252" y2="110"/><line x1="150" y1="123" x2="250" y2="123"/>
+    <line x1="178" y1="52"  x2="178" y2="148"/><line x1="192" y1="46"  x2="192" y2="154"/>
+    <line x1="206" y1="45"  x2="206" y2="155"/><line x1="220" y1="48"  x2="220" y2="152"/>
+    <line x1="234" y1="55"  x2="234" y2="145"/>
+  </g>
+  <circle cx="200" cy="100" r="17" fill="#2563a8" fill-opacity="0.85"/>
+  <text class="th" x="320" y="88"  fill="#2c2c2a">&#913;&#961;&#957;&#951;&#964;&#953;&#954;&#972;</text>
+  <text class="ts" x="320" y="104" fill="#5f5e5a">&#967;&#969;&#961;&#943;&#962; halo</text>
+  <text class="ts" x="320" y="118" fill="#5f5e5a">&#8594; +5 ml MB</text>
+  <circle cx="302" cy="84" r="9" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <text class="ts" x="302" y="88" text-anchor="middle" fill="#2c2c2a">1</text>
+  <line x1="256" y1="100" x2="296" y2="100" stroke="#c8c6be" stroke-width="0.8" stroke-dasharray="3 2"/>
+  <line x1="200" y1="162" x2="200" y2="195" stroke="#c8c6be" stroke-width="1" marker-end="url(#arr)"/>
+
+  <!-- ΦΑΣΗ 2: ΟΡΙΑΚΟ -->
+  <circle cx="200" cy="260" r="55" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <g stroke="#dddbd3" stroke-width="0.4" opacity="0.7">
+    <line x1="152" y1="244" x2="248" y2="244"/><line x1="148" y1="257" x2="252" y2="257"/>
+    <line x1="148" y1="270" x2="252" y2="270"/><line x1="150" y1="283" x2="250" y2="283"/>
+    <line x1="178" y1="212" x2="178" y2="308"/><line x1="192" y1="206" x2="192" y2="314"/>
+    <line x1="206" y1="205" x2="206" y2="315"/><line x1="220" y1="208" x2="220" y2="312"/>
+    <line x1="234" y1="215" x2="234" y2="305"/>
+  </g>
+  <circle cx="200" cy="260" r="26" fill="#a8c4e0" fill-opacity="0.25"/>
+  <circle cx="200" cy="260" r="26" fill="none" stroke="#6a9cc4" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
+  <circle cx="200" cy="260" r="17" fill="#2563a8" fill-opacity="0.85"/>
+  <text class="th" x="320" y="248" fill="#2c2c2a">&#927;&#961;&#953;&#945;&#954;&#972;</text>
+  <text class="ts" x="320" y="264" fill="#5f5e5a">halo &#949;&#956;&#966;&#945;&#957;&#943;&#950;&#949;&#964;&#945;&#953;</text>
+  <text class="ts" x="320" y="278" fill="#5f5e5a">&#945;&#955;&#955;&#940; &#949;&#958;&#945;&#966;&#945;&#957;&#943;&#950;&#949;&#964;&#945;&#953;</text>
+  <text class="ts" x="320" y="292" fill="#5f5e5a">&#8594; +5 ml &#942; +2 ml</text>
+  <circle cx="302" cy="244" r="9" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <text class="ts" x="302" y="248" text-anchor="middle" fill="#2c2c2a">2</text>
+  <line x1="256" y1="260" x2="296" y2="260" stroke="#c8c6be" stroke-width="0.8" stroke-dasharray="3 2"/>
+  <line x1="200" y1="322" x2="200" y2="355" stroke="#c8c6be" stroke-width="1" marker-end="url(#arr)"/>
+
+  <!-- ΦΑΣΗ 3: ΘΕΤΙΚΟ -->
+  <circle cx="200" cy="420" r="55" fill="#f0efeb" stroke="#c8c6be" stroke-width="1"/>
+  <g stroke="#dddbd3" stroke-width="0.4" opacity="0.7">
+    <line x1="152" y1="404" x2="248" y2="404"/><line x1="148" y1="417" x2="252" y2="417"/>
+    <line x1="148" y1="430" x2="252" y2="430"/><line x1="150" y1="443" x2="250" y2="443"/>
+    <line x1="178" y1="372" x2="178" y2="468"/><line x1="192" y1="366" x2="192" y2="474"/>
+    <line x1="206" y1="365" x2="206" y2="475"/><line x1="220" y1="368" x2="220" y2="472"/>
+    <line x1="234" y1="375" x2="234" y2="465"/>
+  </g>
+  <circle cx="200" cy="420" r="26" fill="#a8c4e0" fill-opacity="0.55"/>
+  <circle cx="200" cy="420" r="26" fill="none" stroke="#2563a8" stroke-width="1.5" opacity="0.85"/>
+  <circle cx="200" cy="420" r="17" fill="#2563a8" fill-opacity="0.9"/>
+  <line x1="200" y1="394" x2="200" y2="378" stroke="#444441" stroke-width="0.8" marker-end="url(#arr)"/>
+  <text class="ts" x="200" y="373" text-anchor="middle" fill="#444441">halo ~1mm</text>
+  <text class="th" x="320" y="408" fill="#2c2c2a">&#920;&#949;&#964;&#953;&#954;&#972;</text>
+  <text class="ts" x="320" y="424" fill="#5f5e5a">halo &#963;&#964;&#945;&#952;&#949;&#961;&#972;</text>
+  <text class="ts" x="320" y="438" fill="#5f5e5a">&#947;&#953;&#945; 5 &#963;&#965;&#957;&#949;&#967;&#972;&#956;&#949;&#957;&#945; min</text>
+  <text class="ts" x="320" y="452" fill="#5f5e5a">&#8594; &#954;&#945;&#964;&#945;&#947;&#961;&#945;&#966;&#942; V&#8321;</text>
+  <circle cx="302" cy="404" r="9" fill="#2563a8" stroke="#1e4f8c" stroke-width="1"/>
+  <text class="ts" x="302" y="408" text-anchor="middle" fill="#f0efeb">3</text>
+  <line x1="256" y1="420" x2="296" y2="420" stroke="#c8c6be" stroke-width="0.8" stroke-dasharray="3 2"/>
+</svg>`;
+
+const GROUPS = [
+  {
+    label: 'Προετοιμασία δείγματος',
+    steps: q => [
+      {
+        ttl: 'Λήψη & μείωση δείγματος',
+        dsc: q.cat === 'ALL_IN'
+          ? `ALL_IN: κοσκίνισμα στο 2mm πρώτα. Μείωση EN 932-2 ώστε το κλάσμα <2mm να είναι ≥300g.`
+          : `Μείωση EN 932-2 σε υποδείγμα που περιέχει ≥200g κλάσμα 0/2mm.`,
+        qty: `Αναφορά EN 933-1 Table 1: ελάχ. δοκίμιο ${q.minSample} kg — κλάσμα 0/2mm ≥ 200g`,
+      },
+      {
+        ttl: 'Ξήρανση 110±5°C',
+        dsc: 'Ξήρανση σε σταθερή μάζα: ζύγιση κάθε 1h — διαφορά ≤0.1% → σταθερή μάζα. Ψύξη σε δεσικατόρο.',
+        note: 'Μη ξεπεράσετε 115°C — αλλοίωση χρωστικής μπλε',
+      },
+      {
+        ttl: 'Κοσκίνισμα & ζύγιση M₁',
+        dsc: 'Κοσκίνισμα ξηρού υποδείγματος στο 2mm με brush. Απόρριψη κλάσματος >2mm. Ζύγιση M₁ ≥200g στο πλησιέστερο 1g.',
+        qty: 'M₁ ≥ 200 g (0/2mm κλάσμα)',
+      },
+    ],
+  },
+  {
+    label: 'Προετοιμασία αιώρησης',
+    steps: q => [
+      {
+        ttl: 'Έλεγχος διαλύματος MB',
+        dsc: 'Διάλυμα MB 10 g/l (Annex C). Ανακίνηση πριν χρήση. Γέμισμα προχοΐδας.',
+        note: 'Μέγιστη ηλικία διαλύματος: 28 ημέρες — αποθήκευση σε σκοτεινό μέρος',
+      },
+      {
+        ttl: 'Προσθήκη νερού & δείγματος',
+        dsc: '500±5 ml απιονισμένο νερό στο ποτήρι ζέσεως. Προσθήκη M₁ με ανάδευση σπάτουλας.',
+      },
+      {
+        ttl: 'Ρύθμιση αναδευτήρα',
+        dsc: 'Τοποθέτηση έλικα 10mm από βάση ποτηριού. Εκκίνηση αναδευτήρα.',
+        qty: '5 min @ 600±60 rpm → συνέχεια @ 400±40 rpm',
+      },
+    ],
+  },
+  {
+    label: 'Δοσολογία & stain test',
+    steps: q => [
+      {
+        ttl: 'Πρώτη δόση 5 ml MB',
+        dsc: 'Μετά από 5 min @ 600 rpm: εισαγωγή 5ml MB. Ανάδευση 1 min @ 400 rpm. Stain test: σταγόνα στο διηθητικό χαρτί.',
+        note: 'Stain test: κεντρική κηλίδα + φωτεινός μπλε δακτύλιος ~1mm = θετικό',
+      },
+      {
+        ttl: 'Συνέχεια δοσολογίας',
+        dsc: 'Αν αρνητικό → +5ml, ανάδευση 1 min, stain test. Επανάληψη μέχρι θετικό αποτέλεσμα.',
+      },
+      {
+        ttl: 'Επιβεβαίωση τέλους',
+        dsc: 'Όταν halo εμφανιστεί: stain test κάθε 1 min χωρίς προσθήκη για 5 min.',
+        note: 'Αν halo εξαφανιστεί στα πρώτα 4 min → +5ml | Στο 5ο min → +2ml',
+      },
+    ],
+  },
+  {
+    label: 'Αποτέλεσμα',
+    steps: q => [
+      {
+        ttl: 'Καταγραφή V₁',
+        dsc: 'Καταγραφή συνολικού όγκου διαλύματος MB που εισήχθη V₁ στο πλησιέστερο 1 ml.',
+      },
+      {
+        ttl: 'Υπολογισμός MB',
+        dsc: 'Χωρίς καολινίτη:',
+        fml: 'MB = (V₁ / M₁) × 10  (g/kg)',
+      },
+      {
+        ttl: 'Καταγραφή αποτελέσματος',
+        dsc: 'Καταγραφή τιμής MB στο πλησιέστερο 0.1 g/kg του κλάσματος 0/2mm.',
+      },
+    ],
+  },
+];
+
+function render() {
+  const q = getQ();
+  el('qty-badge').textContent = `EN 933-1: ≥${q.minSample} kg`;
+  const sc = el('sc');
+  sc.innerHTML = '';
+  let stepNum = 1;
+
+  GROUPS.forEach(g => {
+    const steps = g.steps(q);
+    if (!steps || steps.length === 0) return;
+    const groupDiv = document.createElement('div');
+    groupDiv.innerHTML = `<div class="group-title">${g.label}</div>`;
+    const stepsDiv = document.createElement('div');
+    stepsDiv.className = 'steps';
+    steps.forEach(s => {
+      const d2 = document.createElement('div');
+      d2.className = 'step';
+      d2.innerHTML = `
+        <div class="num">${stepNum++}</div>
+        <div style="flex:1">
+          <p class="ttl">${s.ttl}</p>
+          <p class="dsc">${s.dsc}</p>
+          ${s.qty  ? `<span class="qty">${s.qty}</span><br>` : ''}
+          ${s.fml  ? `<span class="fml">${s.fml}</span><br>` : ''}
+          ${s.note ? `<span class="note">${s.note}</span>` : ''}
+          ${s.svg  ? `<div class="svg-wrap" id="svg-${s.svg}"></div>` : ''}
+        </div>`;
+      stepsDiv.appendChild(d2);
+    });
+    groupDiv.appendChild(stepsDiv);
+    sc.appendChild(groupDiv);
+  });
+
+  const svgMap = { 'mb_stain': MB_STAIN_SVG };
+  document.querySelectorAll('[id^="svg-"]').forEach(el2 => {
+    const key = el2.id.replace('svg-','');
+    if (svgMap[key]) el2.innerHTML = svgMap[key];
+  });
+}
+
+el('dmax-sel').onchange = render;
+el('cat-sel').onchange = render;
+el('btn-done').onclick = function() { window.parent.TestsPage.closeGuidePanel(); };
+render();
+</script>
+</body>
+</html>

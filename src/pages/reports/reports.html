@@ -1,0 +1,219 @@
+<!--
+  ──────────────────────────────────────────────────────────────
+  ΣΕΛΙΔΑ: Αναφορές (reports.html)
+  ──────────────────────────────────────────────────────────────
+  Tabs:
+    A. Δελτίο Αποτελεσμάτων (ανά δείγμα)
+    B. Περιοδική Αναφορά (στατιστικά)
+  ──────────────────────────────────────────────────────────────
+-->
+
+<div class="page">
+
+  <div class="page-header">
+    <h1>Αναφορές</h1>
+    <p class="page-subtitle">
+      Παραγωγή δελτίων αποτελεσμάτων και περιοδικών στατιστικών αναφορών.
+    </p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="settings-tabs">
+    <button class="settings-tab active" data-tab="single"
+            onclick="ReportsPage.switchTab('single')">
+      📋 Δελτίο Αποτελεσμάτων
+    </button>
+    <button class="settings-tab" data-tab="periodic"
+            onclick="ReportsPage.switchTab('periodic')">
+      📊 Περιοδική Αναφορά
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       TAB A: ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ
+       ═══════════════════════════════════════════════════ -->
+  <div class="settings-panel active" id="tab-single">
+
+    <!-- Επιλογές -->
+    <div class="form-card" id="single-options">
+      <h2>Επιλογές Δελτίου</h2>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Δείγμα <span class="required">*</span></label>
+          <div class="input-with-action">
+            <input type="text" id="single-code-search"
+                   placeholder="Κωδικός δείγματος..."
+                   onkeydown="if(event.key==='Enter') ReportsPage.searchSample()">
+            <button class="icon-btn"
+                    onclick="ReportsPage.searchSample()">🔍</button>
+          </div>
+          <div id="single-sample-results"></div>
+        </div>
+      </div>
+
+      <!-- Πληροφορίες επιλεγμένου δείγματος -->
+      <div id="single-sample-info" class="hidden">
+        <div class="sample-info-bar" style="margin:12px 0;">
+          <span id="si-code"></span>
+          <span id="si-product"></span>
+          <span id="si-date"></span>
+          <span id="si-source"></span>
+        </div>
+
+        <h3 style="font-size:13px;color:var(--text-muted);
+                   text-transform:uppercase;letter-spacing:0.5px;
+                   margin:16px 0 10px;">
+          Δοκιμές προς συμπερίληψη
+        </h3>
+        <div id="single-tests-checkboxes" class="plan-checkboxes"></div>
+
+        <!-- Επιλογές Κοκκομετρίας -->
+        <div id="sieve-options" class="hidden" style="margin-top:16px;">
+          <h3 style="font-size:13px;color:var(--text-muted);
+                     text-transform:uppercase;letter-spacing:0.5px;
+                     margin-bottom:10px;">
+            Επιλογές Κοκκομετρίας
+          </h3>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <label style="display:flex;gap:8px;align-items:center;
+                          font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="opt-sieve-chart" checked
+                     style="accent-color:var(--accent);">
+              Εμφάνιση γραφήματος κοκκομετρίας
+            </label>
+            <label style="display:flex;gap:8px;align-items:center;
+                          font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="opt-sieve-stats"
+                     style="accent-color:var(--accent);">
+              Συμπερίληψη στατιστικών (μέσοι όροι περιόδου)
+            </label>
+          </div>
+          <div style="margin-top:12px;">
+            <label style="font-size:12px;color:var(--text-muted);
+                          font-weight:600;display:block;margin-bottom:6px;">
+              Προδιαγραφές για σύγκριση
+            </label>
+            <div id="sieve-spec-options" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <!-- Συμπληρώνεται δυναμικά -->
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top:20px;">
+          <button class="btn-primary"
+                  onclick="ReportsPage.previewSingle()">
+            👁 Προεπισκόπηση
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview area -->
+    <div id="single-preview" class="hidden">
+      <div style="display:flex;justify-content:space-between;
+                  align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">Προεπισκόπηση</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary"
+                  onclick="ReportsPage.backToOptions()">
+            ← Πίσω
+          </button>
+          <button class="btn-secondary"
+                  onclick="ReportsPage.printReport()">
+            🖨 Εκτύπωση
+          </button>
+          <button class="btn-secondary"
+                  onclick="ReportsPage.saveReport()">
+            💾 Αποθήκευση
+          </button>
+          <button class="btn-primary"
+                  onclick="ReportsPage.emailReport()">
+            📧 Email
+          </button>
+        </div>
+      </div>
+
+      <!-- Το PDF preview εμφανίζεται εδώ -->
+      <div id="report-content" class="report-page">
+        <!-- Inject από buildReportHTML -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       TAB B: ΠΕΡΙΟΔΙΚΗ ΑΝΑΦΟΡΑ
+       ═══════════════════════════════════════════════════ -->
+  <div class="settings-panel" id="tab-periodic">
+    <div class="form-card">
+      <h2>Φίλτρα Περιόδου</h2>
+
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Προϊόν</label>
+          <select id="per-product">
+            <option value="">Όλα</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Προέλευση</label>
+          <select id="per-source">
+            <option value="">Όλες</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Από <span id="per-from-hint" style="font-size:11px;color:var(--text-muted);font-weight:400;"></span></label>
+          <input type="text" id="per-from" placeholder="ηη/μμ/εεεε" maxlength="10"
+                 style="width:120px;font-family:monospace"
+                 onkeyup="autoSlashDate(this); ReportsPage.validatePeriodicDates()"
+                 onchange="ReportsPage.validatePeriodicDates()">
+        </div>
+        <div class="filter-group">
+          <label>Έως <span id="per-to-hint" style="font-size:11px;color:var(--text-muted);font-weight:400;"></span></label>
+          <input type="text" id="per-to" placeholder="ηη/μμ/εεεε" maxlength="10"
+                 style="width:120px;font-family:monospace"
+                 onkeyup="autoSlashDate(this); ReportsPage.validatePeriodicDates()"
+                 onchange="ReportsPage.validatePeriodicDates()">
+        </div>
+        <button class="btn-primary" id="per-submit-btn"
+                onclick="ReportsPage.loadPeriodic()">
+          📊 Εμφάνιση
+        </button>
+        <button class="btn-secondary"
+                onclick="ReportsPage.exportPeriodicPdf()">
+          💾 PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Dashboard στατιστικών -->
+    <div id="periodic-content" class="hidden">
+
+      <!-- Summary cards -->
+      <div id="periodic-summary" class="stats-cards"></div>
+
+      <!-- Γράφημα κοκκομετρίας (μέσοι όροι) -->
+      <div class="form-card" id="periodic-sieve-card" style="margin-top:12px;">
+        <div style="display:flex;justify-content:space-between;
+                    align-items:center;margin-bottom:12px;">
+          <h2 style="margin:0;">Κοκκομετρία — Μέσοι Όροι</h2>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <label style="font-size:12px;color:var(--text-muted);">Προδιαγραφές:</label>
+            <div id="per-spec-options"
+                 style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+        </div>
+        <div id="periodic-sieve-chart"></div>
+      </div>
+
+      <!-- Πίνακας αποτελεσμάτων -->
+      <div class="form-card" style="margin-top:12px;">
+        <h2>Αναλυτικά Αποτελέσματα</h2>
+        <div id="periodic-table"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

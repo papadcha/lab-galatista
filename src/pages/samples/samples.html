@@ -1,0 +1,228 @@
+<!--
+  ──────────────────────────────────────────────────────────────
+  ΣΕΛΙΔΑ: Καταχώρηση Δείγματος (v1.1)
+  ──────────────────────────────────────────────────────────────
+  Σκοπός μετά το refactor:
+    Δημιουργία νέου δείγματος σε 3 βήματα.
+      1. Στοιχεία δείγματος
+      2. Ορισμός πλάνου δοκιμών
+      3. Επιβεβαίωση & αποθήκευση
+    Μετά την αποθήκευση: μετάβαση στη σελίδα Δοκιμές.
+
+  Αφαιρέθηκαν:
+    • Μενού «Νέα Καταχώρηση / Αναζήτηση»
+    • Panel «Διαχείριση δείγματος» → μετακινείται στη σελίδα Δοκιμές
+    • Panel «Αναζήτηση» → μετακινείται στη σελίδα Ιστορικό
+  ──────────────────────────────────────────────────────────────
+-->
+
+<style>
+  #new-date { font-family: monospace; }
+  #new-date::placeholder { color: var(--text); opacity: 0.85; }
+</style>
+<div class="page">
+
+  <!-- ============================================================
+       Header
+       ============================================================ -->
+  <div class="page-header">
+    <h1>Νέα Καταχώρηση Δείγματος</h1>
+    <p class="page-subtitle">
+      Καταχωρείτε νέο δείγμα και ορίζετε ποιες δοκιμές θα εκτελεστούν.
+      Οι ίδιες οι δοκιμές γίνονται από τη σελίδα <em>Δοκιμές</em>.
+    </p>
+  </div>
+
+  <!-- ============================================================
+       Breadcrumb (αξιοποιεί υπάρχοντα styles)
+       ============================================================ -->
+  <div class="breadcrumb-bar">
+    <div class="breadcrumb">
+      <span class="bc-step active" id="bc-1">① Στοιχεία</span>
+      <span class="bc-arrow">›</span>
+      <span class="bc-step"        id="bc-2">② Πλάνο Δοκιμών</span>
+      <span class="bc-arrow">›</span>
+      <span class="bc-step"        id="bc-3">③ Επιβεβαίωση</span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STEP 1 — Στοιχεία Δείγματος
+       ============================================================ -->
+  <div id="step-1" class="form-step active">
+    <div class="form-card">
+      <h2>Στοιχεία Δείγματος</h2>
+
+      <div class="form-grid">
+
+        <div class="form-group required">
+          <label>Κωδικός Δείγματος</label>
+          <div class="input-with-action">
+            <input type="text" id="new-code" placeholder="ΓΑΛ-2026-XXXX" />
+            <button class="icon-btn" onclick="SamplesPage.regenerateCode()"
+                    title="Αυτόματος κωδικός">↺</button>
+          </div>
+        </div>
+
+        <div class="form-group required">
+          <label>Ημερομηνία Δειγματοληψίας</label>
+          <input type="text" id="new-date" placeholder="ηη/μμ/εεεε" title="Μορφή: ημέρα/μήνας/έτος πχ 23/05/2026" maxlength="10" style="width:130px;letter-spacing:1px;" />
+        </div>
+
+        <div class="form-group required">
+          <label>Προέλευση Υλικού</label>
+          <select id="new-source">
+            <option value="">— Επιλέξτε —</option>
+          </select>
+        </div>
+
+        <div class="form-group required">
+          <label>Προϊόν</label>
+          <select id="new-product">
+            <option value="">— Επιλέξτε προϊόν —</option>
+          </select>
+          <small id="product-info" class="form-hint"></small>
+        </div>
+
+        <div class="form-group">
+          <label>Τεχνικός</label>
+          <div class="input-with-action">
+            <select id="new-technician">
+              <option value="">— Επιλέξτε —</option>
+            </select>
+            <button class="icon-btn" onclick="SamplesPage.addTechnician()"
+                    title="Νέος τεχνικός">+</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Σημείο Δειγματοληψίας</label>
+          <input type="text" id="new-location" placeholder="πχ Σωρός Β, στοίβα 3" />
+        </div>
+
+        <div class="form-group">
+          <label>Παρτίδα</label>
+          <input type="text" id="new-batch" placeholder="πχ 2026-05-Α" />
+        </div>
+
+        <div class="form-group full-width">
+          <label>Σχόλια</label>
+          <textarea id="new-comments" rows="2"
+                    placeholder="Προαιρετικές σημειώσεις"></textarea>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="App.go('dashboard')">
+          ← Ακύρωση
+        </button>
+        <button class="btn-primary" id="btn-step1-next"
+                onclick="SamplesPage.goToStep(2)">
+          Συνέχεια →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STEP 2 — Ορισμός Πλάνου Δοκιμών (ΝΕΟ)
+       ============================================================ -->
+  <div id="step-2" class="form-step hidden">
+    <div class="form-card">
+      <h2>Πλάνο Δοκιμών</h2>
+
+      <p class="form-card-intro">
+        Επιλέξτε ποιες δοκιμές θα εκτελεστούν. Οι προτεινόμενες είναι ήδη
+        επιλεγμένες βάσει της κατηγορίας του προϊόντος.
+        Το πλάνο μπορεί να τροποποιηθεί αργότερα από τη σελίδα Δοκιμές.
+      </p>
+
+      <div id="plan-summary" class="plan-summary"></div>
+
+      <div id="plan-checkboxes" class="plan-checkboxes">
+        <!-- Συμπληρώνεται δυναμικά -->
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="SamplesPage.goToStep(1)">
+          ← Πίσω
+        </button>
+        <button class="btn-primary" onclick="SamplesPage.goToStep(3)">
+          Συνέχεια →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       STEP 3 — Επιβεβαίωση & Αποθήκευση
+       ============================================================ -->
+  <div id="step-3" class="form-step hidden">
+    <div class="form-card">
+      <h2>Επιβεβαίωση Στοιχείων</h2>
+      <p class="form-card-intro">
+        Ελέγξτε τα στοιχεία πριν την αποθήκευση.
+      </p>
+
+      <div id="confirm-info" class="confirm-block"></div>
+      <div id="confirm-plan" class="confirm-block"></div>
+
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="SamplesPage.goToStep(2)">
+          ← Πίσω
+        </button>
+        <button class="btn-primary" id="btn-save"
+                onclick="SamplesPage.saveSample()">
+          ✓ Αποθήκευση Δείγματος
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SUCCESS — μετά αποθήκευση
+       ============================================================ -->
+  <div id="step-success" class="form-step hidden">
+    <div class="form-card success-card">
+      <div class="success-icon">✓</div>
+      <h2>Το δείγμα δημιουργήθηκε</h2>
+      <p id="success-message" class="form-card-intro"></p>
+
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="SamplesPage.startNewSample()">
+          + Νέο Δείγμα
+        </button>
+        <button class="btn-secondary" onclick="App.go('dashboard')">
+          🏠 Dashboard
+        </button>
+        <button class="btn-primary" onclick="SamplesPage.goToTests()">
+          Δοκιμές →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       LEGACY REDIRECT — όταν dashboard στέλνει _editSampleId
+       (transitional, μέχρι να υλοποιηθεί η σελίδα Δοκιμές)
+       ============================================================ -->
+  <div id="legacy-redirect" class="form-step hidden">
+    <div class="form-card">
+      <h2>Η σελίδα Δοκιμές βρίσκεται υπό κατασκευή</h2>
+      <p class="form-card-intro">
+        Η διαχείριση δοκιμών για υπάρχοντα δείγματα θα γίνεται από τη
+        νέα σελίδα <strong>Δοκιμές</strong> που υλοποιείται στο επόμενο βήμα.
+      </p>
+      <p class="form-card-intro">
+        Προς το παρόν, μπορείτε να επιστρέψετε στο Dashboard.
+      </p>
+      <div class="form-actions">
+        <button class="btn-primary" onclick="App.go('dashboard')">
+          🏠 Επιστροφή στο Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

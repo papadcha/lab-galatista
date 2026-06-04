@@ -1,0 +1,480 @@
+/* ============================================================
+   main_css_additions.css
+   Εργαστήριο Λατομείων Γαλάτιστας
+   ─────────────────────────────────────────────────────────────
+   Έκδοση : 0.99.0
+   Ημ/νία  : 2026-06-02
+   ============================================================ */
+/* --- Subtitle στο page-header --- */
+.page-subtitle {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --- Intro paragraph σε form-card --- */
+.form-card-intro {
+  margin: -8px 0 16px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.form-card-intro em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* --- Hint κάτω από input --- */
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ============================================================
+   ΠΛΑΝΟ ΔΟΚΙΜΩΝ — Step 2
+   ============================================================ */
+
+.plan-summary {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  font-size: 13px;
+}
+
+.plan-summary-row {
+  display: contents;
+}
+
+.plan-summary .plan-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.plan-summary .plan-value {
+  color: var(--text);
+}
+
+.plan-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.plan-check-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plan-check-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.plan-check-card input[type="checkbox"] {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.plan-check-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.plan-check-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-check-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.plan-check-title strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.plan-check-std {
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+}
+
+.plan-check-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   ΕΠΙΒΕΒΑΙΩΣΗ — Step 3
+   ============================================================ */
+
+.confirm-block {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+
+.confirm-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 20px;
+  font-size: 13px;
+}
+
+.confirm-grid > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.confirm-grid-full {
+  grid-column: 1 / -1;
+}
+
+.confirm-grid .lbl {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.confirm-grid code {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.confirm-plan-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ============================================================
+   SUCCESS CARD
+   ============================================================ */
+
+.success-card {
+  text-align: center;
+  padding: 36px 24px;
+}
+
+.success-card .success-icon {
+  font-size: 48px;
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok-light);
+  margin: 0 auto 18px auto;
+  border: 2px solid var(--ok);
+}
+
+.success-card h2 {
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.success-card .form-actions {
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* ============================================================
+   BADGES — extra variants
+   ============================================================ */
+
+.badge-info {
+  background: var(--accent-light);
+  color: #93c5fd;
+  border: 1px solid var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+}
+
+.badge-info small {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.8;
+}
+
+/* ============================================================
+   FULL-WIDTH FORM GROUP (αν δεν υπάρχει ήδη)
+   ============================================================ */
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   TEXTAREA — βασικό style αν δεν υπάρχει
+   ============================================================ */
+.form-card textarea,
+.form-group textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-card textarea:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ============================================================
+   TEXT-MUTED inline
+   ============================================================ */
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   TESTS PAGE — v1.1
+   ============================================================ */
+
+.test-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* Run badge μέσα στο test card */
+.run-badge {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Status classes για test cards */
+.test-card-status.status-active {
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* History peek (στο κάτω μέρος του card) */
+.history-peek {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* History strip */
+.history-strip {
+  grid-column: 1 / -1;  /* Εκτείνεται σε όλο το πλάτος */
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+.history-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.history-table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-top: 4px;
+}
+
+.reject-reason {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 280px;
+}
+
+/* Tests form area */
+#tests-form-area {
+  margin-top: 8px;
+}
+
+
+/* ============================================================
+   HISTORY PAGE
+   ============================================================ */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: 140px;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Clickable row */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.clickable-row:hover {
+  background: var(--bg-hover) !important;
+}
+
+/* Primary small button */
+.btn-primary-sm {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary-sm:hover {
+  opacity: 0.85;
+}
+
+/* Sample info bar στo tests page */
+.sample-info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 0 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sample-info-bar em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+/* btn-sm για tests page header */
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+.btn-sm:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

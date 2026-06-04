@@ -1,0 +1,76 @@
+<!-- ================================================
+     ΑΡΧΙΚΗ ΟΘΟΝΗ — ΚΛΕΙΔΩΜΕΝΗ
+     Τελευταία τροποποίηση: 2025-04
+     ================================================ -->
+<div class="page" id="page-dashboard">
+
+  <div class="page-header">
+    <h1>Αρχική</h1>
+    <div class="header-date" id="dashboard-date"></div>
+  </div>
+
+  <!-- ΣΤΑΤΙΣΤΙΚΑ -->
+  <div class="stats-row">
+
+    <!-- Περίοδος CE — πληροφοριακό μόνο -->
+    <div class="stat-card stat-info">
+      <div class="stat-label">Περίοδος CE</div>
+      <div class="stat-value" id="stat-ce-count">—</div>
+      <div class="stat-sub" id="stat-ce-period"></div>
+    </div>
+
+    <!-- Εκκρεμή — κλικ για φίλτρο -->
+    <div class="stat-card stat-clickable" id="stat-card-pending"
+         onclick="Dashboard.setFilter('pending')">
+      <div class="stat-label">Εκκρεμή</div>
+      <div class="stat-value" id="stat-pending">—</div>
+      <div class="stat-sub">Ελλιπείς δοκιμές</div>
+    </div>
+
+    <!-- Τελευταία — κλικ για επιστροφή στο default -->
+    <div class="stat-card stat-clickable stat-active" id="stat-card-recent"
+         onclick="Dashboard.setFilter('recent')">
+      <div class="stat-label">Τελευταία</div>
+      <div class="stat-value" id="stat-recent">—</div>
+      <div class="stat-sub" id="stat-recent-sub">Εμφάνιση</div>
+    </div>
+
+    <!-- Εκτός Προδιαγραφών — κλικ για φίλτρο -->
+    <div class="stat-card stat-clickable stat-danger" id="stat-card-fail"
+         onclick="Dashboard.setFilter('fail')">
+      <div class="stat-label">Εκτός Προδιαγραφών</div>
+      <div class="stat-value" id="stat-fail">—</div>
+      <div class="stat-sub">Απαιτούν προσοχή</div>
+    </div>
+
+  </div>
+
+  <!-- ΠΙΝΑΚΑΣ ΔΕΙΓΜΑΤΩΝ -->
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title" id="table-title">Τελευταία Δείγματα</div>
+      <button class="btn-primary btn-sm-action"
+              onclick="App.go('samples')">
+        + Νέο Δείγμα
+      </button>
+    </div>
+
+    <table class="data-table full-width" id="dashboard-table">
+      <thead>
+        <tr>
+          <th>Κωδικός</th>
+          <th>Ημερομηνία</th>
+          <th>Προϊόν</th>
+          <th>Δοκιμές</th>
+          <th id="col-extra"></th>
+        </tr>
+      </thead>
+      <tbody id="dashboard-tbody">
+        <tr>
+          <td colspan="5" class="empty-msg">Φόρτωση...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

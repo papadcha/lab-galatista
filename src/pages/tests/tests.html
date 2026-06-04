@@ -1,0 +1,96 @@
+<!--
+  ──────────────────────────────────────────────────────────────
+  ΣΕΛΙΔΑ: Δοκιμές (tests.html)
+  ──────────────────────────────────────────────────────────────
+  Εμφανίζει τις δοκιμές ενός δείγματος. Φορτώνεται με
+  window._currentSampleId = <id>.
+
+  Ροή:
+    1. Φόρτωση δείγματος + πλάνου + κατάστασης δοκιμών
+    2. Toggle button cards — click ανοίγει φόρμα inline
+    3. Αποθήκευση → ανανέωση cards
+    4. History strip (expandable) για κάθε completed δοκιμή
+    5. Επαναληπτική: popup reason → νέα εκτέλεση
+  ──────────────────────────────────────────────────────────────
+-->
+
+<div class="page" id="tests-page">
+
+  <!-- Header δείγματος -->
+  <div class="page-header" id="tests-header">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+      <div>
+        <h1 id="tests-sample-title">—</h1>
+        <p class="page-subtitle" id="tests-sample-subtitle">—</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary btn-sm"
+                onclick="TestsPage.editInfo()">
+          ✎ Στοιχεία
+        </button>
+        <button class="btn-secondary btn-sm"
+                onclick="TestsPage.editPlan()">
+          ⊞ Πλάνο
+        </button>
+        <button class="btn-secondary btn-sm"
+                onclick="App.go('dashboard')">
+          ← Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Στοιχεία δείγματος (collapsed info bar) -->
+  <div class="sample-info-bar" id="tests-info-bar">
+    <!-- Συμπληρώνεται δυναμικά -->
+  </div>
+
+  <!-- Loading state -->
+  <div id="tests-loading" class="form-card" style="text-align:center;padding:40px;">
+    <div style="color:var(--text-muted);">Φόρτωση δείγματος...</div>
+  </div>
+
+  <!-- Κύριο περιεχόμενο (κρυμμένο μέχρι φόρτωση) -->
+  <div id="tests-content" class="hidden">
+
+    <!-- Test cards (toggle buttons) -->
+    <div id="tests-cards" class="test-cards-grid">
+      <!-- Συμπληρώνεται δυναμικά -->
+    </div>
+
+    <!-- Split layout: φόρμα (2/3) + guide panel (1/3) -->
+    <div id="tests-split">
+
+      <!-- Φόρμα ενεργής δοκιμής -->
+      <div id="tests-form-area">
+        <!-- Inject από buildTestForm -->
+      </div>
+
+      <!-- Guide panel -->
+      <div id="tests-guide-panel" class="hidden">
+        <div id="tests-guide-header">
+          <span id="tests-guide-title"></span>
+          <button id="tests-guide-close"
+                  onclick="TestsPage.closeGuidePanel()"
+                  title="Κλείσιμο οδηγού">✕</button>
+        </div>
+        <iframe id="tests-guide-iframe" src="" frameborder="0"></iframe>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Empty state: κανένα πλάνο -->
+  <div id="tests-empty" class="hidden">
+    <div class="form-card" style="text-align:center; padding:40px;">
+      <p style="color:var(--text-muted); margin-bottom:16px;">
+        Δεν υπάρχουν δοκιμές στο πλάνο αυτού του δείγματος.
+      </p>
+      <button class="btn-primary" onclick="TestsPage.editPlan()">
+        + Ορισμός Πλάνου
+      </button>
+    </div>
+  </div>
+
+</div>
