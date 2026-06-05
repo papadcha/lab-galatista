@@ -354,6 +354,12 @@ async function performCleanStart(options = {}) {
   const dataFolder = getDataFolder();
   if (!dbPath || !dataFolder) return { ok: false, error: 'Δεν βρέθηκε DB ή φάκελος' };
 
+  // 0. Αποθήκευση dataFolder στην τρέχουσα CE period (πριν χαθεί από config reset)
+  const cfgPre = loadConfig();
+  if (cfgPre.dataFolder) {
+    await _pyCallMain('update_active_ce_period_folder', [cfgPre.dataFolder]);
+  }
+
   // 1. VACUUM INTO — final backup στον φάκελο της τρέχουσας περιόδου
   const backupDir = path.join(dataFolder, 'backup');
   fs.mkdirSync(backupDir, { recursive: true });
@@ -449,6 +455,9 @@ ipcMain.handle('switch-to-archive', async (event, { dataFolder, periodId }) => {
   _archiveMode       = true;
   _archivePeriodId   = periodId;
   _archiveDataFolder = dataFolder;
+  // Αποθήκευση στο config για robustness (επιβιώνει αν χαθεί η μνήμη)
+  const cfgA = loadConfig();
+  saveConfig({ ...cfgA, archiveDataFolder: dataFolder });
   return { ok: true, dbPath: found.path };
 });
 
@@ -458,6 +467,10 @@ ipcMain.handle('restore-from-archive', async () => {
   _archiveMode       = false;
   _archivePeriodId   = null;
   _archiveDataFolder = null;
+  // Καθαρισμός από config
+  const cfgR = loadConfig();
+  delete cfgR.archiveDataFolder;
+  saveConfig(cfgR);
   return { ok: true };
 });
 
@@ -984,8 +997,11 @@ function saveConfig(cfg) {
 
 // Βοηθητικές για δομή φακέλου
 function getDataFolder() {
+  const cfg = loadConfig();
+  // Archive mode: χρησιμοποιεί τον φάκελο της αρχειοθετημένης περιόδου
   if (_archiveMode && _archiveDataFolder) return _archiveDataFolder;
-  return loadConfig().dataFolder || null;
+  if (cfg.archiveDataFolder)              return cfg.archiveDataFolder;
+  return cfg.dataFolder || null;
 }
 
 function getPdfPath(productFolder, fileName, subperiodFolder = null) {
