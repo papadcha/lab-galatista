@@ -619,7 +619,7 @@ function _wizardStep2(lab) {
       <div class="form-group full-width">
         <label>Αριθμός Πιστοποιητικού CE <span class="required">*</span></label>
         <input type="text" id="wiz-ce-number"
-               value="${_esc(lab.ce_number||''')}"
+               value="${_esc(lab.ce_number||'')}"
                placeholder="πχ 1128-CPR-0196"
                style="width:100%;margin-top:4px;"
                oninput="App.updateSuggestedWizardFolder()">
@@ -627,7 +627,7 @@ function _wizardStep2(lab) {
       <div class="form-group">
         <label>Ισχύς Από <span class="required">*</span></label>
         <input type="text" id="wiz-ce-from"
-               value="${_esc(lab.ce_valid_from||''')}"
+               value="${_esc(lab.ce_valid_from||'')}"
                placeholder="DD/MM/YYYY"
                style="width:100%;margin-top:4px;"
                oninput="App.updateSuggestedWizardFolder()">
@@ -635,7 +635,7 @@ function _wizardStep2(lab) {
       <div class="form-group">
         <label>Ισχύς Έως <span class="required">*</span></label>
         <input type="text" id="wiz-ce-to"
-               value="${_esc(lab.ce_valid_to||''')}"
+               value="${_esc(lab.ce_valid_to||'')}"
                placeholder="DD/MM/YYYY"
                style="width:100%;margin-top:4px;"
                oninput="App.updateSuggestedWizardFolder()">
@@ -643,7 +643,7 @@ function _wizardStep2(lab) {
       <div class="form-group full-width">
         <label>Φορέας Πιστοποίησης</label>
         <input type="text" id="wiz-ce-body"
-               value="${_esc(lab.ce_body||''')}"
+               value="${_esc(lab.ce_body||'')}"
                placeholder="πχ EUROCERT Α.Ε."
                style="width:100%;margin-top:4px;">
       </div>
