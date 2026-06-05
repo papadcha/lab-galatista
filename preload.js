@@ -167,6 +167,8 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'ce-notify-snooze':        (days)              => ipcRenderer.invoke('ce-notify-snooze', days),
   'ce-notify-clear-snooze':  ()                  => ipcRenderer.invoke('ce-notify-clear-snooze'),
   'on-ce-expiry':            (cb)                => ipcRenderer.on('ce-expiry-notification', (_e, status) => cb(status)),
+  'on-archive-close-dialog': (cb)                => ipcRenderer.on('show-archive-close-dialog', () => cb()),
+  'force-quit':              ()                  => ipcRenderer.invoke('force-quit'),
 
   // CE period py-calls (via pyBridge.call)
   get_active_ce_period:      ()                  => call('get_active_ce_period'),

@@ -63,26 +63,11 @@ function createWindow() {
   // mainWindow.webContents.openDevTools();
 
   // Προειδοποίηση κλεισίματος αν είναι ενεργό Archive Mode
-  mainWindow.on('close', async (e) => {
+  mainWindow.on('close', (e) => {
     if (!_archiveMode) return;
     e.preventDefault();
-    const { response } = await dialog.showMessageBox(mainWindow, {
-      type:      'warning',
-      buttons:   ['Επιστροφή & Κλείσιμο', 'Κλείσιμο χωρίς επιστροφή', 'Ακύρωση'],
-      defaultId: 0,
-      cancelId:  2,
-      title:     'Archive Mode ενεργό',
-      message:   'Η εφαρμογή είναι σε Archive Mode.\nΤι θέλετε να κάνετε;',
-    });
-    if (response === 0) {
-      await _pyCallMain('restore_db', []);
-      _archiveMode = false;
-      mainWindow.destroy();
-    } else if (response === 1) {
-      _archiveMode = false;
-      mainWindow.destroy();
-    }
-    // response === 2: ακύρωση — το παράθυρο μένει ανοιχτό
+    // Στέλνουμε στον renderer να δείξει styled modal (όχι native dialog)
+    mainWindow.webContents.send('show-archive-close-dialog');
   });
 }
 
@@ -484,6 +469,13 @@ ipcMain.handle('is-archive-mode', () => {
 });
 
 // Archive mode quit — handled in createWindow via win.on('close')
+
+ipcMain.handle('force-quit', async () => {
+  await _pyCallMain('restore_db', []);
+  _archiveMode = false;
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+  return { ok: true };
+});
 
 // ============================================================
 // CE EXPIRY NOTIFICATION

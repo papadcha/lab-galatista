@@ -461,10 +461,34 @@ App._wizardBack           = _wizardBack;
 App._wizardFinish         = _wizardFinish;
 App._wizardSelectFolder   = _wizardSelectFolder;
 App.updateSuggestedWizardFolder = updateSuggestedWizardFolder;
+async function _doForceQuit() {
+  App.closeModal();
+  await window.pyBridge?.['force-quit']?.();
+}
+
+// Listener για κλείσιμο παραθύρου σε archive mode
+window.pyBridge?.['on-archive-close-dialog']?.(() => {
+  App.showModal(
+    '🗄 Κλείσιμο — Archive Mode ενεργό',
+    '<div style="font-size:13px;">' +
+    '<div style="background:rgba(180,83,9,.12);border:1px solid rgba(180,83,9,.35);' +
+    'border-radius:8px;padding:12px;margin-bottom:12px;color:var(--text);">' +
+    'Είστε σε Archive Mode για την περίοδο <strong>' +
+    _esc(AppState.archivePeriod?.ce_number || '') + '</strong>.<br><br>' +
+    'Κατά το κλείσιμο η εφαρμογή επιστρέφει αυτόματα στην τρέχουσα περίοδο.</div>' +
+    '</div>',
+    [
+      { label: 'Ακύρωση',   action: 'App.closeModal()',    secondary: true },
+      { label: '✕ Κλείσιμο', action: 'App._doForceQuit()' },
+    ]
+  );
+});
+
 App.enterArchiveMode      = enterArchiveMode;
 App._doEnterArchiveMode   = _doEnterArchiveMode;
 App.exitArchiveMode       = exitArchiveMode;
 App._doExitArchiveMode    = _doExitArchiveMode;
+App._doForceQuit          = _doForceQuit;
 
 // ============================================================
 // ΑΡΧΙΚΟΠΟΙΗΣΗ
