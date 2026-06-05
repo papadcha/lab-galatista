@@ -1368,7 +1368,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                 sv  = fr.get('sieve_mm')
                 wf  = fr.get('weight_fraction') or fr.get('weight_m1') or fr.get('m1')
                 wp  = fr.get('weight_passing')  or fr.get('weight_m2') or fr.get('m2')
-                fi_fr = (wp/wf*100) if wf else None
+                fi_fr = (wp/wf*100) if (wf and wp is not None) else None
                 fr_rows.append([
                     Paragraph(f'{sv}' if sv else '—', ST_SMALL),
                     Paragraph(f'{wf:.1f}' if wf is not None else '—', ST_SMALL),
