@@ -1822,9 +1822,9 @@
     if (!cfg?.can_pdf) {
       App.toast('Απαιτείται ολοκλήρωση ρύθμισης', 'warn'); return null;
     }
-    const period = await pyCall('get_active_ce_period');
-    const dataFolder = period?.data_folder
-                    || (await window.pyBridge?.['get-config']?.())?.dataFolder;
+    // Χρησιμοποιούμε get-data-folder που λαμβάνει υπόψη το archive mode
+    const dfResult  = await window.pyBridge?.['get-data-folder']?.();
+    const dataFolder = dfResult?.folder;
     if (!dataFolder) {
       App.toast('Δεν βρέθηκε φάκελος δεδομένων', 'warn'); return null;
     }
