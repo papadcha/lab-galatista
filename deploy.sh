@@ -32,6 +32,13 @@ if [ "$confirm" = "y" ]; then
   git commit -m "$MSG"
   git push
   echo "✅ Έγινε push!"
+  # Καθαρισμός Downloads μετά από επιτυχημένο push
+  echo ""
+  echo "🧹 Καθαρισμός Downloads..."
+  for f in db_manager.py main.js preload.js settings.js calculations.py server.py \
+            dashboard.js tests.js history.js reports.js main-app.js index.html; do
+    [ -f "$DOWNLOADS/$f" ] && rm "$DOWNLOADS/$f" && echo "  ✓ $f"
+  done
 else
   echo "⏸ Ακυρώθηκε — τα αρχεία αντιγράφηκαν αλλά δεν έγινε commit."
 fi
