@@ -112,12 +112,15 @@ def restore_db() -> dict:
     return {'ok': True}
 
 def find_archive_db(data_folder: str) -> dict:
-    """Βρίσκει το FINAL backup DB στον φάκελο μιας παλιάς CE period."""
+    """Βρίσκει το FINAL backup DB στον φάκελο μιας παλιάς CE period.
+    Αγνοεί 0-byte αρχεία, επιλέγει το πιο πρόσφατο αν υπάρχουν πολλά."""
     import glob
     pattern = os.path.join(data_folder, 'backup', '*_FINAL.db')
-    files = glob.glob(pattern)
+    files = [f for f in glob.glob(pattern) if os.path.getsize(f) > 0]
     if not files:
         return {'ok': False, 'error': 'Δεν βρέθηκε FINAL backup στο: ' + data_folder}
+    # Επιλογή πιο πρόσφατου
+    files.sort(key=os.path.getmtime, reverse=True)
     return {'ok': True, 'path': files[0]}
 
 def get_connection() -> sqlite3.Connection:
