@@ -2279,6 +2279,22 @@ def create_subperiod(ce_period_id: int, valid_from: str,
         conn.close()
 
 
+def update_active_ce_period_folder(data_folder: str) -> dict:
+    """Αποθηκεύει τον φάκελο στην τρέχουσα ενεργή CE period."""
+    conn = get_connection()
+    try:
+        conn.execute(
+            "UPDATE tbl_ce_periods SET data_folder=? WHERE active=1",
+            (data_folder,)
+        )
+        conn.commit()
+        return {'ok': True}
+    except Exception as e:
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+
 def update_ce_period_folder(period_id: int, data_folder: str) -> bool:
     """Ενημερώνει τον φάκελο δεδομένων μιας CE period."""
     conn = get_connection()
