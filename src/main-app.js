@@ -617,10 +617,41 @@ function _wizardStep2(lab) {
   return `
     <div class="form-grid">
       <div class="form-group full-width">
+        <label>Αριθμός Πιστοποιητικού CE <span class="required">*</span></label>
+        <input type="text" id="wiz-ce-number"
+               value="${_esc(lab.ce_number||''')}"
+               placeholder="πχ 1128-CPR-0196"
+               style="width:100%;margin-top:4px;"
+               oninput="App.updateSuggestedWizardFolder()">
+      </div>
+      <div class="form-group">
+        <label>Ισχύς Από <span class="required">*</span></label>
+        <input type="text" id="wiz-ce-from"
+               value="${_esc(lab.ce_valid_from||''')}"
+               placeholder="DD/MM/YYYY"
+               style="width:100%;margin-top:4px;"
+               oninput="App.updateSuggestedWizardFolder()">
+      </div>
+      <div class="form-group">
+        <label>Ισχύς Έως <span class="required">*</span></label>
+        <input type="text" id="wiz-ce-to"
+               value="${_esc(lab.ce_valid_to||''')}"
+               placeholder="DD/MM/YYYY"
+               style="width:100%;margin-top:4px;"
+               oninput="App.updateSuggestedWizardFolder()">
+      </div>
+      <div class="form-group full-width">
+        <label>Φορέας Πιστοποίησης</label>
+        <input type="text" id="wiz-ce-body"
+               value="${_esc(lab.ce_body||''')}"
+               placeholder="πχ EUROCERT Α.Ε."
+               style="width:100%;margin-top:4px;">
+      </div>
+      <div class="form-group full-width">
         <label>Φάκελος Δεδομένων <span class="required">*</span></label>
         <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
           <input type="text" id="wiz-folder"
-                 placeholder="Προτείνεται αυτόματα"
+                 placeholder="Προτείνεται αυτόματα από τα στοιχεία CE"
                  style="flex:1;">
           <button class="btn-secondary btn-sm"
                   onclick="App._wizardSelectFolder()">📂</button>
@@ -689,14 +720,26 @@ async function _wizardNext(step) {
     });
     _showWizardStep(2, { ce_number: ceNum, ce_valid_from: ceFrom, ce_valid_to: ceTo });
   } else if (step === 2) {
+    const ceNum  = document.getElementById('wiz-ce-number')?.value?.trim();
+    const ceFrom = document.getElementById('wiz-ce-from')?.value?.trim();
+    const ceTo   = document.getElementById('wiz-ce-to')?.value?.trim();
+    const ceBody = document.getElementById('wiz-ce-body')?.value?.trim() || '';
     const folder = document.getElementById('wiz-folder')?.value?.trim();
+    if (!ceNum || !ceFrom || !ceTo) { App.toast('Συμπληρώστε τα στοιχεία CE', 'warn'); return; }
     if (!folder) { App.toast('Επιλέξτε φάκελο δεδομένων', 'warn'); return; }
-    // Δημιουργία CE period
+    // Ενημέρωση CE στοιχείων στο tbl_laboratory αν άλλαξαν
     const lab = await pyCall('get_lab_info') || {};
-    const periodId = await pyCall('create_ce_period',
-      lab.ce_number, lab.ce_body, lab.ce_valid_from, lab.ce_valid_to, folder);
+    if (ceNum !== lab.ce_number || ceFrom !== lab.ce_valid_from || ceTo !== lab.ce_valid_to) {
+      await pyCall('save_lab_info', {
+        ...lab,
+        ce_number: ceNum, ce_body: ceBody,
+        ce_valid_from: ceFrom, ce_valid_to: ceTo,
+      });
+    }
+    // Δημιουργία CE period
+    const periodId = await pyCall('create_ce_period', ceNum, ceBody, ceFrom, ceTo, folder);
     if (!periodId) { App.toast('Σφάλμα δημιουργίας CE period', 'fail'); return; }
-    await pyBridge['set-config']({ dataFolder: folder, activePeriodStart: lab.ce_valid_from });
+    await pyBridge['set-config']({ dataFolder: folder, activePeriodStart: ceFrom });
     await pyCall('update_ce_period_folder', periodId, folder);
     _showWizardStep(3);
   }
