@@ -62,13 +62,7 @@ function createWindow() {
   // Ανάπτυξη: άνοιγμα DevTools (αφαίρεσε αν δεν χρειάζεται)
   // mainWindow.webContents.openDevTools();
 
-  // Προειδοποίηση κλεισίματος αν είναι ενεργό Archive Mode
-  mainWindow.on('close', (e) => {
-    if (!_archiveMode) return;
-    e.preventDefault();
-    // Στέλνουμε στον renderer να δείξει styled modal (όχι native dialog)
-    mainWindow.webContents.send('show-archive-close-dialog');
-  });
+
 }
 
 // ============================================================
