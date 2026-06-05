@@ -1759,6 +1759,11 @@
           ${p.data_folder ? `<div style="font-size:11px;color:var(--text-muted);font-family:monospace;">${_esc(p.data_folder)}</div>` : ''}
         </div>
         <div style="display:flex;gap:4px;">
+          <button class="btn-secondary btn-sm"
+                  onclick="SettingsPage.showCePeriodView(${p.id})"
+                  title="Προβολή">
+            👁
+          </button>
           ${p.data_folder ? `
           <button class="btn-secondary btn-sm"
                   onclick="SettingsPage._openCeFolder('${_esc(p.data_folder)}')">
@@ -1772,6 +1777,52 @@
         </div>
       </div>
     `).join('');
+  }
+
+  async function showCePeriodView(periodId) {
+    const all = await window.pyBridge?.get_all_ce_periods?.() || [];
+    const period = all.find(p => p.id === periodId);
+    if (!period) return;
+
+    const subRows = (period.subperiods || []).map(s => {
+      const vals = [
+        s.ext_mb_value != null ? `MB: ${s.ext_mb_value}` : null,
+        s.ext_se_value != null ? `SE: ${s.ext_se_value}%` : null,
+        s.ext_fl_value != null ? `FI: ${s.ext_fl_value}%` : null,
+      ].filter(Boolean).join('  ·  ');
+      return `
+        <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <div style="display:flex;justify-content:space-between;">
+            <strong>${_esc(s.lab_report_number || '—')}</strong>
+            <span style="color:var(--text-muted);">από ${_fmtDate(s.valid_from)}</span>
+          </div>
+          ${vals ? `<div style="color:var(--text-muted);margin-top:2px;">${vals}</div>` : ''}
+          ${s.notes ? `<div style="color:var(--text-muted);margin-top:2px);font-style:italic;">${_esc(s.notes)}</div>` : ''}
+        </div>`;
+    }).join('') || '<div style="color:var(--text-muted);font-size:13px;">Δεν υπάρχουν υποπερίοδοι</div>';
+
+    App.showModal(
+      `📋 ${_esc(period.ce_number)} — Αρχείο`,
+      `<div style="font-size:13px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;
+                    padding:10px;background:var(--bg-card);border-radius:6px;margin-bottom:14px;">
+          <div><span style="color:var(--text-muted);">Φορέας</span><br>
+               <strong>${_esc(period.ce_body || '—')}</strong></div>
+          <div><span style="color:var(--text-muted);">Ισχύς</span><br>
+               <strong>${_fmtDate(period.valid_from)} – ${_fmtDate(period.valid_to)}</strong></div>
+          ${period.data_folder ? `
+          <div style="grid-column:1/-1;">
+            <span style="color:var(--text-muted);">Φάκελος</span><br>
+            <span style="font-family:monospace;font-size:11px;">${_esc(period.data_folder)}</span>
+            <button class="btn-secondary btn-sm" style="margin-left:8px;"
+                    onclick="SettingsPage._openCeFolder('${_esc(period.data_folder)}')">📂</button>
+          </div>` : ''}
+        </div>
+        <div style="font-weight:600;margin-bottom:8px;">Υποπερίοδοι</div>
+        ${subRows}
+      </div>`,
+      [{ label: 'Κλείσιμο', action: 'App.closeModal()', secondary: true }]
+    );
   }
 
   async function _openCeFolder(folder) {
@@ -2332,7 +2383,7 @@
     deleteActiveSubperiod, _doDeleteSubperiod,
     deleteCePeriod, _doDeleteCePeriod,
     showNewCePeriodModal, _updateSuggestedFolder, _selectNewCeFolder,
-    _saveNewCePeriod, _openCeFolder,
+    _saveNewCePeriod, _openCeFolder, showCePeriodView,
   };
 
   // ============================================================
