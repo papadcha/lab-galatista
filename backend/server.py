@@ -153,7 +153,8 @@ def generate_pdf_library(data_folder: str) -> dict:
     Αποθηκεύει στο {data_folder}/pdf/{UP<id>?}/{productFolder}/{code}.pdf
     """
     import re as _re
-    conn = get_connection()
+    from database.db_manager import get_connection as _get_conn
+    conn = _get_conn()
     try:
         samples = conn.execute("""
             SELECT s.id, s.code, s.date, s.subperiod_id,
@@ -816,7 +817,8 @@ METHODS = {
                                bool(args[2]) if len(args) > 2 else True),
     'switch_db':           lambda args: switch_db(args[0]),
     'restore_db':          lambda args: restore_db(),
-    'find_archive_db':     lambda args: find_archive_db(args[0]),
+    'find_archive_db':               lambda args: find_archive_db(args[0]),
+    'update_active_ce_period_folder': lambda args: update_active_ce_period_folder(args[0]),
     'generate_pdf_library': lambda args: generate_pdf_library(args[0]),
     'delete_subperiod':    lambda args: delete_subperiod(int(args[0])),
     'delete_ce_period':    lambda args: delete_ce_period(int(args[0])),
