@@ -1843,15 +1843,15 @@
         statusEl.style.borderColor = 'rgba(22,101,52,.4)';
         let html = msg;
         if (result.errors?.length) {
-          html += '<br><span style="color:var(--text-muted);font-size:12px;">Παραλείφθηκαν: ' +
-                  result.errors.map(e => e.split(':')[0]).join(', ') + '</span>';
+          html += '<br><span style="color:var(--text-muted);font-size:12px;">Παραλείφθηκαν:<br>' +
+                  result.errors.map(e => e).join('<br>') + '</span>';
         }
         statusEl.innerHTML = html;
       }
       if (!silent) {
         App.toast(msg, 'ok');
         if (result.errors?.length) {
-          App.toast('Παραλείφθηκαν: ' + result.errors.map(e => e.split(':')[0]).join(', '), 'warn');
+          result.errors.forEach(e => App.toast('⚠ ' + e, 'warn'));
         }
       }
       window.pyBridge?.['cloud-sync']?.().catch(() => {});
