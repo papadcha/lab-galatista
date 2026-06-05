@@ -22,6 +22,11 @@ echo "📁 Αντιγραφή αρχείων..."
 [ -f "$DOWNLOADS/main-app.js"   ] && cp "$DOWNLOADS/main-app.js"    "$REPO/src/main-app.js"           && echo "  ✓ main-app.js"
 # Άνοιξε το deploy.sh και πρόσθεσε:
 [ -f "$DOWNLOADS/index.html" ] && cp "$DOWNLOADS/index.html"  "$REPO/src/index.html"        && echo "  ✓ index.html"
+[ -f "$DOWNLOADS/migration_010_document_library.sql" ] && cp "$DOWNLOADS/migration_010_document_library.sql" "$REPO/database/migration_010_document_library.sql" && echo "  ✓ migration_010"
+[ -f "$DOWNLOADS/library.html" ] && cp "$DOWNLOADS/library.html" "$REPO/src/pages/library/library.html" && echo "  ✓ library.html"
+[ -f "$DOWNLOADS/library.js"   ] && cp "$DOWNLOADS/library.js"   "$REPO/src/pages/library/library.js"   && echo "  ✓ library.js"
+[ -f "$DOWNLOADS/standards.json" ] && cp "$DOWNLOADS/standards.json" "$REPO/standards.json" && echo "  ✓ standards.json"
+
 echo ""
 echo "📝 Git status:"
 cd "$REPO" && git status --short

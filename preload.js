@@ -170,6 +170,9 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'on-archive-close-dialog': (cb)                => ipcRenderer.on('show-archive-close-dialog', () => cb()),
   'force-quit':              ()                  => ipcRenderer.invoke('force-quit'),
   'generate-pdf-library':    (folder)            => ipcRenderer.invoke('generate-pdf-library', folder),
+  'upload-document':         (opts)              => ipcRenderer.invoke('upload-document', opts),
+  'open-document':           (cloudPath)         => ipcRenderer.invoke('open-document', cloudPath),
+  'delete-document-cloud':   (cloudPath)         => ipcRenderer.invoke('delete-document-cloud', cloudPath),
 
   // CE period py-calls (via pyBridge.call)
   get_active_ce_period:      ()                  => call('get_active_ce_period'),

@@ -107,6 +107,7 @@ const Pages = {
   reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
   settings:  { html: 'pages/settings/settings.html',   js: 'pages/settings/settings.js'   },
   reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
+  library:   { html: 'pages/library/library.html',   js: 'pages/library/library.js'     },
 };
 
 async function navigateTo(pageId) {
@@ -483,6 +484,29 @@ window.pyBridge?.['on-archive-close-dialog']?.(() => {
     ]
   );
 });
+
+// Standards check
+async function checkDocumentStandards() {
+  try {
+    const resp = await fetch(
+      'https://raw.githubusercontent.com/papadcha/lab-galatista/master/standards.json'
+    );
+    if (!resp.ok) return;
+    const standards = await resp.json();
+    const docs = await pyCall('get_documents_for_standards_check') || [];
+    const outdated = docs.filter(d => {
+      const std = standards.find(s => s.code === d.code);
+      return std && std.latest !== d.version;
+    });
+    const badge = document.getElementById('library-badge');
+    if (badge) {
+      badge.style.display = outdated.length ? 'inline' : 'none';
+      badge.textContent   = outdated.length ? String(outdated.length) : '!';
+    }
+    return outdated;
+  } catch(e) { /* offline or fetch error — silent */ }
+}
+App.checkDocumentStandards = checkDocumentStandards;
 
 App.enterArchiveMode      = enterArchiveMode;
 App._doEnterArchiveMode   = _doEnterArchiveMode;
@@ -961,6 +985,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Φόρτωση αρχικής σελίδας πρώτα
   await navigateTo('dashboard');
+  // Έλεγχος εκδόσεων προδιαγραφών (async, δεν μπλοκάρει εκκίνηση)
+  checkDocumentStandards().catch(() => {});
 
   // Έλεγχος αρχικοποίησης — μικρή καθυστέρηση για να φορτωθεί το DOM
   setTimeout(() => checkAndShowInitBanner(), 300);

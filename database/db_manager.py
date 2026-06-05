@@ -97,6 +97,158 @@ def get_allowed_tests_for_category(category: str) -> List[str]:
 # CONNECTION
 # ============================================================
 
+# ============================================================
+# DOCUMENT LIBRARY
+# ============================================================
+
+def get_doc_sections() -> list:
+    """Επιστρέφει όλες τις ενότητες με αριθμό εγγράφων."""
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT s.id, s.name, s.icon, s.is_custom, s.sort_order,
+                   COUNT(d.id) AS doc_count
+            FROM tbl_doc_sections s
+            LEFT JOIN tbl_documents d ON d.section_id = s.id
+            GROUP BY s.id
+            ORDER BY s.sort_order, s.id
+        """).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+def create_doc_section(name: str, icon: str = '📁') -> dict:
+    conn = get_connection()
+    try:
+        max_order = conn.execute(
+            'SELECT COALESCE(MAX(sort_order),0)+1 FROM tbl_doc_sections'
+        ).fetchone()[0]
+        cur = conn.execute(
+            'INSERT INTO tbl_doc_sections (name, icon, is_custom, sort_order) VALUES (?,?,1,?)',
+            (name, icon, max_order)
+        )
+        conn.commit()
+        return {'ok': True, 'id': cur.lastrowid}
+    except Exception as e:
+        conn.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+def update_doc_section(section_id: int, name: str, icon: str) -> dict:
+    conn = get_connection()
+    try:
+        conn.execute(
+            'UPDATE tbl_doc_sections SET name=?, icon=? WHERE id=?',
+            (name, icon, section_id)
+        )
+        conn.commit()
+        return {'ok': True}
+    except Exception as e:
+        conn.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+def delete_doc_section(section_id: int) -> dict:
+    conn = get_connection()
+    try:
+        is_custom = conn.execute(
+            'SELECT is_custom FROM tbl_doc_sections WHERE id=?', (section_id,)
+        ).fetchone()
+        if not is_custom or not is_custom[0]:
+            return {'ok': False, 'error': 'Δεν μπορείτε να διαγράψετε σταθερή ενότητα'}
+        conn.execute('DELETE FROM tbl_doc_sections WHERE id=?', (section_id,))
+        conn.commit()
+        return {'ok': True}
+    except Exception as e:
+        conn.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+def get_documents(section_id: int) -> list:
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT * FROM tbl_documents
+            WHERE section_id=?
+            ORDER BY title
+        """, (section_id,)).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+def create_document(section_id: int, title: str, code: str = None,
+                    version: str = None, expires_at: str = None,
+                    cloud_path: str = None, url: str = None,
+                    notes: str = None) -> dict:
+    conn = get_connection()
+    try:
+        cur = conn.execute("""
+            INSERT INTO tbl_documents
+                (section_id, title, code, version, expires_at, cloud_path, url, notes)
+            VALUES (?,?,?,?,?,?,?,?)
+        """, (section_id, title, code, version, expires_at, cloud_path, url, notes))
+        conn.commit()
+        return {'ok': True, 'id': cur.lastrowid}
+    except Exception as e:
+        conn.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+def update_document(doc_id: int, title: str, code: str = None,
+                    version: str = None, expires_at: str = None,
+                    cloud_path: str = None, url: str = None,
+                    notes: str = None) -> dict:
+    conn = get_connection()
+    try:
+        conn.execute("""
+            UPDATE tbl_documents
+            SET title=?, code=?, version=?, expires_at=?,
+                cloud_path=?, url=?, notes=?,
+                updated_at=datetime('now')
+            WHERE id=?
+        """, (title, code, version, expires_at, cloud_path, url, notes, doc_id))
+        conn.commit()
+        return {'ok': True}
+    except Exception as e:
+        conn.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+def delete_document(doc_id: int) -> dict:
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            'SELECT cloud_path FROM tbl_documents WHERE id=?', (doc_id,)
+        ).fetchone()
+        cloud_path = row['cloud_path'] if row else None
+        conn.execute('DELETE FROM tbl_documents WHERE id=?', (doc_id,))
+        conn.commit()
+        return {'ok': True, 'cloud_path': cloud_path}
+    except Exception as e:
+        conn.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+def get_documents_for_standards_check() -> list:
+    """Επιστρέφει έγγραφα με code για σύγκριση έκδοσης."""
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT d.id, d.title, d.code, d.version, s.name AS section_name
+            FROM tbl_documents d
+            JOIN tbl_doc_sections s ON s.id = d.section_id
+            WHERE d.code IS NOT NULL AND d.code != ''
+        """).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
 def switch_db(archive_path: str) -> dict:
     """Εναλλαγή σε archive DB (global switch)."""
     global DB_PATH
@@ -133,7 +285,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 9
+CURRENT_SCHEMA_VERSION = 10
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = os.path.join(os.path.dirname(DB_PATH))
@@ -256,6 +408,7 @@ def initialize_database():
         7: os.path.join(MIGRATIONS_DIR, 'migration_007_test_limits.sql'),
         8: os.path.join(MIGRATIONS_DIR, 'migration_008_pdf_font.sql'),
         9: os.path.join(MIGRATIONS_DIR, 'migration_009_ce_periods.sql'),
+        10: os.path.join(MIGRATIONS_DIR, 'migration_010_document_library.sql'),
     }
 
     needs_recalc = False
