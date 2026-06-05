@@ -721,7 +721,13 @@ METHODS = {
         int(args[3]) if len(args)>3 and args[3] else None,
         args[4]),
     'vacuum_into':         lambda args: vacuum_into(args[0]),
-    'clean_start':         lambda args: clean_start(args[0] if args else ''),
+    'clean_start':         lambda args: clean_start(
+                               args[0] if args else '',
+                               bool(args[1]) if len(args) > 1 else True,
+                               bool(args[2]) if len(args) > 2 else True),
+    'switch_db':           lambda args: switch_db(args[0]),
+    'restore_db':          lambda args: restore_db(),
+    'find_archive_db':     lambda args: find_archive_db(args[0]),
     'delete_subperiod':    lambda args: delete_subperiod(int(args[0])),
     'delete_ce_period':    lambda args: delete_ce_period(int(args[0])),
     'update_ce_period':    lambda args: update_ce_period(
