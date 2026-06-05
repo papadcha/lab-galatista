@@ -2213,11 +2213,10 @@
     const result = await window.pyBridge?.['clean-start']?.({ keepTechnicians, keepProducts });
     if (result?.ok) {
       App.toast(
-        `Clean Start ολοκληρώθηκε — ${result.deleted} δείγματα διαγράφηκαν. Μεταφορά στον οδηγό...`,
+        `Clean Start ολοκληρώθηκε — ${result.deleted} δείγματα διαγράφηκαν. Επανεκκίνηση σε λίγο...`,
         'ok'
       );
-      // Μικρή καθυστέρηση για να διαβαστεί το μήνυμα, μετά dashboard (init banner/wizard)
-      setTimeout(() => App.navigate('dashboard'), 1800);
+      // Η επανεκκίνηση γίνεται αυτόματα από το main process (2.5s)
     } else {
       App.toast('Σφάλμα Clean Start: ' + (result?.error || 'άγνωστο'), 'fail');
     }

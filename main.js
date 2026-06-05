@@ -407,7 +407,13 @@ async function performCleanStart(options = {}) {
 }
 
 ipcMain.handle('clean-start', async (event, options = {}) => {
-  return await performCleanStart(options);
+  const result = await performCleanStart(options);
+  if (result?.ok) {
+    // Επανεκκίνηση μετά από 2.5s — ο renderer προλαβαίνει να δείξει το toast
+    // και μετά η εφαρμογή ξεκινάει καθαρά με null dataFolder → wizard
+    setTimeout(() => { app.relaunch(); app.exit(0); }, 2500);
+  }
+  return result;
 });
 
 // ============================================================
