@@ -179,7 +179,7 @@ contextBridge.exposeInMainWorld('pyBridge', {
     call('create_subperiod', cePeriodId, validFrom, reportNumber, notes, pdfSubfolder,
          extMb, extSe, extFl, extSieve),
   update_ce_period_folder:   (periodId, folder)  => call('update_ce_period_folder', periodId, folder),
-  'clean-start':             ()                    => ipcRenderer.invoke('clean-start'),
+  'clean-start':             (options)             => ipcRenderer.invoke('clean-start', options),
   get_init_status:           ()                    => call('get_init_status'),
   delete_subperiod:          (id)                  => call('delete_subperiod', id),
   delete_ce_period:          (id)                  => call('delete_ce_period', id),

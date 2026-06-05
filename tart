@@ -1,0 +1,109 @@
+[1mdiff --git a/main.js b/main.js[m
+[1mindex 7e8d3ee..98a8bb2 100644[m
+[1m--- a/main.js[m
+[1m+++ b/main.js[m
+[36m@@ -342,40 +342,31 @@[m [masync function initActivePeriodStart() {[m
+ // CLEAN START[m
+ // ============================================================[m
+ [m
+[31m-async function performCleanStart() {[m
+[31m-  const dbPath    = getDbPath();[m
+[32m+[m[32masync function performCleanStart(options = {}) {[m
+[32m+[m[32m  const {[m
+[32m+[m[32m    keepTechnicians = true,[m
+[32m+[m[32m    keepProducts    = true[m
+[32m+[m[32m  } = options;[m
+[32m+[m
+[32m+[m[32m  const dbPath     = getDbPath();[m
+   const dataFolder = getDataFolder();[m
+   if (!dbPath || !dataFolder) return { ok: false, error: 'Δεν βρέθηκε DB ή φάκελος' };[m
+ [m
+   // 1. VACUUM INTO — final backup στον φάκελο της τρέχουσας περιόδου[m
+[31m-  const now   = new Date();[m
+[31m-  const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;[m
+[31m-  const backupDir  = path.join(dataFolder, 'backup');[m
+[32m+[m[32m  const backupDir = path.join(dataFolder, 'backup');[m
+   fs.mkdirSync(backupDir, { recursive: true });[m
+[31m-  const finalPath  = path.join(backupDir, _buildBackupName(true));[m
+[32m+[m[32m  const finalPath = path.join(backupDir, _buildBackupName(true));[m
+ [m
+   try {[m
+[31m-    // VACUUM INTO μέσω sqlite3 CLI ή node better-sqlite3[m
+[31m-    // Χρησιμοποιούμε Python process για VACUUM INTO[m
+[31m-    const vacuumReq = JSON.stringify({[m
+[31m-      method: 'vacuum_into',[m
+[31m-      args:   [finalPath],[m
+[31m-      id:     'vacuum-' + Date.now()[m
+[31m-    }) + '\n';[m
+[31m-[m
+     const vacuumResult = await new Promise((resolve) => {[m
+[31m-      const id = 'vacuum-' + Date.now();[m
+[32m+[m[32m      const id  = 'vacuum-' + Date.now();[m
+       const req = JSON.stringify({ method: 'vacuum_into', args: [finalPath], id }) + '\n';[m
+       _pyPending.set(id, resolve);[m
+       try { pyProcess.stdin.write(req); }[m
+       catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }[m
+       setTimeout(() => { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }, 30000);[m
+     });[m
+[31m-[m
+[31m-    if (!vacuumResult?.ok) {[m
+[31m-      // Fallback: απλό copy αν αποτύχει το VACUUM INTO[m
+[31m-      fs.copyFileSync(dbPath, finalPath);[m
+[31m-    }[m
+[32m+[m[32m    if (!vacuumResult?.ok) fs.copyFileSync(dbPath, finalPath);[m
+   } catch(e) {[m
+     fs.copyFileSync(dbPath, finalPath);[m
+   }[m
+[36m@@ -387,10 +378,14 @@[m [masync function performCleanStart() {[m
+     catch(e) { console.warn('[CleanStart] Cloud sync warning:', e.message); }[m
+   }[m
+ [m
+[31m-  // 3. Clean start μέσω Python (διαγραφή δειγμάτων + reset counter)[m
+[32m+[m[32m  // 3. Clean start μέσω Python — διαγραφή δειγμάτων, CE deactivation, επιλογές[m
+   const cleanResult = await new Promise((resolve) => {[m
+     const id  = 'clean-' + Date.now();[m
+[31m-    const req = JSON.stringify({ method: 'clean_start', args: [finalPath], id }) + '\n';[m
+[32m+[m[32m    const req = JSON.stringify({[m
+[32m+[m[32m      method: 'clean_start',[m
+[32m+[m[32m      args:   [finalPath, keepTechnicians, keepProducts],[m
+[32m+[m[32m      id[m
+[32m+[m[32m    }) + '\n';[m
+     _pyPending.set(id, resolve);[m
+     try { pyProcess.stdin.write(req); }[m
+     catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }[m
+[36m@@ -400,13 +395,19 @@[m [masync function performCleanStart() {[m
+   if (!cleanResult?.ok) return cleanResult;[m
+ [m
+   // 4. Διαγραφή daily backups — κρατάμε μόνο το FINAL[m
+[31m-  _pruneBackups(backupDir, 0); // keep=0 → διαγραφή όλων των daily[m
+[32m+[m[32m  _pruneBackups(backupDir, 0);[m
+[32m+[m
+[32m+[m[32m  // 5. Reset config — κρατάμε μόνο το cloud remote (το dataFolder/activePeriodStart[m
+[32m+[m[32m  //    θα οριστούν ξανά μέσω wizard στην επόμενη εκκίνηση)[m
+[32m+[m[32m  saveConfig({[m
+[32m+[m[32m    cloudRemotePath: cfg.cloudRemotePath || null[m
+[32m+[m[32m  });[m
+ [m
+   return { ok: true, finalPath, deleted: cleanResult.deleted };[m
+ }[m
+ [m
+[31m-ipcMain.handle('clean-start', async () => {[m
+[31m-  return await performCleanStart();[m
+[32m+[m[32mipcMain.handle('clean-start', async (event, options = {}) => {[m
+[32m+[m[32m  return await performCleanStart(options);[m
+ });[m
+ [m
+ // ============================================================[m
+[1mdiff --git a/preload.js b/preload.js[m
+[1mindex 4d0403a..d78ea9b 100644[m
+[1m--- a/preload.js[m
+[1m+++ b/preload.js[m
+[36m@@ -179,7 +179,7 @@[m [mcontextBridge.exposeInMainWorld('pyBridge', {[m
+     call('create_subperiod', cePeriodId, validFrom, reportNumber, notes, pdfSubfolder,[m
+          extMb, extSe, extFl, extSieve),[m
+   update_ce_period_folder:   (periodId, folder)  => call('update_ce_period_folder', periodId, folder),[m
+[31m-  'clean-start':             ()                    => ipcRenderer.invoke('clean-start'),[m
+[32m+[m[32m  'clean-start':             (options)             => ipcRenderer.invoke('clean-start', options),[m
+   get_init_status:           ()                    => call('get_init_status'),[m
+   delete_subperiod:          (id)                  => call('delete_subperiod', id),[m
+   delete_ce_period:          (id)                  => call('delete_ce_period', id),[m

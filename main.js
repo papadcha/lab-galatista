@@ -342,40 +342,31 @@ async function initActivePeriodStart() {
 // CLEAN START
 // ============================================================
 
-async function performCleanStart() {
-  const dbPath    = getDbPath();
+async function performCleanStart(options = {}) {
+  const {
+    keepTechnicians = true,
+    keepProducts    = true
+  } = options;
+
+  const dbPath     = getDbPath();
   const dataFolder = getDataFolder();
   if (!dbPath || !dataFolder) return { ok: false, error: 'Δεν βρέθηκε DB ή φάκελος' };
 
   // 1. VACUUM INTO — final backup στον φάκελο της τρέχουσας περιόδου
-  const now   = new Date();
-  const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-  const backupDir  = path.join(dataFolder, 'backup');
+  const backupDir = path.join(dataFolder, 'backup');
   fs.mkdirSync(backupDir, { recursive: true });
-  const finalPath  = path.join(backupDir, _buildBackupName(true));
+  const finalPath = path.join(backupDir, _buildBackupName(true));
 
   try {
-    // VACUUM INTO μέσω sqlite3 CLI ή node better-sqlite3
-    // Χρησιμοποιούμε Python process για VACUUM INTO
-    const vacuumReq = JSON.stringify({
-      method: 'vacuum_into',
-      args:   [finalPath],
-      id:     'vacuum-' + Date.now()
-    }) + '\n';
-
     const vacuumResult = await new Promise((resolve) => {
-      const id = 'vacuum-' + Date.now();
+      const id  = 'vacuum-' + Date.now();
       const req = JSON.stringify({ method: 'vacuum_into', args: [finalPath], id }) + '\n';
       _pyPending.set(id, resolve);
       try { pyProcess.stdin.write(req); }
       catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
       setTimeout(() => { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }, 30000);
     });
-
-    if (!vacuumResult?.ok) {
-      // Fallback: απλό copy αν αποτύχει το VACUUM INTO
-      fs.copyFileSync(dbPath, finalPath);
-    }
+    if (!vacuumResult?.ok) fs.copyFileSync(dbPath, finalPath);
   } catch(e) {
     fs.copyFileSync(dbPath, finalPath);
   }
@@ -387,10 +378,14 @@ async function performCleanStart() {
     catch(e) { console.warn('[CleanStart] Cloud sync warning:', e.message); }
   }
 
-  // 3. Clean start μέσω Python (διαγραφή δειγμάτων + reset counter)
+  // 3. Clean start μέσω Python — διαγραφή δειγμάτων, CE deactivation, επιλογές
   const cleanResult = await new Promise((resolve) => {
     const id  = 'clean-' + Date.now();
-    const req = JSON.stringify({ method: 'clean_start', args: [finalPath], id }) + '\n';
+    const req = JSON.stringify({
+      method: 'clean_start',
+      args:   [finalPath, keepTechnicians, keepProducts],
+      id
+    }) + '\n';
     _pyPending.set(id, resolve);
     try { pyProcess.stdin.write(req); }
     catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
@@ -400,13 +395,19 @@ async function performCleanStart() {
   if (!cleanResult?.ok) return cleanResult;
 
   // 4. Διαγραφή daily backups — κρατάμε μόνο το FINAL
-  _pruneBackups(backupDir, 0); // keep=0 → διαγραφή όλων των daily
+  _pruneBackups(backupDir, 0);
+
+  // 5. Reset config — κρατάμε μόνο το cloud remote (το dataFolder/activePeriodStart
+  //    θα οριστούν ξανά μέσω wizard στην επόμενη εκκίνηση)
+  saveConfig({
+    cloudRemotePath: cfg.cloudRemotePath || null
+  });
 
   return { ok: true, finalPath, deleted: cleanResult.deleted };
 }
 
-ipcMain.handle('clean-start', async () => {
-  return await performCleanStart();
+ipcMain.handle('clean-start', async (event, options = {}) => {
+  return await performCleanStart(options);
 });
 
 // ============================================================
