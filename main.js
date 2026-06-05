@@ -422,8 +422,9 @@ ipcMain.handle('clean-start', async (event, options = {}) => {
 // ARCHIVE MODE
 // ============================================================
 
-let _archiveMode   = false;
-let _archivePeriodId = null;
+let _archiveMode      = false;
+let _archivePeriodId  = null;
+let _archiveDataFolder = null;
 
 async function _pyCallMain(method, args = [], timeoutMs = 15000) {
   return new Promise((resolve) => {
@@ -445,16 +446,18 @@ ipcMain.handle('switch-to-archive', async (event, { dataFolder, periodId }) => {
   if (!found?.ok) return found;
   const switched = await _pyCallMain('switch_db', [found.path]);
   if (!switched?.ok) return switched;
-  _archiveMode    = true;
-  _archivePeriodId = periodId;
+  _archiveMode       = true;
+  _archivePeriodId   = periodId;
+  _archiveDataFolder = dataFolder;
   return { ok: true, dbPath: found.path };
 });
 
 ipcMain.handle('restore-from-archive', async () => {
   const result = await _pyCallMain('restore_db', []);
   if (!result?.ok) return result;
-  _archiveMode    = false;
-  _archivePeriodId = null;
+  _archiveMode       = false;
+  _archivePeriodId   = null;
+  _archiveDataFolder = null;
   return { ok: true };
 });
 
@@ -981,6 +984,7 @@ function saveConfig(cfg) {
 
 // Βοηθητικές για δομή φακέλου
 function getDataFolder() {
+  if (_archiveMode && _archiveDataFolder) return _archiveDataFolder;
   return loadConfig().dataFolder || null;
 }
 
