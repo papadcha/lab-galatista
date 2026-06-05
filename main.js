@@ -417,6 +417,74 @@ ipcMain.handle('clean-start', async (event, options = {}) => {
 });
 
 // ============================================================
+// ARCHIVE MODE
+// ============================================================
+
+let _archiveMode   = false;
+let _archivePeriodId = null;
+
+async function _pyCallMain(method, args = [], timeoutMs = 15000) {
+  return new Promise((resolve) => {
+    const id  = method + '-' + Date.now();
+    const req = JSON.stringify({ method, args, id }) + '\n';
+    _pyPending.set(id, resolve);
+    try { pyProcess.stdin.write(req); }
+    catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
+    setTimeout(() => { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }, timeoutMs);
+  });
+}
+
+ipcMain.handle('find-archive-db', async (event, dataFolder) => {
+  return await _pyCallMain('find_archive_db', [dataFolder]);
+});
+
+ipcMain.handle('switch-to-archive', async (event, { dataFolder, periodId }) => {
+  const found = await _pyCallMain('find_archive_db', [dataFolder]);
+  if (!found?.ok) return found;
+  const switched = await _pyCallMain('switch_db', [found.path]);
+  if (!switched?.ok) return switched;
+  _archiveMode    = true;
+  _archivePeriodId = periodId;
+  return { ok: true, dbPath: found.path };
+});
+
+ipcMain.handle('restore-from-archive', async () => {
+  const result = await _pyCallMain('restore_db', []);
+  if (!result?.ok) return result;
+  _archiveMode    = false;
+  _archivePeriodId = null;
+  return { ok: true };
+});
+
+ipcMain.handle('is-archive-mode', () => {
+  return { archiveMode: _archiveMode, periodId: _archivePeriodId };
+});
+
+// Προειδοποίηση κλεισίματος αν σε archive mode
+app.on('before-quit', async (e) => {
+  if (!_archiveMode) return;
+  e.preventDefault();
+  const { dialog } = require('electron');
+  const { response } = await dialog.showMessageBox({
+    type:      'warning',
+    buttons:   ['Επιστροφή & Κλείσιμο', 'Κλείσιμο χωρίς επιστροφή', 'Ακύρωση'],
+    defaultId: 0,
+    cancelId:  2,
+    title:     'Archive Mode ενεργό',
+    message:   'Η εφαρμογή είναι σε Archive Mode.\nΤι θέλετε να κάνετε;',
+  });
+  if (response === 0) {
+    await _pyCallMain('restore_db', []);
+    _archiveMode = false;
+    app.quit();
+  } else if (response === 1) {
+    _archiveMode = false;
+    app.quit();
+  }
+  // response === 2: ακύρωση
+});
+
+// ============================================================
 // CE EXPIRY NOTIFICATION
 // ============================================================
 

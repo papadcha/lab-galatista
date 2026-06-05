@@ -19,7 +19,8 @@ echo "📁 Αντιγραφή αρχείων..."
 [ -f "$DOWNLOADS/history.js"    ] && cp "$DOWNLOADS/history.js"      "$REPO/src/pages/history/history.js"    && echo "  ✓ history.js"
 [ -f "$DOWNLOADS/reports.js"    ] && cp "$DOWNLOADS/reports.js"      "$REPO/src/pages/reports/reports.js"    && echo "  ✓ reports.js"
 [ -f "$DOWNLOADS/main-app.js"   ] && cp "$DOWNLOADS/main-app.js"    "$REPO/src/main-app.js"           && echo "  ✓ main-app.js"
-
+# Άνοιξε το deploy.sh και πρόσθεσε:
+[ -f "$DOWNLOADS/index.html" ] && cp "$DOWNLOADS/index.html"  "$REPO/src/index.html"        && echo "  ✓ index.html"
 echo ""
 echo "📝 Git status:"
 cd "$REPO" && git status --short

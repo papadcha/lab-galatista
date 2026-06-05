@@ -1684,6 +1684,7 @@
     const period = await window.pyBridge?.get_active_ce_period?.();
     _renderActiveCePeriod(period);
     const all = await window.pyBridge?.get_all_ce_periods?.();
+    _allPeriodsCache = all || [];
     _renderCeHistory(all || []);
   }
 
@@ -1760,9 +1761,9 @@
         </div>
         <div style="display:flex;gap:4px;">
           <button class="btn-secondary btn-sm"
-                  onclick="SettingsPage.showCePeriodView(${p.id})"
-                  title="Προβολή">
-            👁
+                  onclick="SettingsPage._enterArchiveFromHistory(${p.id})"
+                  title="Είσοδος σε Archive Mode">
+            🗄
           </button>
           ${p.data_folder ? `
           <button class="btn-secondary btn-sm"
@@ -1823,6 +1824,18 @@
       </div>`,
       [{ label: 'Κλείσιμο', action: 'App.closeModal()', secondary: true }]
     );
+  }
+
+  let _allPeriodsCache = [];
+
+  async function _enterArchiveFromHistory(periodId) {
+    // Refresh cache αν χρειάζεται
+    if (!_allPeriodsCache.length) {
+      _allPeriodsCache = await window.pyBridge?.get_all_ce_periods?.() || [];
+    }
+    const period = _allPeriodsCache.find(p => p.id === periodId);
+    if (!period) { App.toast('Δεν βρέθηκε η περίοδος', 'fail'); return; }
+    await App.enterArchiveMode(period);
   }
 
   async function _openCeFolder(folder) {
@@ -2384,6 +2397,7 @@
     deleteCePeriod, _doDeleteCePeriod,
     showNewCePeriodModal, _updateSuggestedFolder, _selectNewCeFolder,
     _saveNewCePeriod, _openCeFolder, showCePeriodView,
+    _enterArchiveFromHistory,
   };
 
   // ============================================================

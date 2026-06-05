@@ -23,6 +23,8 @@
 // ============================================================
 
 const AppState = {
+  archiveMode:   false,
+  archivePeriod: null,
   products:     [],   // Φορτώνεται μία φορά στην εκκίνηση
   technicians:  [],   // Φορτώνεται μία φορά στην εκκίνηση
   currentPage:  null, // Τρέχουσα σελίδα
@@ -369,12 +371,100 @@ window.pyCallStrict = pyCallStrict;
 window.AppState   = AppState;
 
 // Wizard functions — exposed μετά το App
+// ── Archive Mode ─────────────────────────────────────────────
+
+function _updateSidebarArchiveBanner(period) {
+  const banner = document.getElementById('sidebar-archive-banner');
+  const ceEl   = document.getElementById('archive-banner-ce');
+  if (!banner) return;
+  if (period) {
+    if (ceEl) ceEl.textContent = period.ce_number +
+      ' (' + _formatCeDate(period.valid_from) + ' – ' + _formatCeDate(period.valid_to) + ')';
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+async function enterArchiveMode(period) {
+  if (!period?.data_folder) {
+    App.toast('Δεν βρέθηκε φάκελος για αυτή την περίοδο', 'fail'); return;
+  }
+  // Confirmation modal
+  App.showModal(
+    '🗄 Είσοδος σε Archive Mode',
+    '<div style="font-size:13px;">' +
+    '<div style="background:rgba(180,83,9,.12);border:1px solid rgba(180,83,9,.4);' +
+    'border-radius:8px;padding:12px;margin-bottom:12px;">' +
+    '<strong style="color:#b45309;">Προσοχή</strong><br>' +
+    'Θα μεταβείτε στην περίοδο <strong>' + _esc(period.ce_number) + '</strong>' +
+    ' (' + _formatCeDate(period.valid_from) + ' – ' + _formatCeDate(period.valid_to) + ').<br>' +
+    'Οι αλλαγές αφορούν <em>αποκλειστικά</em> εκείνη την περίοδο.</div>' +
+    'Ένα έντονο banner στο sidebar θα σας υπενθυμίζει ότι είστε σε Archive Mode.</div>',
+    [
+      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+      { label: '🗄 Είσοδος', action: 'App._doEnterArchiveMode()' },
+    ]
+  );
+  window._archivePendingPeriod = period;
+}
+
+async function _doEnterArchiveMode() {
+  App.closeModal();
+  const period = window._archivePendingPeriod;
+  if (!period) return;
+  App.toast('Σύνδεση με archive DB...', 'info');
+  const result = await window.pyBridge?.['switch-to-archive']?.({
+    dataFolder: period.data_folder,
+    periodId:   period.id,
+  });
+  if (!result?.ok) {
+    App.toast('Σφάλμα: ' + (result?.error || 'Άγνωστο'), 'fail'); return;
+  }
+  AppState.archiveMode   = true;
+  AppState.archivePeriod = period;
+  _updateSidebarArchiveBanner(period);
+  await updateSidebarCeBadge();
+  App.toast('Archive mode: ' + period.ce_number, 'warn');
+  navigateTo('samples');
+}
+
+async function exitArchiveMode() {
+  App.showModal(
+    'Έξοδος από Archive Mode',
+    '<div style="font-size:13px;">Επιστροφή στην τρέχουσα περίοδο.<br>' +
+    'Βεβαιωθείτε ότι ολοκληρώσατε ό,τι χρειαζόταν.</div>',
+    [
+      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+      { label: '↩ Επιστροφή', action: 'App._doExitArchiveMode()' },
+    ]
+  );
+}
+
+async function _doExitArchiveMode() {
+  App.closeModal();
+  const result = await window.pyBridge?.['restore-from-archive']?.();
+  if (!result?.ok) {
+    App.toast('Σφάλμα επιστροφής: ' + (result?.error || ''), 'fail'); return;
+  }
+  AppState.archiveMode   = false;
+  AppState.archivePeriod = null;
+  _updateSidebarArchiveBanner(null);
+  await updateSidebarCeBadge();
+  App.toast('Επιστροφή στην τρέχουσα περίοδο', 'ok');
+  navigateTo('dashboard');
+}
+
 App.showSetupWizard       = showSetupWizard;
 App._wizardNext           = _wizardNext;
 App._wizardBack           = _wizardBack;
 App._wizardFinish         = _wizardFinish;
 App._wizardSelectFolder   = _wizardSelectFolder;
 App.updateSuggestedWizardFolder = updateSuggestedWizardFolder;
+App.enterArchiveMode      = enterArchiveMode;
+App._doEnterArchiveMode   = _doEnterArchiveMode;
+App.exitArchiveMode       = exitArchiveMode;
+App._doExitArchiveMode    = _doExitArchiveMode;
 
 // ============================================================
 // ΑΡΧΙΚΟΠΟΙΗΣΗ

@@ -19,8 +19,9 @@ import os
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-DB_PATH     = os.path.join(os.path.dirname(__file__), 'laboratory.db')
-SCHEMA_PATH = os.path.join(os.path.dirname(__file__), 'schema.sql')
+DB_PATH          = os.path.join(os.path.dirname(__file__), 'laboratory.db')
+_ORIGINAL_DB_PATH = DB_PATH
+SCHEMA_PATH      = os.path.join(os.path.dirname(__file__), 'schema.sql')
 
 
 # ============================================================
@@ -95,6 +96,29 @@ def get_allowed_tests_for_category(category: str) -> List[str]:
 # ============================================================
 # CONNECTION
 # ============================================================
+
+def switch_db(archive_path: str) -> dict:
+    """Εναλλαγή σε archive DB (global switch)."""
+    global DB_PATH
+    if not os.path.exists(archive_path):
+        return {'ok': False, 'error': 'Το αρχείο δεν βρέθηκε: ' + archive_path}
+    DB_PATH = archive_path
+    return {'ok': True, 'path': archive_path}
+
+def restore_db() -> dict:
+    """Επαναφορά στο κύριο DB."""
+    global DB_PATH
+    DB_PATH = _ORIGINAL_DB_PATH
+    return {'ok': True}
+
+def find_archive_db(data_folder: str) -> dict:
+    """Βρίσκει το FINAL backup DB στον φάκελο μιας παλιάς CE period."""
+    import glob
+    pattern = os.path.join(data_folder, 'backup', '*_FINAL.db')
+    files = glob.glob(pattern)
+    if not files:
+        return {'ok': False, 'error': 'Δεν βρέθηκε FINAL backup στο: ' + data_folder}
+    return {'ok': True, 'path': files[0]}
 
 def get_connection() -> sqlite3.Connection:
     """Επιστρέφει σύνδεση με τη βάση δεδομένων."""
