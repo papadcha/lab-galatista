@@ -1839,8 +1839,21 @@
     if (result?.ok) {
       const msg = '✅ Παρήχθησαν ' + result.generated + ' PDF' +
                   (result.skipped > 0 ? ' · Παραλείφθηκαν ' + result.skipped : '');
-      if (statusEl) { statusEl.style.borderColor = 'rgba(22,101,52,.4)'; statusEl.textContent = msg; }
-      if (!silent) App.toast(msg, 'ok');
+      if (statusEl) {
+        statusEl.style.borderColor = 'rgba(22,101,52,.4)';
+        let html = msg;
+        if (result.errors?.length) {
+          html += '<br><span style="color:var(--text-muted);font-size:12px;">Παραλείφθηκαν: ' +
+                  result.errors.map(e => e.split(':')[0]).join(', ') + '</span>';
+        }
+        statusEl.innerHTML = html;
+      }
+      if (!silent) {
+        App.toast(msg, 'ok');
+        if (result.errors?.length) {
+          App.toast('Παραλείφθηκαν: ' + result.errors.map(e => e.split(':')[0]).join(', '), 'warn');
+        }
+      }
       window.pyBridge?.['cloud-sync']?.().catch(() => {});
     } else {
       const err = 'Σφάλμα: ' + (result?.error || 'Άγνωστο');
