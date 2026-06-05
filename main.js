@@ -61,6 +61,29 @@ function createWindow() {
 
   // Ανάπτυξη: άνοιγμα DevTools (αφαίρεσε αν δεν χρειάζεται)
   // mainWindow.webContents.openDevTools();
+
+  // Προειδοποίηση κλεισίματος αν είναι ενεργό Archive Mode
+  mainWindow.on('close', async (e) => {
+    if (!_archiveMode) return;
+    e.preventDefault();
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type:      'warning',
+      buttons:   ['Επιστροφή & Κλείσιμο', 'Κλείσιμο χωρίς επιστροφή', 'Ακύρωση'],
+      defaultId: 0,
+      cancelId:  2,
+      title:     'Archive Mode ενεργό',
+      message:   'Η εφαρμογή είναι σε Archive Mode.\nΤι θέλετε να κάνετε;',
+    });
+    if (response === 0) {
+      await _pyCallMain('restore_db', []);
+      _archiveMode = false;
+      mainWindow.destroy();
+    } else if (response === 1) {
+      _archiveMode = false;
+      mainWindow.destroy();
+    }
+    // response === 2: ακύρωση — το παράθυρο μένει ανοιχτό
+  });
 }
 
 // ============================================================
@@ -460,29 +483,7 @@ ipcMain.handle('is-archive-mode', () => {
   return { archiveMode: _archiveMode, periodId: _archivePeriodId };
 });
 
-// Προειδοποίηση κλεισίματος αν σε archive mode
-app.on('before-quit', async (e) => {
-  if (!_archiveMode) return;
-  e.preventDefault();
-  const { dialog } = require('electron');
-  const { response } = await dialog.showMessageBox({
-    type:      'warning',
-    buttons:   ['Επιστροφή & Κλείσιμο', 'Κλείσιμο χωρίς επιστροφή', 'Ακύρωση'],
-    defaultId: 0,
-    cancelId:  2,
-    title:     'Archive Mode ενεργό',
-    message:   'Η εφαρμογή είναι σε Archive Mode.\nΤι θέλετε να κάνετε;',
-  });
-  if (response === 0) {
-    await _pyCallMain('restore_db', []);
-    _archiveMode = false;
-    app.quit();
-  } else if (response === 1) {
-    _archiveMode = false;
-    app.quit();
-  }
-  // response === 2: ακύρωση
-});
+// Archive mode quit — handled in createWindow via win.on('close')
 
 // ============================================================
 // CE EXPIRY NOTIFICATION
