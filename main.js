@@ -365,6 +365,13 @@ async function performCleanStart(options = {}) {
   fs.mkdirSync(backupDir, { recursive: true });
   const finalPath = path.join(backupDir, _buildBackupName(true));
 
+  // Αφαίρεση τυχόν υπάρχοντος 0-byte αρχείου από αποτυχημένη προηγούμενη προσπάθεια
+  try {
+    if (fs.existsSync(finalPath) && fs.statSync(finalPath).size === 0) {
+      fs.unlinkSync(finalPath);
+    }
+  } catch(e) {}
+
   try {
     const vacuumResult = await new Promise((resolve) => {
       const id  = 'vacuum-' + Date.now();
@@ -376,7 +383,18 @@ async function performCleanStart(options = {}) {
     });
     if (!vacuumResult?.ok) fs.copyFileSync(dbPath, finalPath);
   } catch(e) {
-    fs.copyFileSync(dbPath, finalPath);
+    try { fs.copyFileSync(dbPath, finalPath); } catch(e2) {}
+  }
+
+  // Επαλήθευση — αν το FINAL.db δεν δημιουργήθηκε σωστά, σταματάμε
+  try {
+    const finalSize = fs.existsSync(finalPath) ? fs.statSync(finalPath).size : 0;
+    if (finalSize === 0) {
+      try { fs.unlinkSync(finalPath); } catch(e) {}
+      return { ok: false, error: 'Αποτυχία δημιουργίας backup — το Clean Start ακυρώθηκε' };
+    }
+  } catch(e) {
+    return { ok: false, error: 'Αποτυχία επαλήθευσης backup: ' + e.message };
   }
 
   // 2. Cloud sync πριν διαγραφή (αν υπάρχει remote)
