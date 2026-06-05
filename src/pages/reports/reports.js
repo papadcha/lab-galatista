@@ -1817,6 +1817,39 @@
   // PUBLIC API
   // ============================================================
 
+  async function generatePdfLibrary(silent = false) {
+    const cfg = await pyCall('get_init_status');
+    if (!cfg?.can_pdf) {
+      App.toast('Απαιτείται ολοκλήρωση ρύθμισης', 'warn'); return null;
+    }
+    const period = await pyCall('get_active_ce_period');
+    const dataFolder = period?.data_folder
+                    || (await window.pyBridge?.['get-config']?.())?.dataFolder;
+    if (!dataFolder) {
+      App.toast('Δεν βρέθηκε φάκελος δεδομένων', 'warn'); return null;
+    }
+    const statusEl = document.getElementById('pdf-library-status');
+    if (statusEl) {
+      statusEl.style.display  = 'block';
+      statusEl.style.borderColor = 'var(--border)';
+      statusEl.textContent    = '⏳ Παραγωγή PDF βιβλιοθήκης...';
+    }
+    if (!silent) App.toast('Παραγωγή PDF βιβλιοθήκης...', 'info');
+    const result = await window.pyBridge?.['generate-pdf-library']?.(dataFolder);
+    if (result?.ok) {
+      const msg = '✅ Παρήχθησαν ' + result.generated + ' PDF' +
+                  (result.skipped > 0 ? ' · Παραλείφθηκαν ' + result.skipped : '');
+      if (statusEl) { statusEl.style.borderColor = 'rgba(22,101,52,.4)'; statusEl.textContent = msg; }
+      if (!silent) App.toast(msg, 'ok');
+      window.pyBridge?.['cloud-sync']?.().catch(() => {});
+    } else {
+      const err = 'Σφάλμα: ' + (result?.error || 'Άγνωστο');
+      if (statusEl) { statusEl.style.borderColor = 'rgba(185,28,28,.4)'; statusEl.textContent = err; }
+      if (!silent) App.toast(err, 'fail');
+    }
+    return result;
+  }
+
   window.ReportsPage = {
     switchTab,
     // Tab A
@@ -1824,6 +1857,7 @@
     onTestToggle,
     previewSingle, backToOptions,
     printReport, saveReport, emailReport, _sendEmail,
+    generatePdfLibrary,
     // Tab B
     loadPeriodic, exportPeriodicPdf, validatePeriodicDates, initPeriodicLimits, _switchStatsTab,
     _rerenderSieveChart, openSampleFromPeriodic,

@@ -27,6 +27,10 @@
             onclick="ReportsPage.switchTab('periodic')">
       📊 Περιοδική Αναφορά
     </button>
+    <button class="settings-tab" data-tab="library"
+            onclick="ReportsPage.switchTab('library')">
+      📚 Βιβλιοθήκη PDF
+    </button>
   </div>
 
   <!-- ═══════════════════════════════════════════════════
@@ -213,6 +217,26 @@
         <div id="periodic-table"></div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       TAB C: ΒΙΒΛΙΟΘΗΚΗ PDF
+       ═══════════════════════════════════════════════════ -->
+  <div class="settings-panel" id="tab-library">
+    <div class="form-card">
+      <h2>Βιβλιοθήκη PDF</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+        Δημιουργία PDF για όλα τα ολοκληρωμένα δείγματα της τρέχουσας περιόδου.
+        Τα αρχεία αποθηκεύονται στον φάκελο δεδομένων και συγχρονίζονται με το cloud.
+      </p>
+      <div id="pdf-library-status" style="display:none;
+           padding:10px 12px;border-radius:6px;font-size:13px;margin-bottom:14px;
+           background:var(--bg-card);border:1px solid var(--border);">
+      </div>
+      <button class="btn-primary" onclick="ReportsPage.generatePdfLibrary()">
+        📚 Δημιουργία PDF Βιβλιοθήκης
+      </button>
     </div>
   </div>
 

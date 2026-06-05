@@ -2272,8 +2272,15 @@
     const keepProducts    = document.getElementById('cs-keep-products')?.checked ?? true;
 
     App.closeModal();
-    App.toast('Clean Start σε εξέλιξη...', 'info');
 
+    // Βήμα 1: Παραγωγή PDF βιβλιοθήκης πριν τη διαγραφή
+    App.toast('Βήμα 1/2 — Παραγωγή PDF βιβλιοθήκης...', 'info');
+    if (window.ReportsPage?.generatePdfLibrary) {
+      await window.ReportsPage.generatePdfLibrary(true); // silent=true
+    }
+
+    // Βήμα 2: Clean Start
+    App.toast('Βήμα 2/2 — Clean Start σε εξέλιξη...', 'info');
     const result = await window.pyBridge?.['clean-start']?.({ keepTechnicians, keepProducts });
     if (result?.ok) {
       App.toast(

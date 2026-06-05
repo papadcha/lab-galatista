@@ -464,6 +464,10 @@ ipcMain.handle('is-archive-mode', () => {
 
 // Archive mode quit — handled in createWindow via win.on('close')
 
+ipcMain.handle('generate-pdf-library', async (event, dataFolder) => {
+  return await _pyCallMain('generate_pdf_library', [dataFolder], 300000); // 5min timeout
+});
+
 ipcMain.handle('force-quit', async () => {
   await _pyCallMain('restore_db', []);
   _archiveMode = false;

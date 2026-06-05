@@ -143,6 +143,95 @@ def _get_full_report_with_specs(sample_id):
 
 
 # ============================================================
+# BATCH PDF LIBRARY
+# ============================================================
+
+def generate_pdf_library(data_folder: str) -> dict:
+    """
+    Δημιουργεί PDF για όλα τα ολοκληρωμένα δείγματα της τρέχουσας DB.
+    Ολοκληρωμένο = όλες οι δηλωμένες δοκιμές έχουν is_official=1.
+    Αποθηκεύει στο {data_folder}/pdf/{UP<id>?}/{productFolder}/{code}.pdf
+    """
+    import re as _re
+    conn = get_connection()
+    try:
+        samples = conn.execute("""
+            SELECT s.id, s.code, s.date, s.subperiod_id,
+                   p.name  AS product_name,
+                   p.code  AS product_code,
+                   p.d_min, p.d_max,
+                   sp.pdf_subfolder,
+                   sp.id   AS subperiod_seq
+            FROM tbl_samples s
+            JOIN tbl_products p ON p.id = s.product_id
+            LEFT JOIN tbl_subperiods sp ON sp.id = s.subperiod_id
+            WHERE
+              EXISTS (SELECT 1 FROM tbl_required_tests WHERE sample_id = s.id)
+              AND s.id NOT IN (
+                SELECT DISTINCT s2.id FROM tbl_samples s2
+                JOIN tbl_required_tests rt ON rt.sample_id = s2.id
+                WHERE
+                  (rt.test_type = 'sieve' AND NOT EXISTS (
+                      SELECT 1 FROM tbl_sieve_analysis sa
+                       WHERE sa.sample_id = s2.id AND sa.is_official = 1))
+                  OR (rt.test_type = 'flakiness' AND NOT EXISTS (
+                      SELECT 1 FROM tbl_flakiness fl
+                       WHERE fl.sample_id = s2.id AND fl.is_official = 1))
+                  OR (rt.test_type = 'mb' AND NOT EXISTS (
+                      SELECT 1 FROM tbl_methylene_blue mb
+                       WHERE mb.sample_id = s2.id AND mb.is_official = 1))
+                  OR (rt.test_type = 'se' AND NOT EXISTS (
+                      SELECT 1 FROM tbl_sand_equivalent se
+                       WHERE se.sample_id = s2.id AND se.is_official = 1))
+              )
+            ORDER BY s.date, s.code
+        """).fetchall()
+        conn.close()
+    except Exception as e:
+        try: conn.close()
+        except: pass
+        return {'ok': False, 'error': str(e)}
+
+    generated, skipped, errors = 0, 0, []
+
+    for row in samples:
+        s = dict(row)
+        try:
+            # ── Κατασκευή path ───────────────────────────────
+            code  = s.get('product_code') or ''
+            d_min = s.get('d_min')
+            d_max = s.get('d_max')
+            def _fmt(v):
+                if v is None: return ''
+                n = float(v)
+                return str(int(n)) if n % 1 == 0 else str(n)
+            pf = f"{code}{_fmt(d_min)}-{_fmt(d_max)}" if code else (s.get('product_name') or 'ΑΛΛΟ')
+            pf = _re.sub(r'[/\?%*:|"<>]', '-', pf).strip()
+
+            sub_dir = f"UP{s['subperiod_seq']}" if s.get('pdf_subfolder') else None
+            out_dir = (os.path.join(data_folder, 'pdf', sub_dir, pf)
+                       if sub_dir else os.path.join(data_folder, 'pdf', pf))
+            os.makedirs(out_dir, exist_ok=True)
+            output_path = os.path.join(out_dir, f"{s['code']}.pdf")
+
+            # ── Παραγωγή PDF ─────────────────────────────────
+            result = _generate_pdf_report(
+                s['id'], ['sieve', 'flakiness', 'se', 'mb'], output_path
+            )
+            if result.get('success'):
+                generated += 1
+            else:
+                skipped += 1
+                errors.append(f"{s['code']}: {result.get('error', '')}")
+        except Exception as e:
+            skipped += 1
+            errors.append(f"{s['code']}: {str(e)}")
+
+    return {'ok': True, 'generated': generated, 'skipped': skipped,
+            'total': len(samples), 'errors': errors}
+
+
+# ============================================================
 # QUERY για dashboard — λαμβάνει υπόψη is_official=1
 # ============================================================
 
@@ -728,6 +817,7 @@ METHODS = {
     'switch_db':           lambda args: switch_db(args[0]),
     'restore_db':          lambda args: restore_db(),
     'find_archive_db':     lambda args: find_archive_db(args[0]),
+    'generate_pdf_library': lambda args: generate_pdf_library(args[0]),
     'delete_subperiod':    lambda args: delete_subperiod(int(args[0])),
     'delete_ce_period':    lambda args: delete_ce_period(int(args[0])),
     'update_ce_period':    lambda args: update_ce_period(

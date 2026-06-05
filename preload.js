@@ -169,6 +169,7 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'on-ce-expiry':            (cb)                => ipcRenderer.on('ce-expiry-notification', (_e, status) => cb(status)),
   'on-archive-close-dialog': (cb)                => ipcRenderer.on('show-archive-close-dialog', () => cb()),
   'force-quit':              ()                  => ipcRenderer.invoke('force-quit'),
+  'generate-pdf-library':    (folder)            => ipcRenderer.invoke('generate-pdf-library', folder),
 
   // CE period py-calls (via pyBridge.call)
   get_active_ce_period:      ()                  => call('get_active_ce_period'),
