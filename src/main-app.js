@@ -99,15 +99,9 @@ const Pages = {
   samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js'     },
   tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js'         },
   history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js'     },
+  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
+  library:   { html: 'pages/library/library.html',     js: 'pages/library/library.js'     },
   settings:  { html: 'pages/settings/settings.html',   js: 'pages/settings/settings.js'   },
-  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
-  history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js'     },
-  settings:  { html: 'pages/settings/settings.html',   js: 'pages/settings/settings.js'   },
-  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
-  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
-  settings:  { html: 'pages/settings/settings.html',   js: 'pages/settings/settings.js'   },
-  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
-  library:   { html: 'pages/library/library.html',   js: 'pages/library/library.js'     },
 };
 
 async function navigateTo(pageId) {
