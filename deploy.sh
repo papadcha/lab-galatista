@@ -26,7 +26,7 @@ echo "📁 Αντιγραφή αρχείων..."
 [ -f "$DOWNLOADS/library.html" ] && cp "$DOWNLOADS/library.html" "$REPO/src/pages/library/library.html" && echo "  ✓ library.html"
 [ -f "$DOWNLOADS/library.js"   ] && cp "$DOWNLOADS/library.js"   "$REPO/src/pages/library/library.js"   && echo "  ✓ library.js"
 [ -f "$DOWNLOADS/standards.json" ] && cp "$DOWNLOADS/standards.json" "$REPO/standards.json" && echo "  ✓ standards.json"
-
+[ -f "$DOWNLOADS/README.md" ] && cp "$DOWNLOADS/README.md" "$REPO/README.md" && echo "  ✓ README.md"
 echo ""
 echo "📝 Git status:"
 cd "$REPO" && git status --short
