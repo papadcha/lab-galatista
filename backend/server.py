@@ -72,6 +72,7 @@ from database.db_manager import (
     get_active_ce_period,
     get_all_ce_periods,
     get_subperiod_for_date,
+    get_subperiod_by_id,
     create_ce_period,
     create_subperiod,
     update_ce_period_folder,
@@ -813,6 +814,7 @@ METHODS = {
                                    ext_sieve_results=args[8] if len(args) > 8 else None),
     'update_ce_period_folder': lambda args: update_ce_period_folder(int(args[0]), args[1]),
     'get_subperiod_for_date':  lambda args: get_subperiod_for_date(args[0]),
+    'get_subperiod_by_id':     lambda args: get_subperiod_by_id(int(args[0])),
     'get_init_status':     lambda args: get_init_status(),
     'get_samples_count':   lambda args: get_samples_count(),
     'generate_periodic_pdf': lambda args: _generate_periodic_pdf_report(

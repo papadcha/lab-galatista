@@ -457,9 +457,10 @@
     const s   = sample.sample;
     const t   = sample.tests || {};
     const lab     = await pyCall('get_lab_info') || {};
-    // Φόρτωση υποπεριόδου που ίσχυε για αυτό το δείγμα
+    // Φόρτωση υποπεριόδου — χρησιμοποιούμε το subperiod_id του δείγματος (ακριβές)
+    // αντί για αναζήτηση με ημερομηνία (που μπορεί να επιστρέψει λάθος υποπερίοδο)
     const subperiod = s.subperiod_id
-      ? await pyCall('get_subperiod_for_date', s.date) || null
+      ? await pyCall('get_subperiod_by_id', s.subperiod_id) || null
       : await pyCall('get_active_ce_period').then(p => p?.active_subperiod || null).catch(() => null);
     const labReportNumber = subperiod?.lab_report_number || null;
 

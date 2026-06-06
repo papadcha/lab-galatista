@@ -2395,6 +2395,18 @@ def create_ce_period(ce_number: str, ce_body: str,
         conn.close()
 
 
+def get_subperiod_by_id(subperiod_id: int) -> Optional[dict]:
+    """Επιστρέφει υποπερίοδο με βάση το ID."""
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT * FROM tbl_subperiods WHERE id=?", (subperiod_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 def create_subperiod(ce_period_id: int, valid_from: str,
                      lab_report_number: Optional[str] = None,
                      notes: Optional[str] = None,
