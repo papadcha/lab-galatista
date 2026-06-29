@@ -43,11 +43,15 @@
   // INIT
   // ============================================================
 
+  // Guard: αν ο χρήστης φύγει από τη σελίδα πριν τελειώσει το async init,
+  // τα App.go() calls δεν πρέπει να πυροδοτηθούν.
+  function stillOnPage() { return AppState.currentPage === 'tests'; }
+
   async function init() {
     const id = window._currentSampleId;
     if (!id) {
       App.toast('Δεν ορίστηκε δείγμα', 'fail');
-      setTimeout(() => App.go('dashboard'), 1200);
+      setTimeout(() => { if (stillOnPage()) App.go('dashboard'); }, 1200);
       return;
     }
     delete window._currentSampleId;
@@ -70,7 +74,7 @@
 
     if (!report) {
       App.toast('Δεν βρέθηκε το δείγμα', 'fail');
-      App.go('dashboard');
+      if (stillOnPage()) App.go('dashboard');
       return;
     }
 

@@ -332,9 +332,11 @@ ipcMain.handle('cloud-open-terminal', async () => {
     });
   }
 
-  // Windows: open cmd with rclone config using app-specific config file
+  // Windows: spawn a NEW console window via `start cmd.exe /k ...`
+  // Plain spawn('cmd.exe', ['/k', ...]) from a GUI process has no visible window.
   if (process.platform === 'win32') {
-    const ok = await trySpawn('cmd.exe', ['/k', `"${rcloneBin}" ${configArg} config`]);
+    const innerCmd = `"${rcloneBin}" --config "${configPath}" config`;
+    const ok = await trySpawn('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', innerCmd]);
     if (ok) return { ok: true, configPath };
   }
 
