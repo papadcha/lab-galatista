@@ -1746,8 +1746,8 @@
     const period = await window.pyBridge?.get_active_ce_period?.();
     _renderActiveCePeriod(period);
     const all = await window.pyBridge?.get_all_ce_periods?.();
-    _allPeriodsCache = all || [];
-    _renderCeHistory(all || []);
+    _allPeriodsCache = Array.isArray(all) ? all : [];
+    _renderCeHistory(_allPeriodsCache);
   }
 
   function _renderActiveCePeriod(period) {

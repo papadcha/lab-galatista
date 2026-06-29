@@ -175,6 +175,9 @@ app.whenReady().then(() => {
     await checkCeExpiryAndNotify();
     await initActivePeriodStart();
 
+    // ── Έλεγχος νέας έκδοσης ──────────────────────────────
+    checkForUpdates().catch(e => console.log('[Update] Σφάλμα:', e.message));
+
     // ── Cloud sync (backup πάντα, pdf μόνο νέα) ───────────
     const cfg = loadConfig();
     if (cfg.cloudRemotePath) {
@@ -205,9 +208,16 @@ function getRclonePath() {
   return process.platform === 'win32' ? 'rclone' : 'rclone';
 }
 
+// Αποκλειστικό rclone config για την εφαρμογή (δεν μοιράζεται με system rclone)
+function getRcloneConfigPath() {
+  return path.join(app.getPath('userData'), 'rclone.conf');
+}
+
 function runRclone(args, timeoutMs = 30000) {
+  const configPath = getRcloneConfigPath();
+  const fullArgs = ['--config', configPath, ...args];
   return new Promise((resolve) => {
-    execFile(getRclonePath(), args, { timeout: timeoutMs }, (err, stdout, stderr) => {
+    execFile(getRclonePath(), fullArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
       if (err) {
         resolve({ ok: false, error: stderr?.trim() || err.message });
       } else {
@@ -303,14 +313,16 @@ ipcMain.handle('cloud-restore', async () => {
 });
 
 ipcMain.handle('cloud-open-terminal', async () => {
-  // Δοκιμάζουμε διαφορετικά terminals — κάθε ένα με το δικό του syntax
+  const configPath = getRcloneConfigPath();
+  const rcloneBin  = getRclonePath();
+  const configArg  = `--config "${configPath}"`;
+
   function trySpawn(cmd, args) {
     return new Promise((resolve) => {
       try {
         const child = spawn(cmd, args, { detached: true, stdio: 'ignore' });
         child.on('error', () => resolve(false));
         child.unref();
-        // Αν δεν πετάξει error σε 200ms, θεωρούμε επιτυχία
         setTimeout(() => resolve(true), 200);
       } catch {
         resolve(false);
@@ -318,27 +330,25 @@ ipcMain.handle('cloud-open-terminal', async () => {
     });
   }
 
+  // Windows: open cmd with rclone config using app-specific config file
+  if (process.platform === 'win32') {
+    const ok = await trySpawn('cmd.exe', ['/k', `"${rcloneBin}" ${configArg} config`]);
+    if (ok) return { ok: true, configPath };
+  }
+
   const attempts = [
-    ['kitty',          ['rclone', 'config']],
-    ['alacritty',      ['-e', 'rclone', 'config']],
-    ['konsole',        ['-e', 'rclone', 'config']],
-    ['gnome-terminal', ['--', 'rclone', 'config']],
-    ['xfce4-terminal', ['-e', 'rclone config']],
-    ['xterm',          ['-e', 'rclone config']],
+    ['kitty',          [rcloneBin, '--config', configPath, 'config']],
+    ['alacritty',      ['-e', rcloneBin, '--config', configPath, 'config']],
+    ['konsole',        ['-e', rcloneBin, '--config', configPath, 'config']],
+    ['gnome-terminal', ['--', rcloneBin, '--config', configPath, 'config']],
+    ['xterm',          ['-e', `${rcloneBin} --config "${configPath}" config`]],
   ];
 
   for (const [cmd, args] of attempts) {
     const ok = await trySpawn(cmd, args);
-    if (ok) return { ok: true };
+    if (ok) return { ok: true, configPath };
   }
-  // Fallback: άνοιξε rclone config στο background και πες στον χρήστη
-  try {
-    const { shell } = require('electron');
-    await shell.openExternal('https://rclone.org/docs/#configure');
-    return { ok: false, error: 'Δεν βρέθηκε terminal — ανοίξτε χειροκίνητα: rclone config' };
-  } catch {
-    return { ok: false, error: 'Εκτελέστε χειροκίνητα: rclone config' };
-  }
+  return { ok: false, error: `Εκτελέστε χειροκίνητα: rclone --config "${configPath}" config`, configPath };
 });
 
 ipcMain.handle('open-external-link', async (event, url) => {
@@ -594,6 +604,65 @@ ipcMain.handle('force-quit', async () => {
   await _pyCallMain('restore_db', []);
   _archiveMode = false;
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+  return { ok: true };
+});
+
+// ============================================================
+// UPDATE CHECK
+// ============================================================
+
+async function checkForUpdates() {
+  const { net } = require('electron');
+  const currentVersion = app.getVersion();
+
+  const request = net.request({
+    method: 'GET',
+    url: 'https://api.github.com/repos/papadcha/lab-galatista/releases/latest',
+    headers: { 'User-Agent': 'lab-galatista-updater' },
+  });
+
+  const body = await new Promise((resolve, reject) => {
+    let data = '';
+    request.on('response', (response) => {
+      response.on('data', (chunk) => { data += chunk.toString(); });
+      response.on('end', () => resolve(data));
+      response.on('error', reject);
+    });
+    request.on('error', reject);
+    request.end();
+  });
+
+  const release = JSON.parse(body);
+  const latestTag = release.tag_name?.replace(/^v/, '');
+  if (!latestTag) return;
+
+  // Σύγκριση semantic version
+  const cmp = (a, b) => {
+    const pa = a.split('.').map(Number);
+    const pb = b.split('.').map(Number);
+    for (let i = 0; i < 3; i++) {
+      if ((pa[i]||0) > (pb[i]||0)) return 1;
+      if ((pa[i]||0) < (pb[i]||0)) return -1;
+    }
+    return 0;
+  };
+
+  if (cmp(latestTag, currentVersion) > 0) {
+    const downloadUrl = release.assets?.find(a => a.name.endsWith('.exe'))?.browser_download_url
+                     || release.html_url;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-available', {
+        current: currentVersion,
+        latest:  latestTag,
+        url:     downloadUrl,
+        notes:   release.body || '',
+      });
+    }
+  }
+}
+
+ipcMain.handle('open-update-url', async (event, url) => {
+  await shell.openExternal(url);
   return { ok: true };
 });
 

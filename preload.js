@@ -172,6 +172,8 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'on-ce-expiry':            (cb)                => ipcRenderer.on('ce-expiry-notification', (_e, status) => cb(status)),
   'on-python-ready':         (cb)                => ipcRenderer.once('python-ready', () => cb()),
   'is-python-ready':         ()                  => ipcRenderer.invoke('python-is-ready'),
+  'on-update-available':     (cb)                => ipcRenderer.once('update-available', (_e, info) => cb(info)),
+  'open-update-url':         (url)               => ipcRenderer.invoke('open-update-url', url),
 
   'generate-pdf-library':    (folder)            => ipcRenderer.invoke('generate-pdf-library', folder),
   'upload-document':         (opts)              => ipcRenderer.invoke('upload-document', opts),

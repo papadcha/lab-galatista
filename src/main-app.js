@@ -623,6 +623,36 @@ if (window.pyBridge?.['on-ce-expiry']) {
   });
 }
 
+// Listener για νέα έκδοση
+if (window.pyBridge?.['on-update-available']) {
+  window.pyBridge['on-update-available']((info) => {
+    _showUpdateBanner(info);
+  });
+}
+
+function _showUpdateBanner(info) {
+  const existing = document.getElementById('update-banner');
+  if (existing) return;
+
+  const banner = document.createElement('div');
+  banner.id        = 'update-banner';
+  banner.className = 'update-banner';
+  banner.innerHTML = `
+    <div class="update-banner-icon">⬆</div>
+    <div class="update-banner-body">
+      <div class="update-banner-title">Νέα έκδοση διαθέσιμη: v${_esc(info.latest)}</div>
+      <div class="update-banner-msg">Τρέχουσα: v${_esc(info.current)}</div>
+    </div>
+    <button class="btn-primary btn-sm" id="update-banner-btn">Λήψη</button>
+    <button class="btn-secondary btn-sm" style="margin-left:4px;"
+            onclick="document.getElementById('update-banner')?.remove()">✕</button>
+  `;
+  document.body.appendChild(banner);
+  document.getElementById('update-banner-btn')?.addEventListener('click', () => {
+    window.pyBridge?.['open-update-url']?.(info.url);
+  });
+}
+
 // ============================================================
 // ΑΡΧΙΚΟΠΟΙΗΣΗ — Banner + Wizard
 // ============================================================
@@ -945,14 +975,22 @@ function _esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+const _splashStart = Date.now();
+const SPLASH_MIN_MS = 1500; // ελάχιστος χρόνος εμφάνισης splash
+
 function hideSplash() {
-  const splash = document.getElementById('splash-overlay');
-  if (!splash) return;
-  splash.classList.add('hidden');
-  setTimeout(() => splash.remove(), 450);
+  const elapsed   = Date.now() - _splashStart;
+  const remaining = Math.max(0, SPLASH_MIN_MS - elapsed);
+  setTimeout(() => {
+    const splash = document.getElementById('splash-overlay');
+    if (!splash) return;
+    splash.classList.add('hidden');
+    setTimeout(() => splash.remove(), 450);
+  }, remaining);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  try {
 
   // Κρύβω splash όταν ο Python backend είναι έτοιμος.
   // Δύο περιπτώσεις: Python έτοιμος πριν ή μετά το DOMContentLoaded.
@@ -963,10 +1001,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (window.pyBridge?.['on-python-ready']) {
       window.pyBridge['on-python-ready'](hideSplash);
     } else {
-      setTimeout(hideSplash, 3000);
+      setTimeout(hideSplash, 4000);
     }
   } else {
-    setTimeout(hideSplash, 3000);
+    setTimeout(hideSplash, 4000);
   }
 
   // Sidebar navigation
@@ -1006,4 +1044,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Έλεγχος αρχικοποίησης — μικρή καθυστέρηση για να φορτωθεί το DOM
   setTimeout(() => checkAndShowInitBanner(), 300);
+
+  } catch (e) {
+    console.error('[INIT] Fatal initialization error:', e);
+    // Σε κρίσιμο σφάλμα, κρύψε το splash ώστε να φανεί τουλάχιστον κάτι
+    hideSplash();
+  }
 });
