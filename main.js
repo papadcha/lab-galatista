@@ -33,6 +33,7 @@ let guideWindow = null;
 let pyProcess   = null;
 let _pyReqId    = 0;
 const _pyPending = new Map();  // id → resolve
+let _pythonReady = false;
 
 // ============================================================
 // ΔΗΜΙΟΥΡΓΙΑ ΠΑΡΑΘΥΡΟΥ
@@ -106,6 +107,11 @@ function startPythonBackend() {
       const t = line.trim();
       if (!t.startsWith('{')) {
         console.log(`[Python] ${t}`);
+        // Ειδοποίηση renderer όταν ο Python είναι έτοιμος
+        if (t.includes('Αναμονή εντολών')) {
+          _pythonReady = true;
+          mainWindow?.webContents.send('python-ready');
+        }
         continue;
       }
       try {
@@ -214,6 +220,9 @@ function runRclone(args, timeoutMs = 30000) {
 function isNetworkError(error) {
   return /network|connect|timeout|unreachable|no route/i.test(error || '');
 }
+
+// Renderer queries this on startup to handle the race where Python was ready before DOM loaded
+ipcMain.handle('python-is-ready', () => _pythonReady);
 
 ipcMain.handle('cloud-check-rclone', async () => {
   const result = await runRclone(['version'], 5000);

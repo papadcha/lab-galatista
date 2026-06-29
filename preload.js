@@ -170,6 +170,8 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'ce-notify-snooze':        (days)              => ipcRenderer.invoke('ce-notify-snooze', days),
   'ce-notify-clear-snooze':  ()                  => ipcRenderer.invoke('ce-notify-clear-snooze'),
   'on-ce-expiry':            (cb)                => ipcRenderer.on('ce-expiry-notification', (_e, status) => cb(status)),
+  'on-python-ready':         (cb)                => ipcRenderer.once('python-ready', () => cb()),
+  'is-python-ready':         ()                  => ipcRenderer.invoke('python-is-ready'),
 
   'generate-pdf-library':    (folder)            => ipcRenderer.invoke('generate-pdf-library', folder),
   'upload-document':         (opts)              => ipcRenderer.invoke('upload-document', opts),

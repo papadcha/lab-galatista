@@ -945,7 +945,29 @@ function _esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function hideSplash() {
+  const splash = document.getElementById('splash-overlay');
+  if (!splash) return;
+  splash.classList.add('hidden');
+  setTimeout(() => splash.remove(), 450);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+
+  // Κρύβω splash όταν ο Python backend είναι έτοιμος.
+  // Δύο περιπτώσεις: Python έτοιμος πριν ή μετά το DOMContentLoaded.
+  if (window.pyBridge?.['is-python-ready']) {
+    const alreadyReady = await window.pyBridge['is-python-ready']();
+    if (alreadyReady) {
+      hideSplash();
+    } else if (window.pyBridge?.['on-python-ready']) {
+      window.pyBridge['on-python-ready'](hideSplash);
+    } else {
+      setTimeout(hideSplash, 3000);
+    }
+  } else {
+    setTimeout(hideSplash, 3000);
+  }
 
   // Sidebar navigation
   document.querySelectorAll('.nav-item').forEach(item => {
