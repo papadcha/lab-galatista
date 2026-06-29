@@ -381,6 +381,11 @@ def initialize_database():
             schema = f.read()
         conn = get_connection()
         conn.executescript(schema)
+        conn.execute(
+            "INSERT OR REPLACE INTO tbl_schema_version (version, applied_at, description) "
+            "VALUES (?, datetime('now'), ?)",
+            (CURRENT_SCHEMA_VERSION, f"Initial schema (full v{CURRENT_SCHEMA_VERSION})")
+        )
         conn.commit()
         conn.close()
         print(f"[DB] ✓ Νέα βάση δημιουργήθηκε", flush=True)

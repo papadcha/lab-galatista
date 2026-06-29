@@ -12,18 +12,17 @@ PRAGMA journal_mode = WAL;
 
 -- Στοιχεία Εργαστηρίου
 CREATE TABLE IF NOT EXISTS tbl_laboratory (
-    id              INTEGER PRIMARY KEY,
-    name            TEXT NOT NULL,
-    address         TEXT,
-    phone           TEXT,
-    email           TEXT,
-    logo_path       TEXT,
-    ce_number       TEXT,       -- Αριθμός πιστοποιητικού CE
-    ce_valid_from   TEXT,       -- Ημερομηνία ισχύος CE
-    ce_valid_to     TEXT,       -- Λήξη CE
-    ce_body         TEXT,       -- Φορέας πιστοποίησης (EUROCERT)
-    sample_prefix   TEXT DEFAULT 'ΓΑΛ',  -- Πρόθεμα κωδικού δείγματος
-    sample_counter  INTEGER DEFAULT 1    -- Τρέχων μετρητής
+    id            INTEGER PRIMARY KEY,
+    name          TEXT NOT NULL,
+    address       TEXT,
+    phone         TEXT,
+    email         TEXT,
+    logo_path     TEXT,
+    ce_number     TEXT,
+    ce_valid_from TEXT,
+    ce_valid_to   TEXT,
+    ce_body       TEXT,
+    pdf_font      TEXT DEFAULT 'LiberationSans'
 );
 
 -- Τεχνικοί
@@ -35,13 +34,15 @@ CREATE TABLE IF NOT EXISTS tbl_technicians (
 
 -- Προϊόντα Λατομείου
 CREATE TABLE IF NOT EXISTS tbl_products (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT NOT NULL,          -- πχ "ΑΜΜΟΣ", "ΓΑΡΜΠΙΛΙ"
-    d_min       REAL NOT NULL,          -- κατώτερο όριο κόκκου (mm)
-    d_max       REAL NOT NULL,          -- ανώτερο όριο κόκκου (mm)
-    standard    TEXT NOT NULL,          -- EN12620 / EN13043 / EN13242
-    category    TEXT,                   -- ΛΕΠΤΟΚΟΚΚΟ / ΧΟΝΔΡΟΚΟΚΚΟ
-    active      INTEGER DEFAULT 1
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    d_min         REAL NOT NULL,
+    d_max         REAL NOT NULL,
+    standard      TEXT NOT NULL,
+    category      TEXT,
+    active        INTEGER DEFAULT 1,
+    code          TEXT,
+    material_type TEXT
 );
 
 -- Κόσκινα ανά Προϊόν (σειρά κοσκινισμού)
@@ -82,6 +83,8 @@ CREATE TABLE IF NOT EXISTS tbl_samples (
     created_at      TEXT DEFAULT (datetime('now')),
     updated_at      TEXT DEFAULT (datetime('now')),
     subperiod_id    INTEGER,
+    source_id       INTEGER REFERENCES tbl_sources(id),
+    entry_date      TEXT,
     FOREIGN KEY (product_id) REFERENCES tbl_products(id),
     FOREIGN KEY (technician_id) REFERENCES tbl_technicians(id),
     FOREIGN KEY (subperiod_id) REFERENCES tbl_subperiods(id)
@@ -93,16 +96,21 @@ CREATE TABLE IF NOT EXISTS tbl_samples (
 
 CREATE TABLE IF NOT EXISTS tbl_sieve_analysis (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    sample_id       INTEGER NOT NULL UNIQUE,
+    sample_id       INTEGER NOT NULL,
     date            TEXT NOT NULL,
-    weight_initial  REAL,               -- Βάρος δείγματος (g)
-    weight_dry      REAL,               -- Βάρος ξηρού (g)
-    weight_washed   REAL,               -- Βάρος πλυμένου (g)
-    wash_loss_pct   REAL,               -- % Απώλεια πλύσης (υπολογίζεται)
+    weight_initial  REAL,
+    weight_dry      REAL,
+    weight_washed   REAL,
+    wash_loss_pct   REAL,
     comments        TEXT,
+    run_no          INTEGER DEFAULT 1,
+    is_official     INTEGER DEFAULT 1,
+    rejected_reason TEXT,
     created_at      TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id)
+    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sieve_one_official
+    ON tbl_sieve_analysis(sample_id) WHERE is_official = 1;
 
 -- Αποτελέσματα κόσκινων
 CREATE TABLE IF NOT EXISTS tbl_sieve_results (
@@ -120,15 +128,21 @@ CREATE TABLE IF NOT EXISTS tbl_sieve_results (
 
 CREATE TABLE IF NOT EXISTS tbl_flakiness (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    sample_id           INTEGER NOT NULL UNIQUE,
-    sieve_analysis_id   INTEGER,        -- NULL αν ανεξάρτητη δοκιμή
+    sample_id           INTEGER NOT NULL,
+    sieve_analysis_id   INTEGER,
     date                TEXT NOT NULL,
-    fi_index            REAL,           -- Δείκτης Πλακοειδούς (υπολογίζεται)
+    fi_index            REAL,
     comments            TEXT,
+    weight_m0           REAL,
+    run_no              INTEGER DEFAULT 1,
+    is_official         INTEGER DEFAULT 1,
+    rejected_reason     TEXT,
     created_at          TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id),
+    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE,
     FOREIGN KEY (sieve_analysis_id) REFERENCES tbl_sieve_analysis(id)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_flakiness_one_official
+    ON tbl_flakiness(sample_id) WHERE is_official = 1;
 
 -- Αποτελέσματα ανά κλάσμα
 CREATE TABLE IF NOT EXISTS tbl_flakiness_results (
@@ -147,17 +161,24 @@ CREATE TABLE IF NOT EXISTS tbl_flakiness_results (
 
 CREATE TABLE IF NOT EXISTS tbl_methylene_blue (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    sample_id       INTEGER NOT NULL UNIQUE,
+    sample_id       INTEGER NOT NULL,
     date            TEXT NOT NULL,
-    weight_sample   REAL DEFAULT 200,   -- Βάρος δείγματος M1 (g)
-    water_volume    REAL DEFAULT 500,   -- Όγκος νερού (ml)
-    volume_initial  REAL DEFAULT 0,     -- Αρχικός όγκος (ml)
-    volume_final    REAL,               -- Τελικός όγκος V1 (ml)
-    mb_value        REAL,               -- MB = (V1/M1)*10 (g/kg) υπολογίζεται
+    weight_sample   REAL DEFAULT 200,
+    water_volume    REAL DEFAULT 500,
+    volume_initial  REAL DEFAULT 0,
+    volume_final    REAL,
+    mb_value        REAL,
     comments        TEXT,
+    weight_m0       REAL,
+    moisture_pct    REAL,
+    run_no          INTEGER DEFAULT 1,
+    is_official     INTEGER DEFAULT 1,
+    rejected_reason TEXT,
     created_at      TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id)
+    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mb_one_official
+    ON tbl_methylene_blue(sample_id) WHERE is_official = 1;
 
 -- ============================================================
 -- ΔΟΚΙΜΗ 4: ΙΣΟΔΥΝΑΜΟ ΑΜΜΟΥ (EN 933-8)
@@ -165,14 +186,19 @@ CREATE TABLE IF NOT EXISTS tbl_methylene_blue (
 
 CREATE TABLE IF NOT EXISTS tbl_sand_equivalent (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    sample_id       INTEGER NOT NULL UNIQUE,
+    sample_id       INTEGER NOT NULL,
     date            TEXT NOT NULL,
-    se_final        REAL,               -- Τελικό SE% (υπολογίζεται)
-    requires_3rd    INTEGER DEFAULT 0,  -- 1 αν χρειάστηκε 3η μέτρηση
+    se_final        REAL,
+    requires_3rd    INTEGER DEFAULT 0,
     comments        TEXT,
+    run_no          INTEGER DEFAULT 1,
+    is_official     INTEGER DEFAULT 1,
+    rejected_reason TEXT,
     created_at      TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id)
+    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_se_one_official
+    ON tbl_sand_equivalent(sample_id) WHERE is_official = 1;
 
 -- Μετρήσεις SE (2 ή 3)
 CREATE TABLE IF NOT EXISTS tbl_se_measurements (
@@ -208,7 +234,7 @@ CREATE INDEX IF NOT EXISTS idx_se_measurements
 
 -- Στοιχεία Εργαστηρίου
 INSERT OR IGNORE INTO tbl_laboratory (
-    id, name, address, ce_number, ce_valid_from, ce_valid_to, ce_body, sample_prefix
+    id, name, address, ce_number, ce_valid_from, ce_valid_to, ce_body
 ) VALUES (
     1,
     'ΛΑΤΟΜΕΙΑ ΓΑΛΑΤΙΣΤΑΣ ΑΕ',
@@ -216,8 +242,7 @@ INSERT OR IGNORE INTO tbl_laboratory (
     '1128-CPR-0196',
     '01/04/2025',
     '31/03/2028',
-    'EUROCERT Α.Ε.',
-    'ΓΑΛ'
+    'EUROCERT Α.Ε.'
 );
 
 -- Προϊόντα από CE πιστοποιητικό
@@ -325,3 +350,88 @@ CREATE INDEX IF NOT EXISTS idx_subperiods_active
     ON tbl_subperiods(active);
 CREATE INDEX IF NOT EXISTS idx_samples_subperiod
     ON tbl_samples(subperiod_id);
+
+-- Πίνακες από migrations (ενσωματωμένοι στο full schema)
+
+CREATE TABLE IF NOT EXISTS tbl_sources (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    code           TEXT NOT NULL UNIQUE,
+    name           TEXT NOT NULL,
+    location       TEXT,
+    sample_counter INTEGER DEFAULT 0,
+    active         INTEGER DEFAULT 1,
+    created_at     TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS tbl_required_tests (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    sample_id   INTEGER NOT NULL,
+    test_type   TEXT    NOT NULL,
+    notes       TEXT,
+    created_at  TEXT DEFAULT (datetime('now')),
+    UNIQUE (sample_id, test_type),
+    FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE,
+    CHECK (test_type IN ('sieve', 'flakiness', 'mb', 'se'))
+);
+CREATE INDEX IF NOT EXISTS idx_required_tests_sample
+    ON tbl_required_tests(sample_id);
+
+CREATE TABLE IF NOT EXISTS tbl_sieves (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    sieve_mm REAL NOT NULL UNIQUE,
+    is_iso   INTEGER DEFAULT 0,
+    note     TEXT
+);
+INSERT OR IGNORE INTO tbl_sieves (sieve_mm, is_iso) VALUES
+    (63,    1), (45,    1), (31.5,  1), (22.4,  1),
+    (16,    1), (11.2,  1), (8,     1), (5.6,   1),
+    (4,     1), (2.8,   1), (2,     1), (1.4,   1),
+    (1,     1), (0.71,  1), (0.5,   1), (0.355, 1),
+    (0.25,  1), (0.18,  1), (0.125, 1), (0.09,  1),
+    (0.063, 1);
+
+CREATE TABLE IF NOT EXISTS tbl_test_limits (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id  INTEGER NOT NULL,
+    spec_type   TEXT NOT NULL,
+    spec_name   TEXT NOT NULL,
+    test_type   TEXT NOT NULL,
+    parameter   TEXT NOT NULL,
+    limit_value REAL NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES tbl_products(id)
+);
+
+CREATE TABLE IF NOT EXISTS tbl_doc_sections (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT    NOT NULL,
+    icon       TEXT    DEFAULT '📁',
+    is_custom  INTEGER DEFAULT 0,
+    sort_order INTEGER DEFAULT 0
+);
+INSERT OR IGNORE INTO tbl_doc_sections (id, name, icon, is_custom, sort_order) VALUES
+    (1, 'Προδιαγραφές δοκιμών',            '📋', 0, 1),
+    (2, 'Πιστοποιητικά CE',                 '📜', 0, 2),
+    (3, 'Εκθέσεις εξωτερικού εργαστηρίου', '📊', 0, 3),
+    (4, 'Εξοπλισμός & Βαθμονόμηση',        '🔧', 0, 4),
+    (5, 'Προσωπικό',                         '👤', 0, 5),
+    (6, 'Εσωτερικές διαδικασίες',           '📁', 0, 6);
+
+CREATE TABLE IF NOT EXISTS tbl_documents (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    section_id INTEGER NOT NULL REFERENCES tbl_doc_sections(id) ON DELETE CASCADE,
+    title      TEXT    NOT NULL,
+    code       TEXT,
+    version    TEXT,
+    expires_at TEXT,
+    cloud_path TEXT,
+    url        TEXT,
+    notes      TEXT,
+    created_at TEXT    DEFAULT (datetime('now')),
+    updated_at TEXT    DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS tbl_schema_version (
+    version     INTEGER PRIMARY KEY,
+    applied_at  TEXT DEFAULT (datetime('now')),
+    description TEXT
+);

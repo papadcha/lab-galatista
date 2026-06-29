@@ -14,7 +14,11 @@
   },
   "dependencies": {
     "nodemailer": "^8.0.7",
-    "puppeteer": "^25.0.4",
+    "puppeteer": "^21.11.0",
     "puppeteer-core": "^25.0.4"
+  },
+  "allowScripts": {
+    "electron@28.3.3": true,
+    "puppeteer@25.0.4": true
   }
 }

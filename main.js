@@ -22,7 +22,11 @@ const path       = require('path');
 const fs         = require('fs');
 const { spawn }  = require('child_process');
 const nodemailer = require('nodemailer');
-const puppeteer  = require('puppeteer');
+let _puppeteer = null;
+async function getPuppeteer() {
+  if (!_puppeteer) _puppeteer = (await import('puppeteer')).default;
+  return _puppeteer;
+}
 
 let mainWindow;
 let guideWindow = null;
@@ -75,9 +79,10 @@ function startPythonBackend() {
   // Εύρεση Python (python3 ή python)
   const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
-  pyProcess = spawn(pythonCmd, [scriptPath], {
+  pyProcess = spawn(pythonCmd, ['-u', scriptPath], {
     stdio: ['pipe', 'pipe', 'pipe'],
     cwd: path.join(__dirname),
+    env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
   });
 
   // Κεντρικός stdout listener — routing με ID
@@ -865,6 +870,7 @@ ipcMain.handle('generate-report-pdf', async (event, opts = {}) => {
     async function renderPDF(mode, landscape) {
       const htmlPath = path.join(tmp, `rpt_${mode}_${ts}.html`);
       fs.writeFileSync(htmlPath, makeHTML(mode), 'utf8');
+      const puppeteer = await getPuppeteer();
       const browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true });
       try {
