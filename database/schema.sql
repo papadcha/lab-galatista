@@ -228,6 +228,17 @@ CREATE INDEX IF NOT EXISTS idx_flakiness_results
 CREATE INDEX IF NOT EXISTS idx_se_measurements 
     ON tbl_se_measurements(se_id);
 
+-- Πηγές υλικού
+CREATE TABLE IF NOT EXISTS tbl_sources (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    code           TEXT NOT NULL UNIQUE,
+    name           TEXT NOT NULL,
+    location       TEXT,
+    sample_counter INTEGER DEFAULT 0,
+    active         INTEGER DEFAULT 1,
+    created_at     TEXT DEFAULT (datetime('now'))
+);
+
 -- ============================================================
 -- ΑΡΧΙΚΑ ΔΕΔΟΜΕΝΑ
 -- ============================================================
@@ -245,14 +256,18 @@ INSERT OR IGNORE INTO tbl_laboratory (
     'EUROCERT Α.Ε.'
 );
 
+-- Πηγή υλικού (ΓΑΛ = Λατομεία Γαλάτιστας)
+INSERT OR IGNORE INTO tbl_sources (id, code, name, location, active) VALUES
+    (1, 'ΓΑΛ', 'ΛΑΤΟΜΕΙΑ ΓΑΛΑΤΙΣΤΑΣ ΑΕ', 'Θέση «Προφήτης Ηλίας», Γαλάτιστα', 1);
+
 -- Προϊόντα από CE πιστοποιητικό
-INSERT OR IGNORE INTO tbl_products (id, name, d_min, d_max, standard, category) VALUES
-    (1, 'ΑΜΜΟΣ',     0,    4,    'EN12620/EN13043/EN13242', 'ΛΕΠΤΟΚΟΚΚΟ'),
-    (2, 'ΓΑΡΜΠΙΛΙ',  4,    16,   'EN12620/EN13043',         'ΧΟΝΔΡΟΚΟΚΚΟ'),
-    (3, 'ΣΥΝΤΡΙΜΜΑ',  16,   31.5, 'EN12620/EN13043',         'ΧΟΝΔΡΟΚΟΚΚΟ'),
-    (4, '3Α',         0,    31.5, 'EN13242',                 'ΧΟΝΔΡΟΚΟΚΚΟ'),
-    (5, 'Ε4',         0,    31.5, 'EN13242',                 'ΧΟΝΔΡΟΚΟΚΚΟ'),
-    (6, 'ΣΚΥΡΑ',      31.5, 63,   'EN13242',                 'ΧΟΝΔΡΟΚΟΚΚΟ');
+INSERT OR IGNORE INTO tbl_products (id, name, d_min, d_max, standard, category, code) VALUES
+    (1, 'ΑΜΜΟΣ',     0,    4,    'EN12620/EN13043/EN13242', 'ΛΕΠΤΟΚΟΚΚΟ',  'ΑΜΜ'),
+    (2, 'ΓΑΡΜΠΙΛΙ',  4,    16,   'EN12620/EN13043',         'ΧΟΝΔΡΟΚΟΚΚΟ', 'ΓΡΒ'),
+    (3, 'ΣΥΝΤΡΙΜΜΑ',  16,   31.5, 'EN12620/EN13043',         'ΧΟΝΔΡΟΚΟΚΚΟ', 'ΣΝΤ'),
+    (4, '3Α',         0,    31.5, 'EN13242',                 'ΧΟΝΔΡΟΚΟΚΚΟ', '3Α'),
+    (5, 'Ε4',         0,    31.5, 'EN13242',                 'ΧΟΝΔΡΟΚΟΚΚΟ', 'Ε4'),
+    (6, 'ΣΚΥΡΑ',      31.5, 63,   'EN13242',                 'ΧΟΝΔΡΟΚΟΚΚΟ', 'ΣΚΥ');
 
 -- Κόσκινα ανά προϊόν
 -- ΑΜΜΟΣ 0/4
@@ -352,16 +367,6 @@ CREATE INDEX IF NOT EXISTS idx_samples_subperiod
     ON tbl_samples(subperiod_id);
 
 -- Πίνακες από migrations (ενσωματωμένοι στο full schema)
-
-CREATE TABLE IF NOT EXISTS tbl_sources (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    code           TEXT NOT NULL UNIQUE,
-    name           TEXT NOT NULL,
-    location       TEXT,
-    sample_counter INTEGER DEFAULT 0,
-    active         INTEGER DEFAULT 1,
-    created_at     TEXT DEFAULT (datetime('now'))
-);
 
 CREATE TABLE IF NOT EXISTS tbl_required_tests (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
