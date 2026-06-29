@@ -1636,8 +1636,78 @@
     const folder = result?.folder || '';
     const inp = document.getElementById('data-folder-path');
     if (inp) inp.value = folder;
+    await loadBackupList();
     await loadCloudSync();
     await loadCePeriods();
+  }
+
+  async function loadBackupList() {
+    const el = document.getElementById('backup-restore-list');
+    if (!el) return;
+    const res = await window.pyBridge['list-backups']?.();
+    if (!res?.ok || !res.files?.length) {
+      el.innerHTML = '<span style="color:var(--text-muted);font-size:0.85em;">Δεν βρέθηκαν αρχεία backup</span>';
+      return;
+    }
+    el.innerHTML = res.files.map(f => {
+      const d    = new Date(f.mtime);
+      const date = d.toLocaleDateString('el-GR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+      const mb   = (f.size / 1048576).toFixed(1) + ' MB';
+      const name = f.name.length > 36 ? f.name.slice(0, 33) + '…' : f.name;
+      const fp   = f.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      return `<div class="backup-restore-row">
+        <span class="backup-restore-date">${date}</span>
+        <span class="backup-restore-name" title="${f.name}">${name}</span>
+        <span class="backup-restore-size">${mb}</span>
+        <button class="btn-secondary btn-sm" onclick="SettingsPage.restoreFromBackup('${fp}','${f.name}')">🔄</button>
+      </div>`;
+    }).join('');
+  }
+
+  let _pendingRestorePath = null;
+
+  function restoreFromBackup(filePath, fileName) {
+    _pendingRestorePath = filePath;
+    App.showModal(
+      '⚠ Επαναφορά Βάσης',
+      `<p>Θα επαναφερθεί το αρχείο:</p>
+       <p style="font-family:monospace;font-size:0.9em;margin:8px 0;word-break:break-all">${fileName}</p>
+       <p style="color:var(--text-muted);font-size:0.9em">Θα γίνει αυτόματο backup της τρέχουσας βάσης πριν ολοκληρωθεί η επαναφορά.</p>`,
+      [
+        { label: 'Ακύρωση',   action: 'App.closeModal()',                              secondary: true },
+        { label: 'Συνέχεια →', action: 'App.closeModal();SettingsPage._confirmRestore2()' },
+      ]
+    );
+  }
+
+  function _confirmRestore2() {
+    App.showModal(
+      '⛔ Τελευταία Προειδοποίηση',
+      `<p>Όλες οι καταχωρήσεις που έγιναν <b>μετά</b> το επιλεγμένο backup θα χαθούν οριστικά.</p>
+       <p style="margin-top:12px;font-weight:600">Είστε απολύτως σίγουρος;</p>`,
+      [
+        { label: 'Ακύρωση',    action: 'App.closeModal()',                              secondary: true },
+        { label: 'Επαναφορά', action: 'App.closeModal();SettingsPage._doRestore()'    },
+      ]
+    );
+  }
+
+  async function _doRestore() {
+    const fp = _pendingRestorePath;
+    _pendingRestorePath = null;
+    if (!fp) return;
+    const res = await window.pyBridge['restore-backup']?.(fp);
+    if (res?.ok) {
+      App.toast('Επαναφορά ολοκληρώθηκε — επανεκκίνηση...', 'ok');
+    } else {
+      App.toast('Σφάλμα επαναφοράς: ' + (res?.error || ''), 'fail');
+    }
+  }
+
+  async function browseAndRestore() {
+    const res = await window.pyBridge['select-backup-file']?.();
+    if (!res?.ok) return;
+    restoreFromBackup(res.path, res.name);
   }
 
   async function selectDataFolder() {
@@ -1667,14 +1737,6 @@
     App.toast('Φάκελος δεδομένων εκκαθαρίστηκε', 'ok');
   }
 
-  async function openDataFolder() {
-    const result = await window.pyBridge['get-data-folder']?.();
-    if (result?.folder) {
-      await window.pyBridge['open-pdf']?.(result.folder);
-    } else {
-      App.toast('Δεν έχει οριστεί φάκελος δεδομένων', 'warn');
-    }
-  }
 
   // ============================================================
   // CE PERIOD MANAGEMENT
@@ -2392,7 +2454,9 @@
     // Email
     saveSmtp, testSmtp,
     // Storage
-    selectDataFolder, clearDataFolder, manualBackup, openDataFolder,
+    selectDataFolder, clearDataFolder, manualBackup,
+    loadBackupList, restoreFromBackup, browseAndRestore,
+    _confirmRestore2, _doRestore,
     loadCloudSync, selectRemote, testCloudConnection, saveCloudPath,
     changeCloudPath, syncNow, restoreFromCloud, openRcloneConfig, openLink,
     // CE Periods

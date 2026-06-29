@@ -3776,3 +3776,40 @@ textarea { resize: vertical; min-height: 80px; }
   padding: 12px 14px;
   border-top: 1px solid var(--border);
 }
+
+/* ── Backup Restore List ─────────────────────────────── */
+.form-section-label {
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+}
+
+.backup-restore-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 0.85em;
+}
+.backup-restore-row:nth-child(odd) { background: var(--bg-hover); }
+
+.backup-restore-date {
+  flex: 0 0 60px;
+  color: var(--text-muted);
+}
+.backup-restore-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 0.95em;
+}
+.backup-restore-size {
+  flex: 0 0 52px;
+  text-align: right;
+  color: var(--text-muted);
+}

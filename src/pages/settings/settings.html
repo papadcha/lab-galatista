@@ -425,14 +425,21 @@
       <h3 class="form-card-title">🗄 Backup Βάσης Δεδομένων</h3>
       <p class="form-card-intro">Αυτόματο αντίγραφο ασφαλείας κατά την εκκίνηση. Μπορείτε να κάνετε και χειροκίνητο οποτεδήποτε.</p>
       <div class="form-actions">
-        <button class="btn-primary"
-                onclick="SettingsPage.manualBackup()">
+        <button class="btn-primary" onclick="SettingsPage.manualBackup()">
           💾 Backup Τώρα
         </button>
-        <button class="btn-secondary"
-                onclick="SettingsPage.openDataFolder()">
-          📂 Άνοιγμα Φακέλου
-        </button>
+      </div>
+
+      <div style="margin-top:20px;">
+        <div class="form-section-label" style="margin-bottom:8px;">🔄 Επαναφορά</div>
+        <div id="backup-restore-list">
+          <span style="color:var(--text-muted);font-size:0.85em;">Φόρτωση...</span>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn-secondary" onclick="SettingsPage.browseAndRestore()">
+            📂 Άλλο αρχείο&hellip; &nbsp;<small style="opacity:.6">(USB / άλλος Η/Υ)</small>
+          </button>
+        </div>
       </div>
     </div>
 

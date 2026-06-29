@@ -1218,6 +1218,77 @@ ipcMain.handle('backup-database', async () => {
   return performBackup();
 });
 
+// IPC: Λίστα τελευταίων 5 backup αρχείων
+ipcMain.handle('list-backups', async () => {
+  const dataFolder = getDataFolder();
+  if (!dataFolder) return { ok: false, files: [] };
+  const backupRoot = path.join(dataFolder, 'backup');
+  if (!fs.existsSync(backupRoot)) return { ok: true, files: [] };
+
+  const files = [];
+  function scanDir(dir) {
+    try {
+      for (const name of fs.readdirSync(dir)) {
+        const full = path.join(dir, name);
+        const stat = fs.statSync(full);
+        if (stat.isDirectory()) { scanDir(full); }
+        else if (name.endsWith('.db')) {
+          files.push({ name, path: full, size: stat.size, mtime: stat.mtimeMs });
+        }
+      }
+    } catch(e) {}
+  }
+  scanDir(backupRoot);
+  files.sort((a, b) => b.mtime - a.mtime);
+  return { ok: true, files: files.slice(0, 5) };
+});
+
+// IPC: Επιλογή αρχείου backup μέσω dialog
+ipcMain.handle('select-backup-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title:   'Επιλογή αρχείου backup',
+    properties: ['openFile'],
+    filters: [{ name: 'Βάση Δεδομένων', extensions: ['db'] }],
+  });
+  if (result.canceled || !result.filePaths.length) return { ok: false, canceled: true };
+  const fp   = result.filePaths[0];
+  const stat = fs.statSync(fp);
+  return { ok: true, path: fp, name: path.basename(fp), size: stat.size };
+});
+
+// IPC: Επαναφορά βάσης από backup
+ipcMain.handle('restore-backup', async (event, backupPath) => {
+  try {
+    const dbPath = getDbPath();
+    if (!dbPath)                      return { ok: false, error: 'Δεν βρέθηκε βάση δεδομένων' };
+    if (!fs.existsSync(backupPath))   return { ok: false, error: 'Το αρχείο backup δεν βρέθηκε' };
+
+    // 1. Auto-backup της τρέχουσας βάσης πριν αντικατασταθεί
+    const dataFolder = getDataFolder();
+    if (dataFolder) {
+      const backupDir = path.join(dataFolder, 'backup');
+      fs.mkdirSync(backupDir, { recursive: true });
+      const now = new Date();
+      const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+      fs.copyFileSync(dbPath, path.join(backupDir, `lab_pre_restore_${stamp}.db`));
+    }
+
+    // 2. Διαγραφή WAL/SHM για καθαρή επαναφορά
+    for (const ext of ['-wal', '-shm']) {
+      try { fs.unlinkSync(dbPath + ext); } catch(e) {}
+    }
+
+    // 3. Αντικατάσταση με το επιλεγμένο backup
+    fs.copyFileSync(backupPath, dbPath);
+
+    // 4. Επανεκκίνηση
+    setTimeout(() => { app.relaunch(); app.exit(0); }, 1500);
+    return { ok: true };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+});
+
 // IPC: Get data folder
 ipcMain.handle('get-data-folder', async () => {
   const folder = getDataFolder();
