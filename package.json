@@ -10,7 +10,8 @@
   "author": "Λατομεία Γαλάτιστας ΑΕ",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^28.3.3"
+    "electron": "^28.3.3",
+    "playwright-core": "^1.61.1"
   },
   "dependencies": {
     "nodemailer": "^8.0.7",
