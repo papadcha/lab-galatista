@@ -74,14 +74,25 @@ function createWindow() {
 // ============================================================
 
 function startPythonBackend() {
-  const scriptPath = path.join(__dirname, 'backend', 'server.py');
+  let cmd, args, cwd;
 
-  // Εύρεση Python (python3 ή python)
-  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+  if (app.isPackaged) {
+    // Production: χρησιμοποιεί bundled PyInstaller exe
+    const backendDir = path.join(process.resourcesPath, 'lab-backend');
+    cmd  = path.join(backendDir, 'lab-backend.exe');
+    args = [];
+    cwd  = backendDir;
+  } else {
+    // Development: χρησιμοποιεί system Python
+    const scriptPath = path.join(__dirname, 'backend', 'server.py');
+    cmd  = process.platform === 'win32' ? 'python' : 'python3';
+    args = ['-u', scriptPath];
+    cwd  = __dirname;
+  }
 
-  pyProcess = spawn(pythonCmd, ['-u', scriptPath], {
+  pyProcess = spawn(cmd, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
-    cwd: path.join(__dirname),
+    cwd,
     env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
   });
 
@@ -181,9 +192,16 @@ app.whenReady().then(() => {
 
 const { execFile } = require('child_process');
 
+function getRclonePath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'rclone', 'rclone.exe');
+  }
+  return process.platform === 'win32' ? 'rclone' : 'rclone';
+}
+
 function runRclone(args, timeoutMs = 30000) {
   return new Promise((resolve) => {
-    execFile('rclone', args, { timeout: timeoutMs }, (err, stdout, stderr) => {
+    execFile(getRclonePath(), args, { timeout: timeoutMs }, (err, stdout, stderr) => {
       if (err) {
         resolve({ ok: false, error: stderr?.trim() || err.message });
       } else {

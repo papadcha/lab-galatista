@@ -5,13 +5,16 @@ yarn-error.log*
 
 # ---- Electron build output ----
 dist/
+dist-installer/
 build/
 out/
 *.AppImage
-*.exe
 *.dmg
 *.deb
 *.snap
+
+# ---- Bundled rclone (binary — δεν ανήκει στο repo) ----
+rclone/
 
 # ---- Python ----
 __pycache__/

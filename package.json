@@ -4,13 +4,17 @@
   "description": "Εργαστήριο Λατομείων Γαλάτιστας — Σύστημα Ποιοτικού Ελέγχου",
   "main": "main.js",
   "scripts": {
-    "start": "npx electron ."
+    "start": "npx electron .",
+    "build:backend": "pyinstaller --clean --noconfirm lab-backend.spec",
+    "build:installer": "electron-builder --win --x64",
+    "dist": "npm run build:backend && npm run build:installer"
   },
   "keywords": [],
   "author": "Λατομεία Γαλάτιστας ΑΕ",
   "license": "ISC",
   "devDependencies": {
     "electron": "^28.3.3",
+    "electron-builder": "^26.15.3",
     "playwright-core": "^1.61.1"
   },
   "dependencies": {
@@ -21,5 +25,57 @@
   "allowScripts": {
     "electron@28.3.3": true,
     "puppeteer@25.0.4": true
+  },
+  "build": {
+    "appId": "gr.galatista.lab",
+    "productName": "Εργαστήριο Γαλάτιστας",
+    "copyright": "© 2026 Λατομεία Γαλάτιστας ΑΕ",
+    "directories": {
+      "output": "dist-installer"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "settings.js",
+      "standards.json",
+      "src/**/*",
+      "node_modules/**/*",
+      "!node_modules/electron/**/*",
+      "!node_modules/electron-builder/**/*",
+      "!node_modules/playwright-core/**/*",
+      "!node_modules/puppeteer/**/*",
+      "!dist/**/*",
+      "!dist-installer/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/lab-backend",
+        "to": "lab-backend",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "rclone",
+        "to": "rclone",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "src/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "installerIcon": "src/assets/icon.ico",
+      "uninstallerIcon": "src/assets/icon.ico",
+      "installerHeaderIcon": "src/assets/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Εργαστήριο Γαλάτιστας",
+      "license": "LICENSE.txt"
+    }
   }
 }
