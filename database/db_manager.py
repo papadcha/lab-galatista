@@ -19,9 +19,12 @@ import os
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-DB_PATH          = os.path.join(os.path.dirname(__file__), 'laboratory.db')
+# Το LAB_DB_PATH env var ορίζεται από το Electron (app.getPath('userData')).
+# Αν δεν υπάρχει (dev mode χωρίς Electron), πέφτουμε σε local path.
+_local_db_dir = os.path.dirname(__file__)
+DB_PATH          = os.environ.get('LAB_DB_PATH') or os.path.join(_local_db_dir, 'laboratory.db')
 _ORIGINAL_DB_PATH = DB_PATH
-SCHEMA_PATH      = os.path.join(os.path.dirname(__file__), 'schema.sql')
+SCHEMA_PATH      = os.path.join(_local_db_dir, 'schema.sql')
 
 
 # ============================================================
@@ -288,7 +291,7 @@ def get_connection() -> sqlite3.Connection:
 CURRENT_SCHEMA_VERSION = 10
 
 # Φάκελος με τα SQL migrations
-MIGRATIONS_DIR = os.path.join(os.path.dirname(DB_PATH))
+MIGRATIONS_DIR = _local_db_dir
 
 
 def _get_schema_version(conn) -> int:

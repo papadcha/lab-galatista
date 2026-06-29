@@ -91,10 +91,12 @@ function startPythonBackend() {
     cwd  = __dirname;
   }
 
+  // Η βάση αποθηκεύεται στο userData (εγγράψιμο και για non-admin users)
+  const labDbPath = path.join(app.getPath('userData'), 'laboratory.db');
   pyProcess = spawn(cmd, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
     cwd,
-    env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+    env: { ...process.env, PYTHONIOENCODING: 'utf-8', LAB_DB_PATH: labDbPath },
   });
 
   // Κεντρικός stdout listener — routing με ID
