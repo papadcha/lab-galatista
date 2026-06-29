@@ -1037,6 +1037,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (lab) { AppState.labInfo = lab; }
   await updateSidebarCeBadge();
 
+  // Εμφάνιση έκδοσης στο sidebar footer
+  if (window.pyBridge?.['get-app-version']) {
+    const ver = await window.pyBridge['get-app-version']();
+    const el = document.getElementById('sidebar-version');
+    if (el && ver) el.textContent = 'v' + ver;
+  }
+
   // Φόρτωση αρχικής σελίδας πρώτα
   await navigateTo('dashboard');
   // Έλεγχος εκδόσεων προδιαγραφών (async, δεν μπλοκάρει εκκίνηση)

@@ -670,6 +670,8 @@ ipcMain.handle('open-update-url', async (event, url) => {
   return { ok: true };
 });
 
+ipcMain.handle('get-app-version', () => app.getVersion());
+
 // ============================================================
 // CE EXPIRY NOTIFICATION
 // ============================================================
