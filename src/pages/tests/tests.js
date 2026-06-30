@@ -757,7 +757,6 @@
       await pyCallStrict('save_methylene_blue',
         state.sampleId, state.sample.sample.date,
         weight, water, vInit, vFinal,
-        m0, moist,
         el('mb-comments')?.value || '',
         asNewRun, reason
       );
