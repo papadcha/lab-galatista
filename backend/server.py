@@ -65,7 +65,7 @@ from database.db_manager import (
     get_smtp_config,
     save_smtp_config,
     add_source, update_source, toggle_source,
-    get_all_technicians, toggle_technician,
+    get_all_technicians, toggle_technician, delete_technician,
     save_specifications,
     get_specifications,
     get_required_tests,
@@ -744,6 +744,7 @@ METHODS = {
     'toggle_source':        lambda args: toggle_source(args[0], args[1]),
     'get_all_technicians':  lambda args: get_all_technicians(),
     'toggle_technician':    lambda args: toggle_technician(args[0], args[1]),
+    'delete_technician':    lambda args: delete_technician(int(args[0])),
     'save_specifications':  lambda args: save_specifications(
                                 args[0], args[1], args[2], args[3]),
     'get_specifications':   lambda args: get_specifications(args[0]),

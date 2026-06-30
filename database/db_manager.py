@@ -1805,6 +1805,24 @@ def toggle_technician(tech_id: int, active: int) -> bool:
     return True
 
 
+def delete_technician(tech_id: int) -> bool:
+    """Οριστική διαγραφή τεχνικού. Επιτρέπεται μόνο αν δεν υπάρχουν δείγματα."""
+    conn = get_connection()
+    try:
+        count = conn.execute(
+            "SELECT COUNT(*) FROM tbl_samples WHERE technician_id=?", (tech_id,)
+        ).fetchone()[0]
+        if count > 0:
+            raise ValueError(
+                f"Δεν μπορεί να διαγραφεί: υπάρχουν {count} δείγματα που αναφέρουν αυτόν τον τεχνικό."
+            )
+        conn.execute("DELETE FROM tbl_technicians WHERE id=?", (tech_id,))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+
 def save_specifications(product_id: int, spec_type: str,
                         spec_name: str, specs: list) -> bool:
     """

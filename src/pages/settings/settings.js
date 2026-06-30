@@ -1157,11 +1157,15 @@
             ? '<span class="badge badge-ok">Ενεργός</span>'
             : '<span class="badge badge-none">Ανενεργός</span>'}
         </td>
-        <td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-sm"
                   onclick="SettingsPage.toggleTechnician(${t.id}, ${t.active})">
             ${t.active ? '⊘ Απενεργοποίηση' : '✓ Ενεργοποίηση'}
           </button>
+          ${!t.active ? `<button class="btn-sm" style="color:#c62828;border-color:#ef9a9a;"
+                  onclick="SettingsPage.deleteTechnician(${t.id}, '${esc(t.name)}')">
+            Διαγραφή
+          </button>` : ''}
         </td>
       </tr>
     `).join('');
@@ -1198,6 +1202,28 @@
     try {
       await pyCallStrict('toggle_technician', id, currentActive ? 0 : 1);
       App.toast('Κατάσταση τεχνικού ενημερώθηκε', 'ok');
+      AppState.technicians = await pyCall('get_technicians') || [];
+      await loadTechnicians();
+    } catch(e) {
+      App.toast('Σφάλμα: ' + e.message, 'fail');
+    }
+  }
+
+  async function deleteTechnician(id, name) {
+    App.showModal('Διαγραφή Τεχνικού', `
+      <p style="color:var(--fail);">⚠ Η διαγραφή είναι μη αναστρέψιμη.</p>
+      <p>Να διαγραφεί ο τεχνικός <strong>${esc(name)}</strong>;</p>
+    `, [
+      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+      { label: 'Διαγραφή', action: `SettingsPage._doDeleteTechnician(${id})` },
+    ]);
+  }
+
+  async function _doDeleteTechnician(id) {
+    App.closeModal();
+    try {
+      await pyCallStrict('delete_technician', id);
+      App.toast('Τεχνικός διαγράφηκε', 'ok');
       AppState.technicians = await pyCall('get_technicians') || [];
       await loadTechnicians();
     } catch(e) {
@@ -2448,7 +2474,7 @@
     toggleSource,  _doToggleSource,
     // Technicians
     showAddTechnician, _saveNewTechnician,
-    toggleTechnician,
+    toggleTechnician, deleteTechnician, _doDeleteTechnician,
     // Specs
     loadSpecs, selectSpec, newSpec, deleteSpec, saveSpecs,
     // Email
