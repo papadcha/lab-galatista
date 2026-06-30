@@ -644,6 +644,16 @@ def get_sources() -> list:
     return results
 
 
+def get_all_sources() -> list:
+    """Επιστρέφει ΟΛΕΣ τις πηγές (ενεργές και μη)."""
+    conn = get_connection()
+    results = [dict(r) for r in conn.execute(
+        "SELECT * FROM tbl_sources ORDER BY active DESC, code"
+    ).fetchall()]
+    conn.close()
+    return results
+
+
 # ============================================================
 # ΔΕΙΓΜΑΤΑ
 # ============================================================

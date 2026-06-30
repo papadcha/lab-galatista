@@ -988,7 +988,7 @@
   // ============================================================
 
   async function loadSources() {
-    state.sources = await pyCall('get_sources') || [];
+    state.sources = await pyCall('get_all_sources') || [];
     renderSources();
   }
 
