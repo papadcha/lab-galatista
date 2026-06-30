@@ -1,5 +1,7 @@
 import { _electron as electron } from 'playwright-core';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
 import { spawn } from 'child_process';
 
 const SHOT_DIR = 'C:/Users/papadcha/AppData/Local/Temp/claude/C--lab-galatista/d7aa3705-764d-48f9-b77b-5e64c51e4252/scratchpad';
@@ -10,9 +12,12 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 console.log('Testing Python backend directly...');
 const backendDir = 'C:/Program Files/lab-galatista/resources/lab-backend';
 const backendExe = backendDir + '/lab-backend.exe';
+const tempDbPath = path.join(os.tmpdir(), 'lab-drive-test', 'laboratory.db');
+fs.mkdirSync(path.dirname(tempDbPath), { recursive: true });
+
 const pyProc = spawn(backendExe, [], {
   cwd: backendDir,
-  env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+  env: { ...process.env, PYTHONIOENCODING: 'utf-8', LAB_DB_PATH: tempDbPath },
   stdio: ['pipe', 'pipe', 'pipe'],
 });
 let pyOut = '';

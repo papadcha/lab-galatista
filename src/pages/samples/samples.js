@@ -523,15 +523,8 @@
       App.toast('Δεν υπάρχει αποθηκευμένο δείγμα', 'warn');
       return;
     }
-    // Setup για το tests page (όταν υλοποιηθεί)
     window._currentSampleId = state.savedSampleId;
-    if (Pages?.tests || window.Pages?.tests) {
-      App.go('tests');
-    } else {
-      // Fallback: Δοκιμές δεν υπάρχουν ακόμα
-      App.toast('Η σελίδα Δοκιμές υλοποιείται. Επιστροφή στο Dashboard.', 'warn');
-      setTimeout(() => App.go('dashboard'), 1500);
-    }
+    App.go('tests');
   }
 
   // ============================================================
