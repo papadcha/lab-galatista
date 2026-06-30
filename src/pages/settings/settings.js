@@ -2110,6 +2110,8 @@
     if (!period?.id) { App.toast('Δεν υπάρχει ενεργή CE period', 'fail'); return; }
 
     App.closeModal();
+    // FINAL backup της τρέχουσας υποπεριόδου πριν την αλλαγή
+    await window.pyBridge?.['backup-database-final']?.();
     const id = await window.pyBridge?.create_subperiod?.(
       period.id, validFrom, reportNumber, notes, pdfSub, mb, se, fl, null
     );
@@ -2202,6 +2204,39 @@
   // ── Νέα CE Period ────────────────────────────────────────
 
   async function showNewCePeriodModal() {
+    const current      = await window.pyBridge?.get_active_ce_period?.();
+    const sampleCount  = current?.id
+      ? (await window.pyBridge?.call?.('get_samples_count') ?? 0)
+      : 0;
+
+    if (current?.id && sampleCount > 0) {
+      App.showModal('⚠️ Δεν έχετε κάνει Clean Start', `
+        <p style="margin-bottom:12px;">
+          Η τρέχουσα CE περίοδος <strong>${_esc(current.ce_number || '—')}</strong>
+          περιέχει <strong>${sampleCount} δείγματα</strong>.
+        </p>
+        <p style="margin-bottom:12px;">
+          Αν δημιουργήσετε νέα περίοδο χωρίς Clean Start:
+        </p>
+        <ul style="margin:0 0 12px 18px;font-size:13px;color:var(--text-muted);">
+          <li>Τα παλιά δεδομένα <strong>παραμένουν</strong> στη βάση</li>
+          <li>Δεν δημιουργείται <strong>FINAL backup</strong> της παλιάς περιόδου</li>
+          <li>Τα ονόματα backup αρχείων δεν ενημερώνονται άμεσα</li>
+        </ul>
+        <p style="font-size:13px;color:var(--text-muted);">
+          Συνιστάται να κάνετε <strong>Clean Start</strong> πρώτα.
+        </p>
+      `, [
+        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+        { label: 'Συνέχεια χωρίς Clean Start', action: 'SettingsPage._openNewCePeriodForm()' },
+      ]);
+      return;
+    }
+    await _openNewCePeriodForm();
+  }
+
+  async function _openNewCePeriodForm() {
+    App.closeModal();
     const current = await window.pyBridge?.get_active_ce_period?.();
     const lab     = await window.pyBridge?.call?.('get_lab_info') || {};
 
@@ -2518,7 +2553,7 @@
     showCleanStartModal, _doCleanStart,
     deleteActiveSubperiod, _doDeleteSubperiod,
     deleteCePeriod, _doDeleteCePeriod,
-    showNewCePeriodModal, _updateSuggestedFolder, _selectNewCeFolder,
+    showNewCePeriodModal, _openNewCePeriodForm, _updateSuggestedFolder, _selectNewCeFolder,
     _saveNewCePeriod, _openCeFolder, showCePeriodView,
     _enterArchiveFromHistory,
   };

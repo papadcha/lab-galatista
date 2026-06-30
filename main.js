@@ -1264,19 +1264,17 @@ function getPeriodStartStamp() {
   return '00000000';
 }
 
-function performBackup() {
+function performBackup(final = false) {
   const dbPath    = getDbPath();
   const backupDir = getBackupPath();
   if (!dbPath || !backupDir) return { success: false, reason: 'no_folder' };
 
-  // Έλεγχος μεγέθους — skip αν δεν άλλαξε η DB
-  const dest = path.join(backupDir, _buildBackupName());
+  const dest = path.join(backupDir, _buildBackupName(final));
   if (fs.existsSync(dest)) return { success: true, path: dest, skipped: true };
 
   try {
     fs.copyFileSync(dbPath, dest);
-    // Κρατάμε μόνο τα 7 τελευταία daily (όχι FINAL)
-    _pruneBackups(backupDir, 7);
+    if (!final) _pruneBackups(backupDir, 7);
     return { success: true, path: dest };
   } catch(e) {
     return { success: false, error: e.message };
@@ -1336,6 +1334,11 @@ ipcMain.handle('select-data-folder', async () => {
 // IPC: Χειροκίνητο backup
 ipcMain.handle('backup-database', async () => {
   return performBackup();
+});
+
+// IPC: FINAL backup (αλλαγή υποπεριόδου)
+ipcMain.handle('backup-database-final', async () => {
+  return performBackup(true);
 });
 
 // IPC: Λίστα τελευταίων 5 backup αρχείων

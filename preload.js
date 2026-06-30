@@ -147,7 +147,8 @@ contextBridge.exposeInMainWorld('pyBridge', {
   // Φάκελος δεδομένων & Backup
   'select-data-folder':  ()                              => ipcRenderer.invoke('select-data-folder'),
   'get-data-folder':     ()                              => ipcRenderer.invoke('get-data-folder'),
-  'backup-database':     ()                              => ipcRenderer.invoke('backup-database'),
+  'backup-database':       ()                              => ipcRenderer.invoke('backup-database'),
+  'backup-database-final': ()                              => ipcRenderer.invoke('backup-database-final'),
   'list-backups':        ()                              => ipcRenderer.invoke('list-backups'),
   'select-backup-file':  ()                              => ipcRenderer.invoke('select-backup-file'),
   'restore-backup':      (backupPath)                    => ipcRenderer.invoke('restore-backup', backupPath),
