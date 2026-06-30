@@ -1783,6 +1783,24 @@ def toggle_source(source_id: int, active: int) -> bool:
     return True
 
 
+def delete_source(source_id: int) -> bool:
+    """Οριστική διαγραφή πηγής. Επιτρέπεται μόνο αν δεν υπάρχουν δείγματα."""
+    conn = get_connection()
+    try:
+        count = conn.execute(
+            "SELECT COUNT(*) FROM tbl_samples WHERE source_id=?", (source_id,)
+        ).fetchone()[0]
+        if count > 0:
+            raise ValueError(
+                f"Δεν μπορεί να διαγραφεί: υπάρχουν {count} δείγματα που αναφέρουν αυτήν την πηγή."
+            )
+        conn.execute("DELETE FROM tbl_sources WHERE id=?", (source_id,))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+
 def get_all_technicians() -> list:
     """Επιστρέφει ΟΛΟΥΣ τους τεχνικούς (ενεργούς και μη)."""
     conn = get_connection()

@@ -1009,13 +1009,17 @@
             ? '<span class="badge badge-ok">Ενεργή</span>'
             : '<span class="badge badge-none">Ανενεργή</span>'}
         </td>
-        <td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-sm"
                   onclick="SettingsPage.editSource(${s.id})">✎</button>
           <button class="btn-sm"
                   onclick="SettingsPage.toggleSource(${s.id}, ${s.active})">
             ${s.active ? '⊘' : '✓'}
           </button>
+          ${!s.active ? `<button class="btn-sm" style="color:#c62828;border-color:#ef9a9a;"
+                  onclick="SettingsPage.deleteSource(${s.id}, '${esc(s.name)}')">
+            Διαγραφή
+          </button>` : ''}
         </td>
       </tr>
     `).join('');
@@ -1127,6 +1131,27 @@
     try {
       await pyCallStrict('toggle_source', id, currentActive ? 0 : 1);
       App.toast('Κατάσταση προέλευσης ενημερώθηκε', 'ok');
+      await loadSources();
+    } catch(e) {
+      App.toast('Σφάλμα: ' + e.message, 'fail');
+    }
+  }
+
+  async function deleteSource(id, name) {
+    App.showModal('Διαγραφή Προέλευσης', `
+      <p style="color:var(--fail);">⚠ Η διαγραφή είναι μη αναστρέψιμη.</p>
+      <p>Να διαγραφεί η προέλευση <strong>${esc(name)}</strong>;</p>
+    `, [
+      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+      { label: 'Διαγραφή', action: `SettingsPage._doDeleteSource(${id})` },
+    ]);
+  }
+
+  async function _doDeleteSource(id) {
+    App.closeModal();
+    try {
+      await pyCallStrict('delete_source', id);
+      App.toast('Προέλευση διαγράφηκε', 'ok');
       await loadSources();
     } catch(e) {
       App.toast('Σφάλμα: ' + e.message, 'fail');
@@ -2472,6 +2497,7 @@
     showAddSource, _saveNewSource,
     editSource,    _saveEditSource,
     toggleSource,  _doToggleSource,
+    deleteSource,  _doDeleteSource,
     // Technicians
     showAddTechnician, _saveNewTechnician,
     toggleTechnician, deleteTechnician, _doDeleteTechnician,
