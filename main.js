@@ -337,9 +337,11 @@ ipcMain.handle('cloud-open-terminal', async () => {
   // Use windowsVerbatimArguments to avoid Node.js escaping the embedded quotes in the path.
   if (process.platform === 'win32') {
     const innerCmd = `"${rcloneBin}" --config "${configPath}" config`;
+    // cmd.exe /k strips the first and last " from its argument, so wrap the
+    // entire command in an extra pair of quotes to survive that stripping.
     const ok = await new Promise((resolve) => {
       try {
-        const child = spawn('cmd.exe', ['/c', `start cmd.exe /k ${innerCmd}`], {
+        const child = spawn('cmd.exe', ['/c', `start cmd.exe /k "${innerCmd}"`], {
           detached: true, stdio: 'ignore', windowsVerbatimArguments: true,
         });
         child.on('error', () => resolve(false));
