@@ -16,8 +16,10 @@ import io
 import json
 import os
 
-# Ορισμός UTF-8 για stdout/stderr — κρίσιμο για PyInstaller on Windows
+# Ορισμός UTF-8 για stdin/stdout/stderr — κρίσιμο για PyInstaller on Windows
 # (το PYTHONIOENCODING env var δεν είναι αρκετό για bundled exe)
+if hasattr(sys.stdin, 'buffer'):
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='replace')
 if hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8',
                                    errors='replace', line_buffering=True)

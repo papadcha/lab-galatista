@@ -334,9 +334,19 @@ ipcMain.handle('cloud-open-terminal', async () => {
 
   // Windows: spawn a NEW console window via `start cmd.exe /k ...`
   // Plain spawn('cmd.exe', ['/k', ...]) from a GUI process has no visible window.
+  // Use windowsVerbatimArguments to avoid Node.js escaping the embedded quotes in the path.
   if (process.platform === 'win32') {
     const innerCmd = `"${rcloneBin}" --config "${configPath}" config`;
-    const ok = await trySpawn('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', innerCmd]);
+    const ok = await new Promise((resolve) => {
+      try {
+        const child = spawn('cmd.exe', ['/c', `start cmd.exe /k ${innerCmd}`], {
+          detached: true, stdio: 'ignore', windowsVerbatimArguments: true,
+        });
+        child.on('error', () => resolve(false));
+        child.unref();
+        setTimeout(() => resolve(true), 200);
+      } catch { resolve(false); }
+    });
     if (ok) return { ok: true, configPath };
   }
 
