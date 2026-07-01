@@ -1032,7 +1032,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         if _r and _b: _FONT_CATALOG['DejaVuSans'] = (_r, _b)
 
         # Διαβάζω επιλογή font από τη βάση (pdf_font)
-        _preferred = lab.get('pdf_font', 'Inter') or 'Inter'
+        _preferred = lab.get('pdf_font', 'IBMPlexSans') or 'IBMPlexSans'
         # Αν δεν υπάρχει στον κατάλογο, fallback στο πρώτο διαθέσιμο
         if _preferred not in _FONT_CATALOG:
             _preferred = next(iter(_FONT_CATALOG), None)

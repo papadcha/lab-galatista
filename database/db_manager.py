@@ -288,7 +288,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 10
+CURRENT_SCHEMA_VERSION = 11
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = _local_db_dir
@@ -417,6 +417,7 @@ def initialize_database():
         8: os.path.join(MIGRATIONS_DIR, 'migration_008_pdf_font.sql'),
         9: os.path.join(MIGRATIONS_DIR, 'migration_009_ce_periods.sql'),
         10: os.path.join(MIGRATIONS_DIR, 'migration_010_document_library.sql'),
+        11: os.path.join(MIGRATIONS_DIR, 'migration_011_pdf_font_ibmplex.sql'),
     }
 
     needs_recalc = False

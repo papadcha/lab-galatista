@@ -18,6 +18,7 @@ a = Analysis(
         ('database/migration_008_pdf_font.sql',          'database'),
         ('database/migration_009_ce_periods.sql',        'database'),
         ('database/migration_010_document_library.sql',  'database'),
+        ('database/migration_011_pdf_font_ibmplex.sql',  'database'),
         ('standards.json',                               '.'),
         ('fonts',                                        'fonts'),
     ],

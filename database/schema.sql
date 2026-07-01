@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS tbl_laboratory (
     ce_valid_from TEXT,
     ce_valid_to   TEXT,
     ce_body       TEXT,
-    pdf_font      TEXT DEFAULT 'LiberationSans'
+    pdf_font      TEXT DEFAULT 'IBMPlexSans'
 );
 
 -- Τεχνικοί
