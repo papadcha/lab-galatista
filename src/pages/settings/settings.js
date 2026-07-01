@@ -1649,6 +1649,20 @@
     await loadCloudSync();
   }
 
+  async function syncDocumentLibrary() {
+    App.toast('Sync βιβλιοθήκης σε εξέλιξη...', 'info');
+    const result = await pyBridgeCall('sync-document-library');
+    if (result?.ok) {
+      App.toast(result.added > 0
+        ? `Sync βιβλιοθήκης: +${result.added} νέα έγγραφα`
+        : 'Sync βιβλιοθήκης: καμία αλλαγή', 'ok');
+    } else if (result?.noInternet) {
+      App.toast('Δεν υπάρχει σύνδεση internet', 'warn');
+    } else {
+      App.toast('Σφάλμα sync βιβλιοθήκης: ' + (result?.error || ''), 'fail');
+    }
+  }
+
   async function restoreFromCloud() {
     App.confirm(
       'Επαναφορά από Cloud',
@@ -2558,7 +2572,7 @@
     loadBackupList, restoreFromBackup, browseAndRestore,
     _confirmRestore2, _doRestore,
     loadCloudSync, selectRemote, testCloudConnection, saveCloudPath,
-    changeCloudPath, syncNow, restoreFromCloud, openRcloneConfig, openLink,
+    changeCloudPath, syncNow, restoreFromCloud, syncDocumentLibrary, openRcloneConfig, openLink,
     // CE Periods
     loadCePeriods, showNewSubperiodModal, _saveNewSubperiod,
     showEditSubperiodModal, _saveEditSubperiod,

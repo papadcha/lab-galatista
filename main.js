@@ -321,6 +321,56 @@ ipcMain.handle('cloud-restore', async () => {
   return { ok: false, error: result.error };
 });
 
+// IPC: Sync Βιβλιοθήκης Εγγράφων — μόνο προσθήκες.
+// Τα αρχεία ήδη ζουν σε κοινό cloud σημείο (upload-document τα ανεβάζει
+// απευθείας εκεί)· αυτό που λείπει είναι οι καταχωρήσεις (τίτλος, κωδικός,
+// έκδοση) που ζουν μόνο στην τοπική βάση της κάθε εγκατάστασης. Κάθε
+// μηχάνημα εξάγει τις δικές του σε ένα manifest, τα manifests ανταλλάσσονται
+// μέσω cloud, και ό,τι λείπει τοπικά (βάσει cloud_path) μπαίνει αυτόματα.
+ipcMain.handle('sync-document-library', async () => {
+  const cfg        = loadConfig();
+  const remotePath = cfg.cloudRemotePath;
+  if (!remotePath) return { ok: false, error: 'Δεν έχει οριστεί remote path' };
+
+  try {
+    const manifestDir = path.join(os.tmpdir(), 'lab-galatista-doclib');
+    fs.mkdirSync(manifestDir, { recursive: true });
+    const myName           = (os.hostname() || 'machine').replace(/[^A-Za-z0-9_-]/g, '_');
+    const myManifestPath    = path.join(manifestDir, `${myName}.json`);
+    const remoteManifestsDir = `${remotePath}/documents/_manifests`;
+
+    // 1. Εξαγωγή τοπικών εγγράφων → JSON
+    const localItems = await _pyCallMain('export_document_library', []);
+    fs.writeFileSync(myManifestPath, JSON.stringify(localItems ?? [], null, 2), 'utf-8');
+
+    // 2. Upload του δικού μας manifest (πάντα αντικαθιστά το προηγούμενό μας)
+    const up = await runRclone(['copy', myManifestPath, remoteManifestsDir], 60000);
+    if (isNetworkError(up.error)) return { ok: false, noInternet: true, error: up.error };
+    if (!up.ok) return { ok: false, error: up.error };
+
+    // 3. Κατέβασμα όλων των manifests (δικό μας + άλλων εγκαταστάσεων)
+    const dl = await runRclone(['copy', remoteManifestsDir, manifestDir], 60000);
+    if (!dl.ok && !isNetworkError(dl.error)) return { ok: false, error: dl.error };
+
+    // 4. Συγχώνευση όλων των manifest αρχείων
+    const allItems = [];
+    for (const f of fs.readdirSync(manifestDir)) {
+      if (!f.endsWith('.json')) continue;
+      try {
+        const items = JSON.parse(fs.readFileSync(path.join(manifestDir, f), 'utf-8'));
+        if (Array.isArray(items)) allItems.push(...items);
+      } catch(e) { /* αγνόησε κατεστραμμένο manifest */ }
+    }
+
+    // 5. Εισαγωγή νέων εγγράφων (μόνο προσθήκες, βάσει cloud_path)
+    const result = await _pyCallMain('import_document_library', [allItems]);
+    if (!result?.ok) return { ok: false, error: result?.error || 'Άγνωστο σφάλμα' };
+    return { ok: true, added: result.added };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
 ipcMain.handle('cloud-open-terminal', async () => {
   const configPath = getRcloneConfigPath();
   const rcloneBin  = getRclonePath();

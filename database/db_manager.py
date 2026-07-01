@@ -252,6 +252,74 @@ def get_documents_for_standards_check() -> list:
     finally:
         conn.close()
 
+def export_document_library() -> list:
+    """
+    Εξάγει όλα τα έγγραφα με το όνομα (όχι id) της ενότητάς τους, για
+    ανταλλαγή manifest με άλλες εγκαταστάσεις (Sync Βιβλιοθήκης).
+    """
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT d.title, d.code, d.version, d.expires_at, d.cloud_path,
+                   d.url, d.notes, s.name AS section_name, s.icon AS section_icon
+            FROM tbl_documents d
+            JOIN tbl_doc_sections s ON s.id = d.section_id
+            WHERE d.cloud_path IS NOT NULL AND d.cloud_path != ''
+        """).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+def import_document_library(items: list) -> dict:
+    """
+    Εισάγει έγγραφα από manifest άλλης εγκατάστασης — μόνο προσθήκες.
+    Ταύτιση με cloud_path (μοναδικό, αφού όλα τα αρχεία ζουν σε κοινό
+    cloud σημείο). Η ενότητα βρίσκεται/δημιουργείται με βάση το όνομα.
+    """
+    conn = get_connection()
+    added = 0
+    try:
+        existing_paths = {
+            row[0] for row in conn.execute(
+                "SELECT cloud_path FROM tbl_documents WHERE cloud_path IS NOT NULL"
+            ).fetchall()
+        }
+        sections_by_name = {
+            row['name']: row['id']
+            for row in conn.execute("SELECT id, name FROM tbl_doc_sections").fetchall()
+        }
+        for item in items:
+            cloud_path = item.get('cloud_path')
+            if not cloud_path or cloud_path in existing_paths:
+                continue
+            section_name = item.get('section_name') or 'Άλλα'
+            section_id = sections_by_name.get(section_name)
+            if section_id is None:
+                max_order = conn.execute(
+                    'SELECT COALESCE(MAX(sort_order),0)+1 FROM tbl_doc_sections'
+                ).fetchone()[0]
+                cur = conn.execute(
+                    'INSERT INTO tbl_doc_sections (name, icon, is_custom, sort_order) VALUES (?,?,1,?)',
+                    (section_name, item.get('section_icon') or '📁', max_order)
+                )
+                section_id = cur.lastrowid
+                sections_by_name[section_name] = section_id
+            conn.execute("""
+                INSERT INTO tbl_documents
+                    (section_id, title, code, version, expires_at, cloud_path, url, notes)
+                VALUES (?,?,?,?,?,?,?,?)
+            """, (section_id, item.get('title'), item.get('code'), item.get('version'),
+                  item.get('expires_at'), cloud_path, item.get('url'), item.get('notes')))
+            existing_paths.add(cloud_path)
+            added += 1
+        conn.commit()
+        return {'ok': True, 'added': added}
+    except Exception as e:
+        conn.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
 def switch_db(archive_path: str) -> dict:
     """Εναλλαγή σε archive DB (global switch)."""
     global DB_PATH

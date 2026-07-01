@@ -127,6 +127,7 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'cloud-test':         (path)       => ipcRenderer.invoke('cloud-test', path),
   'cloud-sync':         ()           => ipcRenderer.invoke('cloud-sync'),
   'cloud-restore':      ()           => ipcRenderer.invoke('cloud-restore'),
+  'sync-document-library': ()        => ipcRenderer.invoke('sync-document-library'),
   'cloud-open-terminal':()           => ipcRenderer.invoke('cloud-open-terminal'),
   'open-external-link': (url)        => ipcRenderer.invoke('open-external-link', url),
   'close-guide':  ()         => ipcRenderer.invoke('close-guide'),
