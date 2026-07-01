@@ -638,6 +638,52 @@ if (window.pyBridge?.['on-ce-expiry']) {
   });
 }
 
+// Listener για ασυμφωνία φακέλου δεδομένων (π.χ. μετά από restore σε άλλο
+// μηχάνημα, όπου ο τοπικός φάκελος δεν ενημερώθηκε μαζί με νέα CE period)
+if (window.pyBridge?.['on-data-folder-mismatch']) {
+  window.pyBridge['on-data-folder-mismatch']((info) => {
+    _showDataFolderMismatchToast(info);
+  });
+}
+
+function _dismissDataFolderToast() {
+  document.getElementById('data-folder-toast')?.remove();
+}
+
+async function _snoozeDataFolderToast() {
+  _dismissDataFolderToast();
+  await window.pyBridge?.['data-folder-notify-snooze']?.(7);
+}
+
+function _showDataFolderMismatchToast(info) {
+  if (document.getElementById('data-folder-toast')) return;
+
+  const warn = info.existsLocally
+    ? ''
+    : '<div class="ce-toast-msg" style="margin-top:4px;">⚠️ Ο φάκελος της βάσης δεν υπάρχει σε αυτό το μηχάνημα — επιλέξτε τον σωστό τοπικό φάκελο.</div>';
+
+  const toast = document.createElement('div');
+  toast.id = 'data-folder-toast';
+  toast.className = 'ce-toast';
+  toast.innerHTML = `
+    <div class="ce-toast-icon">🟡</div>
+    <div class="ce-toast-body">
+      <div class="ce-toast-title">Ο φάκελος δεδομένων φαίνεται ξεπερασμένος</div>
+      <div class="ce-toast-msg">Η ενεργή CE period στη βάση δείχνει διαφορετικό φάκελο δεδομένων από τον τοπικά ρυθμισμένο — τα PDF ενδέχεται να μην εμφανίζονται σωστά.</div>
+      ${warn}
+      <div class="ce-toast-actions">
+        <button class="btn-secondary btn-sm" onclick="_snoozeDataFolderToast()">
+          Το γνωρίζω (7 μέρες)
+        </button>
+        <button class="btn-primary btn-sm" onclick="navigateTo('settings');_dismissDataFolderToast()">
+          Ρυθμίσεις →
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(toast);
+}
+
 // Listener για νέα έκδοση
 if (window.pyBridge?.['on-update-available']) {
   window.pyBridge['on-update-available']((info) => {

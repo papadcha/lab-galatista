@@ -20,6 +20,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path       = require('path');
 const fs         = require('fs');
+const crypto     = require('crypto');
 const { spawn }  = require('child_process');
 const os         = require('os');
 const nodemailer = require('nodemailer');
@@ -167,7 +168,7 @@ app.whenReady().then(() => {
   // Αυτόματο backup + CE check + cloud sync κατά εκκίνηση
   setTimeout(async () => {
     // ── Τοπικό backup ─────────────────────────────────────
-    const result = performBackup();
+    const result = await performBackup();
     if (result.success) {
       console.log('[Backup] Αυτόματο backup:', result.path);
     } else if (result.reason !== 'no_folder') {
@@ -177,6 +178,9 @@ app.whenReady().then(() => {
     // ── CE Expiry check ────────────────────────────────────
     await checkCeExpiryAndNotify();
     await initActivePeriodStart();
+
+    // ── Έλεγχος φακέλου δεδομένων vs ενεργή CE period ─────
+    await checkDataFolderMismatch();
 
     // ── Έλεγχος νέας έκδοσης ──────────────────────────────
     checkForUpdates().catch(e => console.log('[Update] Σφάλμα:', e.message));
@@ -305,8 +309,10 @@ ipcMain.handle('cloud-restore', async () => {
   if (!remotePath) return { ok: false, error: 'Δεν έχει οριστεί remote path' };
   if (!dataFolder) return { ok: false, error: 'Δεν έχει οριστεί φάκελος δεδομένων' };
 
+  // copy (όχι sync): το UI υπόσχεται "κατέβασμα" αρχείων, όχι mirror — sync θα
+  // έσβηνε τοπικά αρχεία (π.χ. backups που δεν έχουν προλάβει να ανέβουν ακόμα).
   const result = await runRclone(
-    ['sync', remotePath, dataFolder, '--create-empty-src-dirs'],
+    ['copy', remotePath, dataFolder, '--checksum', '--create-empty-src-dirs'],
     120000
   );
 
@@ -726,6 +732,37 @@ async function checkCeExpiryAndNotify() {
   }
 }
 
+async function checkDataFolderMismatch() {
+  try {
+    const period    = await _pyCallMain('get_active_ce_period', []);
+    const dbFolder  = period?.data_folder;
+    if (!dbFolder) return;
+
+    const cfg          = loadConfig();
+    const localFolder  = cfg.dataFolder;
+    if (!localFolder || dbFolder === localFolder) return;
+
+    const snoozedUntil = cfg.dataFolderNotifySnoozedUntil;
+    if (snoozedUntil && new Date(snoozedUntil) > new Date()) return;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('data-folder-mismatch', {
+        dbFolder, localFolder,
+        existsLocally: fs.existsSync(dbFolder),
+      });
+    }
+  } catch(e) {
+    console.error('[DataFolder] Mismatch check error:', e.message);
+  }
+}
+
+ipcMain.handle('data-folder-notify-snooze', async (event, days = 7) => {
+  const until = new Date();
+  until.setDate(until.getDate() + (days || 7));
+  saveConfig({ ...loadConfig(), dataFolderNotifySnoozedUntil: until.toISOString() });
+  return { ok: true };
+});
+
 ipcMain.handle('ce-notify-snooze', async (event, days = 7) => {
   const until = new Date();
   until.setDate(until.getDate() + (days || 7));
@@ -747,8 +784,11 @@ ipcMain.handle('ce-notify-clear-snooze', async () => {
 async function runSplitCloudSync(dataFolder, remotePath) {
   const backupLocal  = path.join(dataFolder, 'backup');
   const backupRemote = remotePath + '/backup';
+  // copy (όχι sync): πολλές εγκαταστάσεις (διαχειριστής/χειριστής) μοιράζονται
+  // το ίδιο cloud remote — sync θα έσβηνε τα backups που ανέβασε η άλλη πλευρά
+  // και δεν υπάρχουν στον τοπικό φάκελο backup αυτής εδώ της εγκατάστασης.
   const r1 = await runRclone(
-    ['sync', backupLocal, backupRemote, '--create-empty-src-dirs'],
+    ['copy', backupLocal, backupRemote, '--checksum', '--create-empty-src-dirs'],
     120000
   );
   if (!r1.ok && !isNetworkError(r1.error)) {
@@ -1264,30 +1304,65 @@ function getPeriodStartStamp() {
   return '00000000';
 }
 
-function performBackup(final = false) {
+function _fileHash(filePath) {
+  try {
+    return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+  } catch(e) {
+    return null;
+  }
+}
+
+function _latestBackupFile(backupDir, final) {
+  try {
+    const files = fs.readdirSync(backupDir)
+      .filter(f => f.endsWith('.db') && f.includes('_FINAL') === final)
+      .map(f => ({ path: path.join(backupDir, f), mtime: fs.statSync(path.join(backupDir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    return files[0]?.path || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function performBackup(final = false) {
   const dbPath    = getDbPath();
   const backupDir = getBackupPath();
   if (!dbPath || !backupDir) return { success: false, reason: 'no_folder' };
 
-  const dest = path.join(backupDir, _buildBackupName(final));
-  if (fs.existsSync(dest)) return { success: true, path: dest, skipped: true };
+  const dest    = path.join(backupDir, _buildBackupName(final));
+  const tmpDest = dest + '.tmp';
 
   try {
-    fs.copyFileSync(dbPath, dest);
+    // VACUUM INTO παίρνει συνεπές snapshot της τρέχουσας λογικής κατάστασης
+    // της DB (μαζί με commits που βρίσκονται ακόμα στο -wal), σε αντίθεση
+    // με ωμό αντίγραφο αρχείου που μπορεί να είναι stale.
+    const vacuumResult = await _pyCallMain('vacuum_into', [tmpDest], 30000);
+    if (!vacuumResult?.ok) fs.copyFileSync(dbPath, tmpDest);
+
+    // Αν το περιεχόμενο είναι ίδιο με το πιο πρόσφατο backup του ίδιου τύπου
+    // (final/non-final), δεν κρατάμε διπλότυπο — άσχετα από ημέρα/ώρα.
+    const latest = _latestBackupFile(backupDir, final);
+    if (latest && _fileHash(latest) === _fileHash(tmpDest)) {
+      fs.unlinkSync(tmpDest);
+      return { success: true, path: latest, skipped: true };
+    }
+
+    fs.renameSync(tmpDest, dest);
     if (!final) _pruneBackups(backupDir, 7);
     return { success: true, path: dest };
   } catch(e) {
+    try { fs.unlinkSync(tmpDest); } catch(e2) {}
     return { success: false, error: e.message };
   }
 }
 
 function _buildBackupName(final = false) {
-  const now       = new Date();
+  const now        = new Date();
   const todayStamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
   const periodStamp = getPeriodStartStamp();
-  return final
-    ? `lab_${periodStamp}_${todayStamp}_FINAL.db`
-    : `lab_${periodStamp}_${todayStamp}.db`;
+  if (final) return `lab_${periodStamp}_${todayStamp}_FINAL.db`;
+  const timeStamp = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+  return `lab_${periodStamp}_${todayStamp}_${timeStamp}.db`;
 }
 
 function _pruneBackups(backupDir, keep = 7) {
