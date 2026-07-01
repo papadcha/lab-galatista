@@ -259,7 +259,7 @@
         border:1px solid ${isRed ? '#ef9a9a' : '#a5d6a7'};
         background:${isRed ? '#fce4ec' : '#e8f5e9'};
         color:${isRed ? '#c62828' : '#1b5e20'};
-        font-size:11px;font-weight:600;font-family:monospace;white-space:nowrap;
+        font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;white-space:nowrap;
       ">${fmtMm(s)}${isRed ? ' ⚠' : ''}</span>`;
     }).join(' ');
   }
@@ -281,7 +281,7 @@
             onclick="SettingsPage.openSievesCard(${p.id})">
           <td>
             <strong>${esc(p.name)}</strong>
-            <div style="font-size:11px;color:var(--text-muted);font-family:monospace;">
+            <div style="font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;">
               ${fmtMm(p.d_min)}/${fmtMm(p.d_max)} mm
               &nbsp;·&nbsp;
               <span style="color:var(--accent);">${esc(p.code || '—')}</span>
@@ -503,7 +503,7 @@
           <input type="text" id="prod-edit-code"
                  value="${esc(p.code || '')}"
                  maxlength="8"
-                 style="text-transform:uppercase;font-family:monospace;width:120px;">
+                 style="text-transform:uppercase;font-family:'IBM Plex Mono',monospace;width:120px;">
           <small class="form-hint">Χρησιμοποιείται στον κωδικό δείγματος (πχ ΑΜΜ04)</small>
         </div>
         <div class="form-group">
@@ -727,7 +727,7 @@
               padding:4px 10px;border-radius:12px;
               border:1px solid ${border};
               background:${bg};color:${color};
-              font-size:13px;font-weight:600;font-family:monospace;
+              font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;
               cursor:default;user-select:none;
               transition:opacity 0.15s;
             "
@@ -779,7 +779,7 @@
                         border:1px solid var(--border);
                         border-radius:var(--radius);
                         color:var(--text);padding:7px 10px;
-                        font-family:monospace;"
+                        font-family:'IBM Plex Mono',monospace;"
                  oninput="SettingsPage._sieveInputChange(this)"
                  onkeydown="if(event.key==='Enter'){SettingsPage._addSieveFromInput();event.preventDefault();}
                             if(event.key==='Escape'){SettingsPage._hideSieveDropdown();}">
@@ -894,7 +894,7 @@
 
     drop.innerHTML = matches.map(s => `
       <div onclick="SettingsPage._addSieve(${s})"
-           style="padding:7px 12px;cursor:pointer;font-family:monospace;font-size:13px;"
+           style="padding:7px 12px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;"
            onmouseover="this.style.background='var(--bg-hover,#f5f5f5)'"
            onmouseout="this.style.background=''">
         ${fmtMm(s)} mm
@@ -1001,7 +1001,7 @@
     }
     tbody.innerHTML = state.sources.map(s => `
       <tr>
-        <td><code style="font-family:monospace;font-weight:700;">${esc(s.code)}</code></td>
+        <td><code style="font-family:'IBM Plex Mono',monospace;font-weight:700;">${esc(s.code)}</code></td>
         <td>${esc(s.name)}</td>
         <td style="color:var(--text-muted);font-size:12px;">${esc(s.location || '—')}</td>
         <td>
@@ -1031,7 +1031,7 @@
         <div class="form-group">
           <label>Κωδικός <span class="required">*</span></label>
           <input type="text" id="src-code" placeholder="πχ ΓΑΛ"
-                 style="text-transform:uppercase;font-family:monospace;"
+                 style="text-transform:uppercase;font-family:'IBM Plex Mono',monospace;"
                  maxlength="6">
         </div>
         <div class="form-group">
@@ -1077,7 +1077,7 @@
           <label>Κωδικός</label>
           <input type="text" id="src-edit-code"
                  value="${esc(src.code)}"
-                 style="font-family:monospace;font-weight:700;" readonly>
+                 style="font-family:'IBM Plex Mono',monospace;font-weight:700;" readonly>
           <small style="color:var(--text-muted);font-size:11px;">
             Ο κωδικός δεν μπορεί να αλλάξει
           </small>
@@ -1722,7 +1722,7 @@
     App.showModal(
       '⚠ Επαναφορά Βάσης',
       `<p>Θα επαναφερθεί το αρχείο:</p>
-       <p style="font-family:monospace;font-size:0.9em;margin:8px 0;word-break:break-all">${fileName}</p>
+       <p style="font-family:'IBM Plex Mono',monospace;font-size:0.9em;margin:8px 0;word-break:break-all">${fileName}</p>
        <p style="color:var(--text-muted);font-size:0.9em">Θα γίνει αυτόματο backup της τρέχουσας βάσης πριν ολοκληρωθεί η επαναφορά.</p>`,
       [
         { label: 'Ακύρωση',   action: 'App.closeModal()',                              secondary: true },
@@ -1870,7 +1870,7 @@
         <div>
           <strong>${_esc(p.ce_number)}</strong>
           <span style="color:var(--text-muted);margin-left:8px;">${_fmtDate(p.valid_from)} — ${_fmtDate(p.valid_to)}</span>
-          ${p.data_folder ? `<div style="font-size:11px;color:var(--text-muted);font-family:monospace;">${_esc(p.data_folder)}</div>` : ''}
+          ${p.data_folder ? `<div style="font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;">${_esc(p.data_folder)}</div>` : ''}
         </div>
         <div style="display:flex;gap:4px;">
           <button class="btn-secondary btn-sm"
@@ -1927,7 +1927,7 @@
           ${period.data_folder ? `
           <div style="grid-column:1/-1;">
             <span style="color:var(--text-muted);">Φάκελος</span><br>
-            <span style="font-family:monospace;font-size:11px;">${_esc(period.data_folder)}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;">${_esc(period.data_folder)}</span>
             <button class="btn-secondary btn-sm" style="margin-left:8px;"
                     onclick="SettingsPage._openCeFolder('${_esc(period.data_folder)}')">📂</button>
           </div>` : ''}
@@ -2416,7 +2416,7 @@
       </div>
       <input type="text" id="clean-confirm-input"
              placeholder="CLEAN" autocomplete="off"
-             style="width:100%;font-family:monospace;">
+             style="width:100%;font-family:'IBM Plex Mono',monospace;">
     `, [
       { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
       { label: '🗑 Εκτέλεση Clean Start', action: 'SettingsPage._doCleanStart()' },

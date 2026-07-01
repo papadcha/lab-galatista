@@ -128,7 +128,7 @@
             <div style="flex:1;">
               <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${_esc(d.title)}</div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
-                ${d.code ? `<span style="font-size:12px;font-family:monospace;
+                ${d.code ? `<span style="font-size:12px;font-family:'IBM Plex Mono',monospace;
                               background:var(--bg);padding:2px 7px;border-radius:4px;
                               border:1px solid var(--border);">${_esc(d.code)}${d.version ? ' · '+_esc(d.version) : ''}</span>` : ''}
                 ${expiryBadge}

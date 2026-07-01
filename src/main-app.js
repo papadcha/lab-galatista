@@ -236,7 +236,7 @@ const App = {
   },
 
   formatCode(code) {
-    return `<code style="font-family:monospace;">${code}</code>`;
+    return `<span class="sample-code">${code}</span>`;
   },
 
   // --- Status badge ---

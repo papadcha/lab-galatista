@@ -1660,7 +1660,7 @@
     let svg = `<svg xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 ${W} ${H}"
                     style="width:100%;max-width:${W}px;
-                           font-family:sans-serif;font-size:11px;">`;
+                           font-family:'IBM Plex Sans',sans-serif;font-size:11px;">`;
     svg += `<rect width="${W}" height="${H}" fill="transparent"/>`;
     // Plot area background λευκό για ευκρίνεια
     svg += `<rect x="${margin.left}" y="${margin.top}" width="${w}" height="${h}" fill="#fff"/>`;

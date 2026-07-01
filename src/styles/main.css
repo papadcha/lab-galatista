@@ -3870,7 +3870,7 @@ textarea { resize: vertical; min-height: 80px; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: monospace;
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 0.95em;
 }
 .backup-restore-size {
