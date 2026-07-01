@@ -134,7 +134,7 @@
                       font-size:13px;cursor:pointer;">
             <code style="font-family:monospace;">${esc(s.code)}</code>
             <span style="color:var(--text-muted);margin:0 8px;">·</span>
-            ${esc(s.product_name)}mm
+            ${App.formatProduct(s)}
             <span style="color:var(--text-muted);margin:0 8px;">·</span>
             ${App.formatDate(s.date)}
           </div>
@@ -160,7 +160,7 @@
     const s = report.sample;
     el('single-code-search').value = s.code;
     el('si-code').innerHTML    = `<strong>${esc(s.code)}</strong>`;
-    el('si-product').textContent = `${s.product_name}mm`;
+    el('si-product').textContent = App.formatProduct(s);
     el('si-date').textContent    = App.formatDate(s.date);
     el('si-source').textContent  = s.location || '';
 
@@ -457,6 +457,8 @@
     const s   = sample.sample;
     const t   = sample.tests || {};
     const lab     = await pyCall('get_lab_info') || {};
+    // Η προεπισκόπηση ακολουθεί την ίδια γραμματοσειρά με το πραγματικό PDF (reportlab)
+    document.documentElement.style.setProperty('--print-font', lab.pdf_font || 'IBMPlexSans');
     // Φόρτωση υποπεριόδου — χρησιμοποιούμε το subperiod_id του δείγματος (ακριβές)
     // αντί για αναζήτηση με ημερομηνία (που μπορεί να επιστρέψει λάθος υποπερίοδο)
     const subperiod = s.subperiod_id
@@ -479,9 +481,9 @@
       return `
         <div class="print-header ${compact ? 'print-header--compact' : ''}">
           <div class="print-header-logo">
-            <img src="../assets/logo.png" alt="Logo">
+            <img src="assets/logo.png" alt="Logo">
             <div class="print-header-company">
-              <div class="print-header-name">Λατομεία Γαλάτιστας ΑΕ</div>
+              <div class="print-header-name">${esc(lab.name || '')}</div>
               ${!compact ? `<div class="print-header-address">${esc(lab.address || '')}</div>` : ''}
             </div>
           </div>
@@ -506,7 +508,7 @@
           </tr>
           <tr>
             <td class="meta-label">Προϊόν</td>
-            <td class="meta-value">${esc(s.product_name)}mm</td>
+            <td class="meta-value">${App.formatProduct(s)}</td>
             <td class="meta-label">Τεχνικός</td>
             <td class="meta-value">${esc(s.technician_name || '—')}</td>
           </tr>
@@ -1770,7 +1772,7 @@
                   onclick="ReportsPage.openSampleFromPeriodic(${s.id})">
                 <td><code>${esc(s.code)}</code></td>
                 <td>${App.formatDate(s.date)}</td>
-                <td>${esc(s.product_name)}mm</td>
+                <td>${App.formatProduct(s)}</td>
                 <td>${t.sieve_analysis?.data ? '✓' : '—'}</td>
                 <td>${t.methylene_blue?.mb_value?.toFixed(2) || '—'}</td>
                 <td>${t.sand_equivalent?.se_final?.toFixed(1) || '—'}</td>

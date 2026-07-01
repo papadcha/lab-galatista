@@ -9,6 +9,20 @@
      0.99.3 — print-footer-wrap + print-footer-report
      0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
    ============================================================ */
+/* ── Τοπικές γραμματοσειρές (ίδια TTF με reportlab backend) ──
+   Ώστε η προεπισκόπηση να ταιριάζει με το πραγματικό PDF και να
+   δουλεύει χωρίς σύνδεση internet (χωρίς εξάρτηση από Google Fonts). */
+@font-face { font-family: 'IBMPlexSans';    src: url('../../fonts/IBMPlexSans-Regular.ttf');    font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans';    src: url('../../fonts/IBMPlexSans-Bold.ttf');       font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Inter';          src: url('../../fonts/Inter-Regular.ttf');          font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Inter';          src: url('../../fonts/Inter-Bold.ttf');             font-weight: 700; font-display: swap; }
+@font-face { font-family: 'NotoSans';       src: url('../../fonts/NotoSans-Regular.ttf');       font-weight: 400; font-display: swap; }
+@font-face { font-family: 'NotoSans';       src: url('../../fonts/NotoSans-Bold.ttf');          font-weight: 700; font-display: swap; }
+@font-face { font-family: 'DejaVuSans';     src: url('../../fonts/DejaVuSans-Regular.ttf');     font-weight: 400; font-display: swap; }
+@font-face { font-family: 'DejaVuSans';     src: url('../../fonts/DejaVuSans-Bold.ttf');        font-weight: 700; font-display: swap; }
+@font-face { font-family: 'LiberationSans'; src: url('../../fonts/LiberationSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'LiberationSans'; src: url('../../fonts/LiberationSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
 @media print {
   /* Κρύψε όλο το UI */
   #sidebar,
@@ -57,7 +71,7 @@
   width: 100%;
   page-break-after: always;
   page-break-inside: avoid;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--print-font, 'IBMPlexSans'), Arial, sans-serif;
   font-size: 11px;
   color: #111;
   background: #fff;
@@ -90,7 +104,7 @@
 }
 
 .print-header-name {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: var(--print-font, 'IBMPlexSans'), Arial, sans-serif;
   font-size: 15px;
   font-weight: 700;
   color: #1a3a6b;
