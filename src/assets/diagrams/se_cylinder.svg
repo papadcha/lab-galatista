@@ -7,7 +7,9 @@
     </marker>
     <clipPath id="cyl"><rect x="305" y="70" width="50" height="430"/></clipPath>
     <style>
-      text { font-family: Arial, sans-serif; fill: #2c2c2a; }
+      @font-face { font-family: 'IBMPlexSans'; src: url('../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; }
+      @font-face { font-family: 'IBMPlexSans'; src: url('../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; }
+      text { font-family: 'IBMPlexSans', Arial, sans-serif; fill: #2c2c2a; }
       .th  { font-size: 14px; font-weight: 600; }
       .ts  { font-size: 12px; fill: #5f5e5a; }
     </style>
