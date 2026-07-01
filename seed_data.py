@@ -130,10 +130,39 @@ def make_sieve_results_3a(variation=0.07):
 # SEED
 # ============================================================
 
+def _clear_previous_seed_data():
+    """
+    Καθαρίζει δείγματα + εξαρτημένες δοκιμές πριν το seed, ώστε το script
+    να είναι rerunnable (fixed random seed => ίδιες ημερομηνίες σε κάθε
+    εκτέλεση, αλλιώς σκάει το όριο suffix ίδιας ομάδας ημέρας/προϊόντος).
+    """
+    conn = get_connection()
+    conn.execute("DELETE FROM tbl_sieve_results WHERE sieve_analysis_id IN "
+                 "(SELECT id FROM tbl_sieve_analysis)")
+    conn.execute("DELETE FROM tbl_flakiness_results WHERE flakiness_id IN "
+                 "(SELECT id FROM tbl_flakiness)")
+    conn.execute("DELETE FROM tbl_se_measurements WHERE se_id IN "
+                 "(SELECT id FROM tbl_sand_equivalent)")
+    conn.execute("DELETE FROM tbl_sieve_analysis")
+    conn.execute("DELETE FROM tbl_flakiness")
+    conn.execute("DELETE FROM tbl_methylene_blue")
+    conn.execute("DELETE FROM tbl_sand_equivalent")
+    try:
+        conn.execute("DELETE FROM tbl_required_tests")
+    except sqlite3.OperationalError:
+        pass
+    conn.execute("DELETE FROM tbl_samples")
+    conn.commit()
+    conn.close()
+
+
 def seed():
     print("=" * 50)
     print("SEED DATA — Εισαγωγή δοκιμαστικών δεδομένων")
     print("=" * 50)
+
+    print("\n🧹 Καθαρισμός προηγούμενων seed δειγμάτων...")
+    _clear_previous_seed_data()
 
     # ── ΑΜΜΟΣ 0/4 (product_id=1, ΛΕΠΤΟΚΟΚΚΟ) ─────────────
     print("\n📦 ΑΜΜΟΣ 0/4 — 15 δείγματα...")
