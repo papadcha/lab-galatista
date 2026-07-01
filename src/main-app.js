@@ -260,15 +260,16 @@ const App = {
 
   // --- Test badges για πίνακα ---
   testBadges(sample) {
-    const isCoarse = sample.category !== 'ΛΕΠΤΟΚΟΚΚΟ';
+    const isFine   = sample.category === 'ΛΕΠΤΟΚΟΚΚΟ';
+    const isCoarse = !isFine;
     const tests = [
-      { key: 'has_sieve',     label: 'ΚΚΜ', always: true },
-      { key: 'has_flakiness', label: 'ΠΛΚ', always: isCoarse },
-      { key: 'has_se',        label: 'SE',  always: true },
-      { key: 'has_mb',        label: 'MB',  always: true },
+      { key: 'has_sieve',     label: 'ΚΚΜ', show: true     },
+      { key: 'has_flakiness', label: 'ΠΛΚ', show: isCoarse },
+      { key: 'has_se',        label: 'SE',  show: isFine   },
+      { key: 'has_mb',        label: 'MB',  show: isFine   },
     ];
     return tests
-      .filter(t => t.always)
+      .filter(t => t.show)
       .map(t =>
         sample[t.key]
           ? `<span class="badge badge-ok">${t.label}</span>`
