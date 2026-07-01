@@ -1978,6 +1978,13 @@
     App.showModal('Επεξεργασία Υποπεριόδου', `
       <div class="form-grid">
         <div class="form-group full-width">
+          <label>Ημερομηνία Έναρξης</label>
+          <input type="date" id="edit-sub-valid-from"
+                 value="${_toIsoDate(sub.valid_from || '')}"
+                 style="width:100%;margin-top:4px;">
+          <small class="form-hint">Αλλαγή θα επανα-αναθέσει αυτόματα τα δείγματα της περιόδου στη σωστή υποπερίοδο.</small>
+        </div>
+        <div class="form-group full-width">
           <label>Αριθμός Έκθεσης Εξωτερικού Εργαστηρίου</label>
           <input type="text" id="edit-sub-report"
                  value="${_esc(sub.lab_report_number || '')}"
@@ -2023,6 +2030,7 @@
   }
 
   async function _saveEditSubperiod(subperiodId) {
+    const validFrom    = document.getElementById('edit-sub-valid-from')?.value?.trim() || null;
     const reportNumber = document.getElementById('edit-sub-report')?.value?.trim() || null;
     const mb           = parseFloat(document.getElementById('edit-sub-mb')?.value)  || null;
     const se           = parseFloat(document.getElementById('edit-sub-se')?.value)  || null;
@@ -2031,9 +2039,14 @@
     const pdfSub       = document.getElementById('edit-sub-pdf-subfolder')?.checked ? 1 : 0;
     App.closeModal();
     const ok = await window.pyBridge?.update_subperiod?.(
-      subperiodId, reportNumber, notes, pdfSub, mb, se, fl, null
+      subperiodId, reportNumber, notes, pdfSub, mb, se, fl, null, validFrom
     );
     if (ok) {
+      if (validFrom) {
+        // Ενημέρωση ημερομηνίας έναρξης για ονοματοδοσία backups (η υποπερίοδος
+        // που επεξεργαζόμαστε εδώ είναι πάντα η ενεργή)
+        await window.pyBridge?.['set-config']?.({ activePeriodStart: validFrom });
+      }
       App.toast('Υποπερίοδος ενημερώθηκε', 'ok');
       await loadCePeriods();
     } else {

@@ -885,7 +885,8 @@ METHODS = {
                                    ext_mb_value=args[4]      if len(args) > 4 else None,
                                    ext_se_value=args[5]      if len(args) > 5 else None,
                                    ext_fl_value=args[6]      if len(args) > 6 else None,
-                                   ext_sieve_results=args[7] if len(args) > 7 else None),
+                                   ext_sieve_results=args[7] if len(args) > 7 else None,
+                                   valid_from=args[8]        if len(args) > 8 else None),
 
 }
 

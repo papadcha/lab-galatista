@@ -2789,7 +2789,8 @@ def update_subperiod(subperiod_id: int,
                      ext_mb_value: Optional[float] = None,
                      ext_se_value: Optional[float] = None,
                      ext_fl_value: Optional[float] = None,
-                     ext_sieve_results: Optional[str] = None) -> bool:
+                     ext_sieve_results: Optional[str] = None,
+                     valid_from: Optional[str] = None) -> bool:
     """Ενημερώνει στοιχεία υπάρχουσας υποπεριόδου (εκ των υστερων καταχώρηση έκθεσης)."""
     fields = {}
     if lab_report_number is not None: fields['lab_report_number'] = lab_report_number
@@ -2799,6 +2800,7 @@ def update_subperiod(subperiod_id: int,
     if ext_se_value      is not None: fields['ext_se_value']      = ext_se_value
     if ext_fl_value      is not None: fields['ext_fl_value']      = ext_fl_value
     if ext_sieve_results is not None: fields['ext_sieve_results'] = ext_sieve_results
+    if valid_from        is not None: fields['valid_from']        = valid_from
     if not fields:
         return False
     set_clause = ', '.join(f"{k}=?" for k in fields)
@@ -2809,6 +2811,31 @@ def update_subperiod(subperiod_id: int,
             list(fields.values()) + [subperiod_id]
         )
         conn.commit()
+
+        # Αν άλλαξε η ημερομηνία έναρξης, ξανα-αναθέτουμε τα δείγματα της
+        # ίδιας CE period στη σωστή υποπερίοδο (κάποια μπορεί να μπουν/
+        # βγουν από αυτή την υποπερίοδο).
+        if valid_from is not None:
+            period_row = conn.execute(
+                "SELECT ce_period_id FROM tbl_subperiods WHERE id=?", (subperiod_id,)
+            ).fetchone()
+            ce_period = conn.execute(
+                "SELECT valid_from, valid_to FROM tbl_ce_periods WHERE id=?",
+                (period_row['ce_period_id'],)
+            ).fetchone() if period_row else None
+            if ce_period:
+                samples = conn.execute(
+                    "SELECT id, date FROM tbl_samples WHERE date >= ? AND date <= ?",
+                    (ce_period['valid_from'], ce_period['valid_to'])
+                ).fetchall()
+                for s in samples:
+                    new_sub    = get_subperiod_for_date(s['date'])
+                    new_sub_id = new_sub['id'] if new_sub else None
+                    conn.execute(
+                        "UPDATE tbl_samples SET subperiod_id=? WHERE id=?",
+                        (new_sub_id, s['id'])
+                    )
+                conn.commit()
         return True
     finally:
         conn.close()
