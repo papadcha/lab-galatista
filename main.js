@@ -1270,21 +1270,18 @@ function getBackupPath() {
 
 // Εύρεση βάσης δεδομένων
 function getDbPath() {
-  const candidates = [
-    path.join(__dirname, 'database', 'laboratory.db'),
-    path.join(__dirname, 'database', 'lab.db'),
-    path.join(__dirname, 'laboratory.db'),
-    path.join(__dirname, 'lab.db'),
-    path.join(app.getPath('userData'), 'laboratory.db'),
-    path.join(app.getPath('userData'), 'lab.db'),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) {
-      console.log('[Backup] Βρέθηκε DB:', p);
-      return p;
-    }
+  // Ίδιος υπολογισμός με το LAB_DB_PATH που δίνεται στο Python backend
+  // (startPythonBackend) — έτσι backup/restore αγγίζουν πάντα το ΙΔΙΟ
+  // αρχείο που διαβάζει/γράφει η ζωντανή εφαρμογή. Παλιότερα εδώ υπήρχε
+  // λίστα από candidate paths δίπλα στο __dirname (πριν το v1.0.4, όταν η
+  // βάση ζούσε δίπλα στην εφαρμογή) — σε dev mode ένα stale τέτοιο αρχείο
+  // μπορούσε να "κερδίσει" έναντι του πραγματικού userData path.
+  const dbPath = path.join(app.getPath('userData'), 'laboratory.db');
+  if (fs.existsSync(dbPath)) {
+    console.log('[Backup] Βρέθηκε DB:', dbPath);
+    return dbPath;
   }
-  console.error('[Backup] Δεν βρέθηκε βάση δεδομένων!');
+  console.error('[Backup] Δεν βρέθηκε βάση δεδομένων στο:', dbPath);
   return null;
 }
 
