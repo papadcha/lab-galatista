@@ -21,6 +21,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path       = require('path');
 const fs         = require('fs');
 const { spawn }  = require('child_process');
+const os         = require('os');
 const nodemailer = require('nodemailer');
 let _puppeteer = null;
 async function getPuppeteer() {
@@ -929,8 +930,7 @@ ipcMain.handle('generate-report-pdf', async (event, opts = {}) => {
   try {
     const ts  = Date.now();
     const sid = opts.sampleId != null ? opts.sampleId : 'x';
-    // Χρησιμοποιούμε /tmp — σίγουρα υπάρχει και χωρίς ελληνικά
-    const output = `/tmp/report_${sid}_${ts}.pdf`;
+    const output = path.join(os.tmpdir(), `report_${sid}_${ts}.pdf`);
 
     // Νέα μέθοδος: reportlab Python — σωστό mixed-orientation PDF
     if (opts.sampleId != null) {
@@ -1036,7 +1036,7 @@ ipcMain.handle('print-to-pdf', async (event, options = {}) => {
 ipcMain.handle('generate-periodic-pdf', async (event, opts = {}) => {
   try {
     const ts     = Date.now();
-    const output = `/tmp/periodic_${ts}.pdf`;
+    const output = path.join(os.tmpdir(), `periodic_${ts}.pdf`);
     const result = await callPython('generate_periodic_pdf', [
       opts.productId, opts.from, opts.to,
       opts.sourceId || null, output

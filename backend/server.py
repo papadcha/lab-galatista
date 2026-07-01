@@ -729,7 +729,7 @@ METHODS = {
     'generate_pdf_report': lambda args: _generate_pdf_report(
                                args[0],
                                args[1] if len(args) > 1 else [],
-                               args[2] if len(args) > 2 else '/tmp/report.pdf',
+                               args[2] if len(args) > 2 else os.path.join(os.environ.get('TEMP', '/tmp'), 'report.pdf'),
                            ),
     'merge_pdfs':          lambda args: _merge_pdfs(args[0], args[1], args[2]),
 
@@ -919,19 +919,6 @@ def handle_request(line: str) -> dict:
 # PDF REPORT με reportlab — παράγει PDF απευθείας από Python
 # ============================================================
 
-_FONT_REGULAR = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
-_FONT_BOLD    = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
-
-def _register_fonts():
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    try:
-        pdfmetrics.registerFont(TTFont('DV',  _FONT_REGULAR))
-        pdfmetrics.registerFont(TTFont('DVB', _FONT_BOLD))
-        return True
-    except Exception:
-        return False
-
 
 def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
     """
@@ -995,50 +982,60 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         # Εγγραφή TTF fonts για σωστή υποστήριξη ελληνικών
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
-        _dv_r = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
-        _dv_b = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
-        # Διαθέσιμα fonts — πολλαπλά paths για διαφορετικές distros
+        import sys as _sys_fonts
+
+        # Bundled fonts (PyInstaller: sys._MEIPASS, dev: project root)
+        _bundle = os.path.join(
+            getattr(_sys_fonts, '_MEIPASS', os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            'fonts'
+        )
+
         def _find_font(*paths):
             for p in paths:
                 if os.path.exists(p): return p
             return None
 
+        def _bf(name):  # bundled font shortcut
+            return os.path.join(_bundle, name)
+
         _FONT_CATALOG = {}
-        _r = _find_font(
-            '/usr/share/fonts/liberation/LiberationSans-Regular.ttf',      # Arch
-            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',  # Debian
-        )
-        _b = _find_font(
-            '/usr/share/fonts/liberation/LiberationSans-Bold.ttf',
-            '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-        )
+        _r = _find_font(_bf('LiberationSans-Regular.ttf'),
+                        '/usr/share/fonts/liberation/LiberationSans-Regular.ttf',
+                        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf')
+        _b = _find_font(_bf('LiberationSans-Bold.ttf'),
+                        '/usr/share/fonts/liberation/LiberationSans-Bold.ttf',
+                        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf')
         if _r and _b: _FONT_CATALOG['LiberationSans'] = (_r, _b)
 
-        _r = _find_font(
-            '/usr/share/fonts/TTF/DejaVuSans.ttf',                          # Arch
-            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',              # Debian
-        )
-        _b = _find_font(
-            '/usr/share/fonts/TTF/DejaVuSans-Bold.ttf',
-            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-        )
+        _r = _find_font(_bf('Inter-Regular.ttf'))
+        _b = _find_font(_bf('Inter-Bold.ttf'))
+        if _r and _b: _FONT_CATALOG['Inter'] = (_r, _b)
+
+        _r = _find_font(_bf('IBMPlexSans-Regular.ttf'))
+        _b = _find_font(_bf('IBMPlexSans-Bold.ttf'))
+        if _r and _b: _FONT_CATALOG['IBMPlexSans'] = (_r, _b)
+
+        _r = _find_font(_bf('NotoSans-Regular.ttf'),
+                        '/usr/share/fonts/noto/NotoSans-Regular.ttf',
+                        '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf')
+        _b = _find_font(_bf('NotoSans-Bold.ttf'),
+                        '/usr/share/fonts/noto/NotoSans-Bold.ttf',
+                        '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf')
+        if _r and _b: _FONT_CATALOG['NotoSans'] = (_r, _b)
+
+        _r = _find_font(_bf('DejaVuSans-Regular.ttf'),
+                        '/usr/share/fonts/TTF/DejaVuSans.ttf',
+                        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')
+        _b = _find_font(_bf('DejaVuSans-Bold.ttf'),
+                        '/usr/share/fonts/TTF/DejaVuSans-Bold.ttf',
+                        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf')
         if _r and _b: _FONT_CATALOG['DejaVuSans'] = (_r, _b)
 
-        _r = _find_font(
-            '/usr/share/fonts/gnu-free/FreeSans.ttf',                       # Arch
-            '/usr/share/fonts/truetype/freefont/FreeSans.ttf',              # Debian
-        )
-        _b = _find_font(
-            '/usr/share/fonts/gnu-free/FreeSansBold.ttf',
-            '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
-        )
-        if _r and _b: _FONT_CATALOG['FreeSans'] = (_r, _b)
-
         # Διαβάζω επιλογή font από τη βάση (pdf_font)
-        _preferred = lab.get('pdf_font', 'LiberationSans') or 'LiberationSans'
-        # Αν δεν υπάρχει στον κατάλογο, fallback σε LiberationSans
+        _preferred = lab.get('pdf_font', 'Inter') or 'Inter'
+        # Αν δεν υπάρχει στον κατάλογο, fallback στο πρώτο διαθέσιμο
         if _preferred not in _FONT_CATALOG:
-            _preferred = 'LiberationSans'
+            _preferred = next(iter(_FONT_CATALOG), None)
         # Βάζω το preferred πρώτο, μετά τα υπόλοιπα ως fallback
         _font_order = [_preferred] + [k for k in _FONT_CATALOG if k != _preferred]
 
@@ -1594,17 +1591,25 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
 
         # Fonts
         ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        import sys as _sys_pf
+        _bundle_pf = os.path.join(
+            getattr(_sys_pf, '_MEIPASS', ROOT), 'fonts'
+        )
         def _find_font(*paths):
             for p in paths:
                 if os.path.exists(p): return p
             return None
         _r = _find_font(
+            os.path.join(_bundle_pf, 'Inter-Regular.ttf'),
+            os.path.join(_bundle_pf, 'LiberationSans-Regular.ttf'),
             '/usr/share/fonts/liberation/LiberationSans-Regular.ttf',
             '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
             '/usr/share/fonts/TTF/DejaVuSans.ttf',
             '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
         )
         _b = _find_font(
+            os.path.join(_bundle_pf, 'Inter-Bold.ttf'),
+            os.path.join(_bundle_pf, 'LiberationSans-Bold.ttf'),
             '/usr/share/fonts/liberation/LiberationSans-Bold.ttf',
             '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
             '/usr/share/fonts/TTF/DejaVuSans-Bold.ttf',

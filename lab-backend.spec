@@ -19,6 +19,7 @@ a = Analysis(
         ('database/migration_009_ce_periods.sql',        'database'),
         ('database/migration_010_document_library.sql',  'database'),
         ('standards.json',                               '.'),
+        ('fonts',                                        'fonts'),
     ],
     hiddenimports=[
         'reportlab',
