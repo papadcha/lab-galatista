@@ -206,7 +206,8 @@
       el('new-code').value = '';
       return;
     }
-    const result = await pyCall('generate_sample_code', sourceId, productId);
+    const sampleDate = el('new-date')?.value?.trim() || null;
+    const result = await pyCall('generate_sample_code', sourceId, productId, sampleDate);
     // result είναι {code, rename_id, rename_to} ή null
     if (result && result.code) {
       el('new-code').value = result.code;

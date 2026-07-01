@@ -21,6 +21,7 @@ a = Analysis(
         ('database/migration_011_pdf_font_ibmplex.sql',  'database'),
         ('standards.json',                               '.'),
         ('fonts',                                        'fonts'),
+        ('src/assets/logopage.png',                      'src/assets'),
     ],
     hiddenimports=[
         'reportlab',

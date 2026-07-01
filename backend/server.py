@@ -646,6 +646,7 @@ METHODS = {
     'generate_sample_code':  lambda args: generate_sample_code(
         source_id=args[0]  if len(args) > 0 else 1,
         product_id=args[1] if len(args) > 1 else 1,
+        entry_date=args[2] if len(args) > 2 else None,
     ),
     'create_sample_with_rename': lambda args: create_sample_with_rename(
         code_info=args[0], date=args[1], product_id=args[2],
@@ -1091,7 +1092,9 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         ST_FAIL    = sty('Fa', fontSize=9,  textColor=RED_FAIL,  leading=12, fontName=FB)
         ST_OK      = sty('Ok', fontSize=9,  textColor=GREEN_OK,  leading=12, fontName=FB)
 
-        LOGO_PATH = os.path.join(ROOT, 'src', 'assets', 'logopage.png')
+        import sys as _sys_logo
+        _logo_base = getattr(_sys_logo, '_MEIPASS', ROOT)
+        LOGO_PATH = os.path.join(_logo_base, 'src', 'assets', 'logopage.png')
         ML = 14*mm; MT = 31*mm; MB = 16*mm
         LOGO_W, LOGO_H = 160*mm, 19*mm
 
@@ -1634,7 +1637,8 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
 
         LW, LH = rl_landscape(A4)
         ML = 14*mm; MT = 31*mm; MB = 16*mm
-        LOGO_PATH = os.path.join(ROOT, 'src', 'assets', 'logopage.png')
+        import sys as _sys_logo2
+        LOGO_PATH = os.path.join(getattr(_sys_logo2, '_MEIPASS', ROOT), 'src', 'assets', 'logopage.png')
 
         def fmt_date(v):
             if not v: return '—'

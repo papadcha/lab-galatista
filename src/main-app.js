@@ -249,19 +249,31 @@ const App = {
     return map[status] ?? '<span class="badge badge-none">—</span>';
   },
 
+  // --- Μορφοποίηση ονόματος προϊόντος με διαβάθμιση ---
+  formatProduct(s) {
+    const name = s.product_name || '';
+    const dmin = s.d_min != null ? (Number.isInteger(s.d_min) ? s.d_min : parseFloat(s.d_min.toFixed(1))) : null;
+    const dmax = s.d_max != null ? (Number.isInteger(s.d_max) ? s.d_max : parseFloat(s.d_max.toFixed(1))) : null;
+    if (dmin != null && dmax != null) return `${name} ${dmin}/${dmax}`;
+    return name;
+  },
+
   // --- Test badges για πίνακα ---
   testBadges(sample) {
+    const isCoarse = sample.category !== 'ΛΕΠΤΟΚΟΚΚΟ';
     const tests = [
-      { key: 'has_sieve',     label: 'ΚΚΜ' },
-      { key: 'has_flakiness', label: 'ΠΛΚ' },
-      { key: 'has_se',        label: 'SE'  },
-      { key: 'has_mb',        label: 'MB'  },
+      { key: 'has_sieve',     label: 'ΚΚΜ', always: true },
+      { key: 'has_flakiness', label: 'ΠΛΚ', always: isCoarse },
+      { key: 'has_se',        label: 'SE',  always: true },
+      { key: 'has_mb',        label: 'MB',  always: true },
     ];
-    return tests.map(t =>
-      sample[t.key]
-        ? `<span class="badge badge-ok">${t.label}</span>`
-        : `<span class="badge badge-none">${t.label}</span>`
-    ).join(' ');
+    return tests
+      .filter(t => t.always)
+      .map(t =>
+        sample[t.key]
+          ? `<span class="badge badge-ok">${t.label}</span>`
+          : `<span class="badge badge-none">${t.label}</span>`
+      ).join(' ');
   },
 
   // --- Pending tests για δείγμα ---

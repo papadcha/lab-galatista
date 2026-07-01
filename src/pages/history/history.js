@@ -174,10 +174,10 @@
         <tr class="clickable-row" style="cursor:pointer;"
             onclick="HistoryPage.openSample(${s.id})"
             title="Διπλό κλικ για άνοιγμα">
-          <td><code>${esc(s.code)}</code></td>
+          <td><span class="sample-code">${esc(s.code)}</span></td>
           <td>${App.formatDate(s.date)}</td>
           <td>
-            <strong>${esc(s.product_name)}mm</strong>
+            <strong>${App.formatProduct(s)}</strong>
           </td>
           <td>${catBadge}</td>
           <td>${App.testBadges(s)}</td>
@@ -211,7 +211,7 @@
           ${buildTestSection('Κοκκομετρία EN 933-1', tests.sieve_analysis, 'sieve')}
         </div>
         <div class="tests-col-right">
-          ${buildTestSection('Πλακοειδή EN 933-3',       tests.flakiness,      'fi')}
+          ${s.category !== 'ΛΕΠΤΟΚΟΚΚΟ' ? buildTestSection('Πλακοειδή EN 933-3', tests.flakiness, 'fi') : ''}
           ${buildTestSection('Ισοδύναμο Άμμου EN 933-8', tests.sand_equivalent, 'se')}
           ${buildTestSection('Μπλε Μεθυλενίου EN 933-9', tests.methylene_blue,  'mb')}
         </div>
@@ -319,7 +319,7 @@
     const tests = data.tests || {};
 
     App.showModal(
-      `${s.code} — ${s.product_name}mm`,
+      `${s.code} — ${App.formatProduct(s)}`,
       buildSampleView(s, tests),
       [
         { label: 'Κλείσιμο',      action: 'App.closeModal()', secondary: true },
