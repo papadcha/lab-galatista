@@ -132,7 +132,7 @@
                onclick="ReportsPage.selectSample(${s.id})"
                style="padding:8px 12px;border-bottom:1px solid var(--border);
                       font-size:13px;cursor:pointer;">
-            <code style="font-family:monospace;">${esc(s.code)}</code>
+            <span class="sample-code">${esc(s.code)}</span>
             <span style="color:var(--text-muted);margin:0 8px;">·</span>
             ${App.formatProduct(s)}
             <span style="color:var(--text-muted);margin:0 8px;">·</span>
@@ -1770,7 +1770,7 @@
             return `
               <tr class="clickable-row"
                   onclick="ReportsPage.openSampleFromPeriodic(${s.id})">
-                <td><code>${esc(s.code)}</code></td>
+                <td><span class="sample-code">${esc(s.code)}</span></td>
                 <td>${App.formatDate(s.date)}</td>
                 <td>${App.formatProduct(s)}</td>
                 <td>${t.sieve_analysis?.data ? '✓' : '—'}</td>
