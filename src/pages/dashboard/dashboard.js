@@ -201,9 +201,9 @@ window.Dashboard = (() => {
           ${buildTestSection('Κοκκομετρία EN 933-1', tests.sieve_analysis, 'sieve')}
         </div>
         <div class="tests-col-right">
-          ${s.category !== 'ΛΕΠΤΟΚΟΚΚΟ' ? buildTestSection('Πλακοειδή EN 933-3',        tests.flakiness,      'fi') : ''}
-          ${s.category === 'ΛΕΠΤΟΚΟΚΚΟ' ? buildTestSection('Ισοδύναμο Άμμου EN 933-8',  tests.sand_equivalent, 'se') : ''}
-          ${s.category === 'ΛΕΠΤΟΚΟΚΚΟ' ? buildTestSection('Μπλε Μεθυλενίου EN 933-9',  tests.methylene_blue,  'mb') : ''}
+          ${(s.category === 'ΧΟΝΔΡΟΚΟΚΚΟ' || s.category === 'ALL_IN') ? buildTestSection('Πλακοειδή EN 933-3',        tests.flakiness,       'fi') : ''}
+          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection('Ισοδύναμο Άμμου EN 933-8',  tests.sand_equivalent, 'se') : ''}
+          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection('Μπλε Μεθυλενίου EN 933-9',  tests.methylene_blue,  'mb') : ''}
         </div>
       </div>
     `;
