@@ -1864,6 +1864,8 @@
         sub.ext_fl_value != null ? `FI: ${sub.ext_fl_value}%`     : null,
       ].filter(Boolean).join(' · ');
       document.getElementById('ce-sub-values').textContent = vals;
+      const specsBtn = document.getElementById('ce-sub-specs-btn');
+      if (specsBtn) specsBtn.dataset.subperiodId = sub.id;
     } else {
       subCard.style.display = 'none';
     }
@@ -2063,6 +2065,74 @@
       }
       App.toast('Υποπερίοδος ενημερώθηκε', 'ok');
       await loadCePeriods();
+    } else {
+      App.toast('Σφάλμα αποθήκευσης', 'fail');
+    }
+  }
+
+  // ── Προδιαγραφές ανά Προϊόν (MB/SE/FI ανά προϊόν+υποπερίοδο) ──
+
+  async function showSubperiodSpecsModal(subperiodId) {
+    const specs = await window.pyBridge?.call?.('get_subperiod_specs', subperiodId) || [];
+    const rows = specs.map(p => {
+      const isFine   = p.category === 'ΛΕΠΤΟΚΟΚΚΟ';
+      const isCoarse = p.category === 'ΧΟΝΔΡΟΚΟΚΚΟ';
+      const isAllIn  = p.category === 'ALL_IN';
+      const showMbSe = isFine || isAllIn;
+      const showFl   = isCoarse || isAllIn;
+      const label = App.formatProduct({ product_name: p.name, d_min: p.d_min, d_max: p.d_max });
+      return `
+        <tr data-product-id="${p.product_id}">
+          <td style="padding:4px;">${_esc(label)}</td>
+          <td style="padding:4px;">${showMbSe
+            ? `<input type="number" step="0.01" class="specs-mb" value="${p.mb ?? ''}" style="width:80px;">`
+            : '<span style="color:var(--text-muted);">—</span>'}</td>
+          <td style="padding:4px;">${showMbSe
+            ? `<input type="number" step="0.1" class="specs-se" value="${p.se ?? ''}" style="width:80px;">`
+            : '<span style="color:var(--text-muted);">—</span>'}</td>
+          <td style="padding:4px;">${showFl
+            ? `<input type="number" step="0.1" class="specs-fl" value="${p.fl ?? ''}" style="width:80px;">`
+            : '<span style="color:var(--text-muted);">—</span>'}</td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="4" style="color:var(--text-muted);padding:8px 4px;">Δεν υπάρχουν ενεργά προϊόντα</td></tr>';
+
+    App.showModal('Προδιαγραφές ανά Προϊόν', `
+      <div style="font-size:13px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="text-align:left;border-bottom:1px solid var(--border);">
+              <th style="padding:4px;">Προϊόν</th>
+              <th style="padding:4px;">MB (g/kg)</th>
+              <th style="padding:4px;">SE (%)</th>
+              <th style="padding:4px;">FI (%)</th>
+            </tr>
+          </thead>
+          <tbody id="subperiod-specs-tbody">${rows}</tbody>
+        </table>
+      </div>
+    `, [
+      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+      { label: '✓ Αποθήκευση', action: 'SettingsPage._saveSubperiodSpecs(' + subperiodId + ')' },
+    ]);
+  }
+
+  async function _saveSubperiodSpecs(subperiodId) {
+    const trs = [...document.querySelectorAll('#subperiod-specs-tbody tr[data-product-id]')];
+    const rows = trs.map(tr => {
+      const mbInput = tr.querySelector('.specs-mb');
+      const seInput = tr.querySelector('.specs-se');
+      const flInput = tr.querySelector('.specs-fl');
+      return {
+        product_id: parseInt(tr.dataset.productId, 10),
+        mb: mbInput && mbInput.value !== '' ? parseFloat(mbInput.value) : null,
+        se: seInput && seInput.value !== '' ? parseFloat(seInput.value) : null,
+        fl: flInput && flInput.value !== '' ? parseFloat(flInput.value) : null,
+      };
+    });
+    App.closeModal();
+    const ok = await window.pyBridge?.call?.('set_subperiod_specs', subperiodId, rows);
+    if (ok) {
+      App.toast('Προδιαγραφές αποθηκεύτηκαν', 'ok');
     } else {
       App.toast('Σφάλμα αποθήκευσης', 'fail');
     }
@@ -2583,6 +2653,7 @@
     showNewCePeriodModal, _openNewCePeriodForm, _updateSuggestedFolder, _selectNewCeFolder,
     _saveNewCePeriod, _openCeFolder, showCePeriodView,
     _enterArchiveFromHistory,
+    showSubperiodSpecsModal, _saveSubperiodSpecs,
   };
 
   // ============================================================

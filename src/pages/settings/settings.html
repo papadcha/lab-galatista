@@ -581,6 +581,11 @@
               ✎ Επεξεργασία
             </button>
             <button class="btn-secondary btn-sm"
+                    id="ce-sub-specs-btn"
+                    onclick="SettingsPage.showSubperiodSpecsModal(parseInt(this.dataset.subperiodId))">
+              Προδιαγραφές ανά Προϊόν
+            </button>
+            <button class="btn-secondary btn-sm"
                     onclick="SettingsPage.deleteActiveSubperiod()"
                     style="color:var(--fail);">
               ✕ Διαγραφή

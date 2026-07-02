@@ -1293,7 +1293,26 @@
     const activePeriod = await pyCall('get_active_ce_period');
     const activeSub    = activePeriod?.active_subperiod || null;
 
-    state.periodicData = { samples: filtered, reports, productId, from, to, activeSub };
+    // Δηλωμένες τιμές MB/SE/FI: προτεραιότητα στις per-προϊόν τιμές
+    // (tbl_subperiod_specs) — fallback στις επίπεδες τιμές της υποπεριόδου
+    // (ext_*_value) για συμβατότητα με υποπεριόδους χωρίς per-προϊόν specs.
+    let declaredMb = activeSub?.ext_mb_value ?? null;
+    let declaredSe = activeSub?.ext_se_value ?? null;
+    let declaredFl = activeSub?.ext_fl_value ?? null;
+    if (activeSub) {
+      const productSpecs = await window.pyBridge?.call?.('get_subperiod_specs', activeSub.id) || [];
+      const spec = productSpecs.find(p => p.product_id === productId);
+      if (spec) {
+        declaredMb = spec.mb ?? declaredMb;
+        declaredSe = spec.se ?? declaredSe;
+        declaredFl = spec.fl ?? declaredFl;
+      }
+    }
+
+    state.periodicData = {
+      samples: filtered, reports, productId, from, to, activeSub,
+      declaredMb, declaredSe, declaredFl,
+    };
     state.periodicSpecs = [];
     state.periodicAvgResults = [];
 
@@ -1414,7 +1433,7 @@
   }
 
   function renderPeriodicSummary() {
-    const { samples, reports, activeSub } = state.periodicData;
+    const { samples, reports, declaredMb, declaredSe, declaredFl } = state.periodicData;
     const container = el('periodic-summary');
     if (!container) return;
 
@@ -1437,9 +1456,9 @@
     const fiVals = reports.map(r=>r.tests?.flakiness?.fi_index).filter(v=>v!=null);
     const withSieve = reports.filter(r=>r.tests?.sieve_analysis).length;
 
-    const extMb = activeSub?.ext_mb_value ?? null;
-    const extSe = activeSub?.ext_se_value ?? null;
-    const extFl = activeSub?.ext_fl_value ?? null;
+    const extMb = declaredMb;
+    const extSe = declaredSe;
+    const extFl = declaredFl;
 
     const mbMo = avg(mbVals); const mbMx = max(mbVals); const mbDiff = diff(mbMo,extMb);
     const seMo = avg(seVals); const seMx = max(seVals); const seDiff = diff(seMo,extSe,1);

@@ -3,10 +3,12 @@
 # db_manager.py
 # Εργαστήριο Λατομείων Γαλάτιστας
 # ─────────────────────────────────────────────────────────────
-# Έκδοση : 0.99.3
-# Ημ/νία  : 2026-06-02
+# Έκδοση : 0.99.4
+# Ημ/νία  : 2026-07-02
 # ─────────────────────────────────────────────────────────────
 # Ιστορικό:
+#   0.99.4 — Migration 012: tbl_subperiod_specs (MB/SE/FL ανά
+#             προϊόν+υποπερίοδο) — CURRENT_SCHEMA_VERSION → 12
 #   0.99.2 — CE period functions: get/create/update + expiry status
 #             subperiod functions: get/create + date lookup
 #   0.99.1 — Migration 009: tbl_ce_periods, tbl_subperiods
@@ -356,7 +358,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 11
+CURRENT_SCHEMA_VERSION = 12
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = _local_db_dir
@@ -486,6 +488,7 @@ def initialize_database():
         9: os.path.join(MIGRATIONS_DIR, 'migration_009_ce_periods.sql'),
         10: os.path.join(MIGRATIONS_DIR, 'migration_010_document_library.sql'),
         11: os.path.join(MIGRATIONS_DIR, 'migration_011_pdf_font_ibmplex.sql'),
+        12: os.path.join(MIGRATIONS_DIR, 'migration_012_subperiod_specs.sql'),
     }
 
     needs_recalc = False
@@ -2907,6 +2910,46 @@ def update_subperiod(subperiod_id: int,
         return True
     finally:
         conn.close()
+
+def get_subperiod_specs(subperiod_id: int) -> list:
+    """Επιστρέφει τις δηλωμένες τιμές MB/SE/FL ανά προϊόν για μια υποπερίοδο."""
+    conn = get_connection()
+    results = [dict(r) for r in conn.execute("""
+        SELECT p.id AS product_id, p.name, p.d_min, p.d_max, p.category,
+               s.mb, s.se, s.fl
+          FROM tbl_products p
+          LEFT JOIN tbl_subperiod_specs s
+                 ON s.product_id = p.id AND s.subperiod_id = ?
+         WHERE p.active = 1
+         ORDER BY p.name
+    """, (subperiod_id,)).fetchall()]
+    conn.close()
+    return results
+
+def set_subperiod_specs(subperiod_id: int, rows: list) -> bool:
+    """
+    Αποθηκεύει τις δηλωμένες τιμές MB/SE/FL ανά προϊόν για μια υποπερίοδο.
+    Replace mode: διαγράφει τις παλιές και εισάγει τις νέες.
+    """
+    conn = get_connection()
+    conn.execute(
+        "DELETE FROM tbl_subperiod_specs WHERE subperiod_id=?",
+        (subperiod_id,)
+    )
+    for r in rows:
+        mb = r.get('mb')
+        se = r.get('se')
+        fl = r.get('fl')
+        if mb is None and se is None and fl is None:
+            continue
+        conn.execute("""
+            INSERT INTO tbl_subperiod_specs
+                (subperiod_id, product_id, mb, se, fl)
+            VALUES (?, ?, ?, ?, ?)
+        """, (subperiod_id, r['product_id'], mb, se, fl))
+    conn.commit()
+    conn.close()
+    return True
 
 def get_ce_expiry_status() -> dict:
     """

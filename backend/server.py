@@ -111,6 +111,8 @@ from database.db_manager import (
     get_init_status,
     update_subperiod,
     get_ce_expiry_status,
+    get_subperiod_specs,
+    set_subperiod_specs,
 )
 from calculations import (
     suggest_mb_initial_volume,
@@ -891,6 +893,8 @@ METHODS = {
                                    ext_fl_value=args[6]      if len(args) > 6 else None,
                                    ext_sieve_results=args[7] if len(args) > 7 else None,
                                    valid_from=args[8]        if len(args) > 8 else None),
+    'get_subperiod_specs': lambda args: get_subperiod_specs(int(args[0])),
+    'set_subperiod_specs': lambda args: set_subperiod_specs(int(args[0]), args[1]),
 
 }
 
@@ -1590,12 +1594,23 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
         reports = [_get_full_report_with_specs(s['id']) for s in samples[:100]]
         reports = [r for r in reports if r]
 
-        # Δηλωμένες τιμές από ενεργή υποπερίοδο
+        # Δηλωμένες τιμές από ενεργή υποπερίοδο — προτεραιότητα στις
+        # per-προϊόν τιμές (tbl_subperiod_specs), fallback στις επίπεδες
+        # τιμές της υποπεριόδου (ίδια λογική με το frontend, reports.js)
         period = get_active_ce_period() or {}
         sub = period.get('active_subperiod') or {}
         ext_mb = sub.get('ext_mb_value')
         ext_se = sub.get('ext_se_value')
         ext_fl = sub.get('ext_fl_value')
+        if sub.get('id'):
+            product_spec = next(
+                (r for r in get_subperiod_specs(sub['id']) if r['product_id'] == product_id),
+                None
+            )
+            if product_spec:
+                ext_mb = product_spec.get('mb') if product_spec.get('mb') is not None else ext_mb
+                ext_se = product_spec.get('se') if product_spec.get('se') is not None else ext_se
+                ext_fl = product_spec.get('fl') if product_spec.get('fl') is not None else ext_fl
 
         # Fonts
         ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

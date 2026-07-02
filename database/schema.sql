@@ -406,6 +406,21 @@ CREATE TABLE IF NOT EXISTS tbl_test_limits (
     FOREIGN KEY (product_id) REFERENCES tbl_products(id)
 );
 
+-- Migration 012: δηλωμένες τιμές MB/SE/FL ανά (υποπερίοδο, προϊόν)
+CREATE TABLE IF NOT EXISTS tbl_subperiod_specs (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    subperiod_id  INTEGER NOT NULL,
+    product_id    INTEGER NOT NULL,
+    mb            REAL,
+    se            REAL,
+    fl            REAL,
+    FOREIGN KEY (subperiod_id) REFERENCES tbl_subperiods(id),
+    FOREIGN KEY (product_id) REFERENCES tbl_products(id),
+    UNIQUE(subperiod_id, product_id)
+);
+CREATE INDEX IF NOT EXISTS idx_subperiod_specs_subperiod
+    ON tbl_subperiod_specs(subperiod_id);
+
 CREATE TABLE IF NOT EXISTS tbl_doc_sections (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT    NOT NULL,
