@@ -82,6 +82,7 @@
   --fail-light:   #ef4444;
 
   --sidebar-w:    220px;
+  --titlebar-h:   32px;
   --radius:       6px;
   --radius-lg:    10px;
 
@@ -97,9 +98,61 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
    LAYOUT
    ============================================================ */
 
+/* --- Custom Titlebar (frameless window) --- */
+#titlebar {
+  height: var(--titlebar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+#titlebar-drag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 10px;
+  overflow: hidden;
+}
+
+#titlebar-logo { height: 16px; width: 16px; object-fit: contain; flex-shrink: 0; }
+
+#titlebar-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#titlebar-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-btn {
+  width: 44px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.titlebar-btn:hover { background: var(--bg-hover); color: var(--text); }
+.titlebar-btn-close:hover { background: #dc2626; color: #fff; }
+
 #app {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - var(--titlebar-h));
   overflow: hidden;
 }
 

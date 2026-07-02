@@ -1050,6 +1050,24 @@ function hideSplash() {
   }, remaining);
 }
 
+function initTitlebar() {
+  const btnMin   = document.getElementById('titlebar-min');
+  const btnMax   = document.getElementById('titlebar-max');
+  const btnClose = document.getElementById('titlebar-close');
+  if (!btnMin || !window.pyBridge?.['window-minimize']) return;
+
+  btnMin.addEventListener('click',   () => window.pyBridge['window-minimize']());
+  btnMax.addEventListener('click',   () => window.pyBridge['window-maximize-toggle']());
+  btnClose.addEventListener('click', () => window.pyBridge['window-close']());
+
+  const setMaxIcon = (isMax) => {
+    btnMax.textContent = isMax ? '❐' : '▢';
+    btnMax.title = isMax ? 'Επαναφορά' : 'Μεγιστοποίηση';
+  };
+  window.pyBridge['window-is-maximized']?.().then(setMaxIcon);
+  window.pyBridge['on-window-maximized-change']?.(setMaxIcon);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
 
@@ -1104,6 +1122,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const el = document.getElementById('sidebar-version');
     if (el && ver) el.textContent = 'v' + ver;
   }
+
+  // Custom titlebar — κουμπιά minimize/maximize/close (frameless window)
+  initTitlebar();
 
   // Φόρτωση αρχικής σελίδας πρώτα
   await navigateTo('dashboard');

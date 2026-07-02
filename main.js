@@ -17,7 +17,7 @@
  *             ce-notify-snooze/clear, ce-get-suggested-folder
  *   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
  */
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path       = require('path');
 const fs         = require('fs');
 const crypto     = require('crypto');
@@ -48,6 +48,7 @@ function createWindow() {
     minWidth:  1024,
     minHeight: 640,
     title: 'Εργαστήριο Λατομείων Γαλάτιστας',
+    frame: false,
     webPreferences: {
       nodeIntegration:     false,
       contextIsolation:    true,
@@ -66,11 +67,27 @@ function createWindow() {
     mainWindow.show();
   });
 
+  // Ενημέρωση renderer για toggle icon minimize/restore
+  mainWindow.on('maximize',   () => mainWindow.webContents.send('window-maximized-change', true));
+  mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-maximized-change', false));
+
   // Ανάπτυξη: άνοιγμα DevTools (αφαίρεσε αν δεν χρειάζεται)
   // mainWindow.webContents.openDevTools();
 
 
 }
+
+// Custom titlebar — αφαίρεση native frame + default μενού (File/Edit/View)
+Menu.setApplicationMenu(null);
+
+ipcMain.handle('window-minimize', () => mainWindow?.minimize());
+ipcMain.handle('window-maximize-toggle', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMaximized()) mainWindow.unmaximize();
+  else mainWindow.maximize();
+});
+ipcMain.handle('window-close', () => mainWindow?.close());
+ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized() ?? false);
 
 // ============================================================
 // ΕΚΚΙΝΗΣΗ PYTHON BACKEND

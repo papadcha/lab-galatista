@@ -119,6 +119,13 @@ contextBridge.exposeInMainWorld('pyBridge', {
   // Guide window
   'open-guide':   (testType) => ipcRenderer.invoke('open-guide', testType),
 
+  // Custom titlebar — window controls (frameless window)
+  'window-minimize':        () => ipcRenderer.invoke('window-minimize'),
+  'window-maximize-toggle': () => ipcRenderer.invoke('window-maximize-toggle'),
+  'window-close':            () => ipcRenderer.invoke('window-close'),
+  'window-is-maximized':    () => ipcRenderer.invoke('window-is-maximized'),
+  'on-window-maximized-change': (cb) => ipcRenderer.on('window-maximized-change', (_e, isMax) => cb(isMax)),
+
   // Cloud Sync
   'cloud-check-rclone': ()           => ipcRenderer.invoke('cloud-check-rclone'),
   'cloud-list-remotes': ()           => ipcRenderer.invoke('cloud-list-remotes'),
