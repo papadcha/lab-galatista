@@ -376,7 +376,7 @@
     if (saved?.success) {
       App.toast('PDF αποθηκεύτηκε', 'ok');
     } else if (!saved?.canceled) {
-      App.toast('Σφάλμα αποθήκευσης PDF', 'fail');
+      App.toast('Σφάλμα αποθήκευσης PDF: ' + (saved?.error || ''), 'fail');
     }
   }
 
