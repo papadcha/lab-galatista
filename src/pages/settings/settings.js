@@ -122,7 +122,7 @@
     products.forEach(p => {
       const opt       = document.createElement('option');
       opt.value       = p.id;
-      opt.textContent = `${p.name}mm`;
+      opt.textContent = App.formatProduct({ product_name: p.name, d_min: p.d_min, d_max: p.d_max });
       sel.appendChild(opt);
     });
   }
@@ -259,7 +259,7 @@
         border:1px solid ${isRed ? '#ef9a9a' : '#a5d6a7'};
         background:${isRed ? '#fce4ec' : '#e8f5e9'};
         color:${isRed ? '#c62828' : '#1b5e20'};
-        font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;white-space:nowrap;
+        font-size:11px;font-weight:600;white-space:nowrap;
       ">${fmtMm(s)}${isRed ? ' ⚠' : ''}</span>`;
     }).join(' ');
   }
@@ -281,7 +281,7 @@
             onclick="SettingsPage.openSievesCard(${p.id})">
           <td>
             <strong>${esc(p.name)}</strong>
-            <div style="font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;">
+            <div style="font-size:11px;color:var(--text-muted);">
               ${fmtMm(p.d_min)}/${fmtMm(p.d_max)} mm
               &nbsp;·&nbsp;
               <span style="color:var(--accent);">${esc(p.code || '—')}</span>
@@ -503,7 +503,7 @@
           <input type="text" id="prod-edit-code"
                  value="${esc(p.code || '')}"
                  maxlength="8"
-                 style="text-transform:uppercase;font-family:'IBM Plex Mono',monospace;width:120px;">
+                 style="text-transform:uppercase;width:120px;">
           <small class="form-hint">Χρησιμοποιείται στον κωδικό δείγματος (πχ ΑΜΜ04)</small>
         </div>
         <div class="form-group">
@@ -631,7 +631,7 @@
         AppState.products.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p.id;
-          opt.textContent = `${p.name}mm`;
+          opt.textContent = App.formatProduct({ product_name: p.name, d_min: p.d_min, d_max: p.d_max });
           sel.appendChild(opt);
         });
       }
@@ -727,7 +727,7 @@
               padding:4px 10px;border-radius:12px;
               border:1px solid ${border};
               background:${bg};color:${color};
-              font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;
+              font-size:13px;font-weight:600;
               cursor:default;user-select:none;
               transition:opacity 0.15s;
             "
@@ -778,8 +778,7 @@
                  style="width:100%;background:var(--bg-input);
                         border:1px solid var(--border);
                         border-radius:var(--radius);
-                        color:var(--text);padding:7px 10px;
-                        font-family:'IBM Plex Mono',monospace;"
+                        color:var(--text);padding:7px 10px;"
                  oninput="SettingsPage._sieveInputChange(this)"
                  onkeydown="if(event.key==='Enter'){SettingsPage._addSieveFromInput();event.preventDefault();}
                             if(event.key==='Escape'){SettingsPage._hideSieveDropdown();}">
@@ -894,7 +893,7 @@
 
     drop.innerHTML = matches.map(s => `
       <div onclick="SettingsPage._addSieve(${s})"
-           style="padding:7px 12px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;"
+           style="padding:7px 12px;cursor:pointer;font-size:13px;"
            onmouseover="this.style.background='var(--bg-hover,#f5f5f5)'"
            onmouseout="this.style.background=''">
         ${fmtMm(s)} mm
@@ -1001,7 +1000,7 @@
     }
     tbody.innerHTML = state.sources.map(s => `
       <tr>
-        <td><code style="font-family:'IBM Plex Mono',monospace;font-weight:700;">${esc(s.code)}</code></td>
+        <td><code style="font-family:inherit;font-weight:700;">${esc(s.code)}</code></td>
         <td>${esc(s.name)}</td>
         <td style="color:var(--text-muted);font-size:12px;">${esc(s.location || '—')}</td>
         <td>
@@ -1031,7 +1030,7 @@
         <div class="form-group">
           <label>Κωδικός <span class="required">*</span></label>
           <input type="text" id="src-code" placeholder="πχ ΓΑΛ"
-                 style="text-transform:uppercase;font-family:'IBM Plex Mono',monospace;"
+                 style="text-transform:uppercase;"
                  maxlength="6">
         </div>
         <div class="form-group">
@@ -1077,7 +1076,7 @@
           <label>Κωδικός</label>
           <input type="text" id="src-edit-code"
                  value="${esc(src.code)}"
-                 style="font-family:'IBM Plex Mono',monospace;font-weight:700;" readonly>
+                 style="font-weight:700;" readonly>
           <small style="color:var(--text-muted);font-size:11px;">
             Ο κωδικός δεν μπορεί να αλλάξει
           </small>
