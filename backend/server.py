@@ -113,6 +113,10 @@ from database.db_manager import (
     get_ce_expiry_status,
     get_subperiod_specs,
     set_subperiod_specs,
+    get_subperiod_specifications,
+    save_subperiod_specifications,
+    get_effective_specifications,
+    copy_previous_subperiod_specs,
 )
 from calculations import (
     suggest_mb_initial_volume,
@@ -895,6 +899,11 @@ METHODS = {
                                    valid_from=args[8]        if len(args) > 8 else None),
     'get_subperiod_specs': lambda args: get_subperiod_specs(int(args[0])),
     'set_subperiod_specs': lambda args: set_subperiod_specs(int(args[0]), args[1]),
+    'get_subperiod_specifications':  lambda args: get_subperiod_specifications(int(args[0]), int(args[1])),
+    'save_subperiod_specifications': lambda args: save_subperiod_specifications(
+                                         int(args[0]), int(args[1]), args[2], args[3], args[4]),
+    'get_effective_specifications':  lambda args: get_effective_specifications(int(args[0]), int(args[1])),
+    'copy_previous_subperiod_specs': lambda args: copy_previous_subperiod_specs(int(args[0])),
 
 }
 
@@ -954,16 +963,14 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         t_data  = report.get('tests', {})
 
         from database.db_manager import get_connection
-        conn      = get_connection()
-        lab_row   = conn.execute('SELECT * FROM tbl_laboratory WHERE id=1').fetchone()
-        lab       = dict(lab_row) if lab_row else {}
-        spec_rows = conn.execute(
-            'SELECT * FROM tbl_specifications WHERE product_id=?',
-            (sample.get('product_id'),)
-        ).fetchall()
-        specs = [dict(r) for r in spec_rows]
-        sieve_specs = [s for s in specs if s.get('sieve_mm') is not None]
+        conn    = get_connection()
+        lab_row = conn.execute('SELECT * FROM tbl_laboratory WHERE id=1').fetchone()
+        lab     = dict(lab_row) if lab_row else {}
         conn.close()
+        specs = (get_effective_specifications(sample['subperiod_id'], sample.get('product_id'))
+                 if sample.get('subperiod_id')
+                 else get_specifications(sample.get('product_id')))
+        sieve_specs = [s for s in specs if s.get('sieve_mm') is not None]
 
         # ── Σελίδες ───────────────────────────────────────────
         page_list = []

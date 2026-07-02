@@ -575,7 +575,7 @@
           <div id="ce-sub-report"  style="font-size:13px;font-weight:500;"></div>
           <div id="ce-sub-from"    style="font-size:12px;color:var(--text-muted);"></div>
           <div id="ce-sub-values"  style="font-size:12px;color:var(--text-muted);margin-top:4px;"></div>
-          <div style="margin-top:8px;display:flex;gap:6px;">
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn-secondary btn-sm"
                     onclick="SettingsPage.showEditSubperiodModal()">
               ✎ Επεξεργασία
@@ -584,6 +584,16 @@
                     id="ce-sub-specs-btn"
                     onclick="SettingsPage.showSubperiodSpecsModal(parseInt(this.dataset.subperiodId))">
               Προδιαγραφές ανά Προϊόν
+            </button>
+            <button class="btn-secondary btn-sm"
+                    id="ce-sub-gradation-btn"
+                    onclick="SettingsPage.showSubperiodGradationModal(parseInt(this.dataset.subperiodId))">
+              Προδιαγραφές Κοκκομετρίας
+            </button>
+            <button class="btn-secondary btn-sm"
+                    id="ce-sub-copy-btn"
+                    onclick="SettingsPage.copySubperiodSpecs(parseInt(this.dataset.subperiodId))">
+              📋 Αντιγραφή Προδιαγραφών
             </button>
             <button class="btn-secondary btn-sm"
                     onclick="SettingsPage.deleteActiveSubperiod()"

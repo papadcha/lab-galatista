@@ -1866,6 +1866,10 @@
       document.getElementById('ce-sub-values').textContent = vals;
       const specsBtn = document.getElementById('ce-sub-specs-btn');
       if (specsBtn) specsBtn.dataset.subperiodId = sub.id;
+      const gradationBtn = document.getElementById('ce-sub-gradation-btn');
+      if (gradationBtn) gradationBtn.dataset.subperiodId = sub.id;
+      const copyBtn = document.getElementById('ce-sub-copy-btn');
+      if (copyBtn) copyBtn.dataset.subperiodId = sub.id;
     } else {
       subCard.style.display = 'none';
     }
@@ -2135,6 +2139,188 @@
       App.toast('Προδιαγραφές αποθηκεύτηκαν', 'ok');
     } else {
       App.toast('Σφάλμα αποθήκευσης', 'fail');
+    }
+  }
+
+  // ── Προδιαγραφές Κοκκομετρίας ανά Υποπερίοδο ──────────────────
+
+  let _gradState = {};
+
+  async function showSubperiodGradationModal(subperiodId) {
+    const products = await pyCall('get_products') || [];
+    const options = products.map(p =>
+      `<option value="${p.id}">${_esc(App.formatProduct({ product_name: p.name, d_min: p.d_min, d_max: p.d_max }))}</option>`
+    ).join('');
+
+    App.showModal('Προδιαγραφές Κοκκομετρίας', `
+      <div style="font-size:13px;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Προϊόν</label>
+            <select id="grad-product" style="width:100%;margin-top:4px;"
+                    onchange="SettingsPage._loadGradationSpecNames(${subperiodId})">
+              <option value="">— Επιλέξτε —</option>
+              ${options}
+            </select>
+          </div>
+          <div class="form-group" id="grad-specname-wrap" style="display:none;">
+            <label>Πρότυπο</label>
+            <select id="grad-specname" style="width:100%;margin-top:4px;"
+                    onchange="SettingsPage._loadGradationTable(${subperiodId})"></select>
+          </div>
+        </div>
+        <div id="grad-source-note" style="font-size:11px;color:var(--text-muted);margin:8px 0;"></div>
+        <div id="grad-table-area">
+          <p class="form-card-intro">Επιλέξτε προϊόν.</p>
+        </div>
+      </div>
+    `, [
+      { label: 'Κλείσιμο', action: 'App.closeModal()', secondary: true },
+      { label: '↺ Επαναφορά σε global', action: 'SettingsPage._resetSubperiodGradation(' + subperiodId + ')', secondary: true },
+      { label: '✓ Αποθήκευση', action: 'SettingsPage._saveSubperiodGradation(' + subperiodId + ')' },
+    ]);
+  }
+
+  async function _loadGradationSpecNames(subperiodId) {
+    const productId = parseInt(el('grad-product')?.value) || null;
+    const wrap = el('grad-specname-wrap');
+    const area = el('grad-table-area');
+    const note = el('grad-source-note');
+    if (!productId) {
+      if (wrap) wrap.style.display = 'none';
+      if (area) area.innerHTML = '<p class="form-card-intro">Επιλέξτε προϊόν.</p>';
+      if (note) note.textContent = '';
+      return;
+    }
+
+    const globalSpecs = await window.pyBridge?.call?.('get_specifications', productId) || [];
+    const specNames = [...new Set(globalSpecs.map(s => `${s.spec_type}|||${s.spec_name}`))];
+    _gradState = { subperiodId, productId, globalSpecs };
+
+    if (specNames.length === 0) {
+      if (wrap) wrap.style.display = 'none';
+      if (area) area.innerHTML = '<p class="form-card-intro">Δεν υπάρχουν global προδιαγραφές για αυτό το προϊόν.</p>';
+      if (note) note.textContent = '';
+      return;
+    }
+
+    const sel = el('grad-specname');
+    if (sel) {
+      sel.innerHTML = specNames.map(sn => {
+        const [, name] = sn.split('|||');
+        return `<option value="${sn}">${_esc(name)}</option>`;
+      }).join('');
+    }
+    if (wrap) wrap.style.display = 'block';
+    await _loadGradationTable(subperiodId);
+  }
+
+  async function _loadGradationTable(subperiodId) {
+    const productId = parseInt(el('grad-product')?.value) || null;
+    const val = el('grad-specname')?.value;
+    const area = el('grad-table-area');
+    const note = el('grad-source-note');
+    if (!productId || !val || !area) return;
+
+    const [specType, specName] = val.split('|||');
+    const sieves = await pyCall('get_product_sieves', productId) || [];
+    const subSpecs = await window.pyBridge?.call?.('get_subperiod_specifications', subperiodId, productId) || [];
+    const overrideRows = subSpecs.filter(s => s.spec_name === specName);
+    const globalRows = (_gradState.globalSpecs || []).filter(s => s.spec_name === specName);
+
+    const usingOverride = overrideRows.length > 0;
+    const rows = usingOverride ? overrideRows : globalRows;
+    if (note) {
+      note.textContent = usingOverride
+        ? '✎ Υπάρχει override για αυτή την υποπερίοδο.'
+        : 'Τιμές από το global πρότυπο (σημείο εκκίνησης) — η αποθήκευση δημιουργεί override μόνο για αυτή την υποπερίοδο.';
+    }
+
+    _gradState = { ..._gradState, subperiodId, productId, specType, specName, sieves };
+
+    const specSieves = rows.map(s => s.sieve_mm);
+    const allSieves  = [...new Set([...sieves, ...specSieves])].sort((a,b) => b - a);
+
+    if (allSieves.length === 0) {
+      area.innerHTML = '<p class="form-card-intro">Δεν βρέθηκαν κόσκινα.</p>';
+      return;
+    }
+
+    area.innerHTML = `
+      <table class="data-table full-width" style="margin-top:4px;">
+        <thead>
+          <tr>
+            <th>Κόσκινο (mm)</th>
+            <th>Κατώτερο Όριο (%)</th>
+            <th>Ανώτερο Όριο (%)</th>
+          </tr>
+        </thead>
+        <tbody id="grad-table-body">
+          ${allSieves.map(sieve => {
+            const spec = rows.find(s => s.sieve_mm === sieve);
+            const id   = String(sieve).replace('.','_');
+            return `
+              <tr data-sieve="${sieve}">
+                <td><strong>${fmtMm(sieve)}</strong></td>
+                <td><input type="number" id="grad-lo-${id}" value="${spec?.lower_limit ?? ''}"
+                           min="0" max="100" step="0.1" placeholder="—" style="width:100px;"></td>
+                <td><input type="number" id="grad-hi-${id}" value="${spec?.upper_limit ?? ''}"
+                           min="0" max="100" step="0.1" placeholder="—" style="width:100px;"></td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  async function _saveSubperiodGradation(subperiodId) {
+    const { productId, specType, specName, sieves } = _gradState;
+    if (!productId || !specName) { App.toast('Επιλέξτε προϊόν και πρότυπο', 'warn'); return; }
+
+    const rows = [...document.querySelectorAll('#grad-table-body tr[data-sieve]')].map(tr => {
+      const sieve = parseFloat(tr.dataset.sieve);
+      const id = String(sieve).replace('.','_');
+      return {
+        sieve_mm:    sieve,
+        lower_limit: parseFloat(el(`grad-lo-${id}`)?.value) || null,
+        upper_limit: parseFloat(el(`grad-hi-${id}`)?.value) || null,
+      };
+    });
+
+    const ok = await window.pyBridge?.call?.(
+      'save_subperiod_specifications', subperiodId, productId, specType, specName, rows);
+    if (ok) {
+      App.toast('Προδιαγραφές κοκκομετρίας αποθηκεύτηκαν', 'ok');
+      App.closeModal();
+    } else {
+      App.toast('Σφάλμα αποθήκευσης', 'fail');
+    }
+  }
+
+  async function _resetSubperiodGradation(subperiodId) {
+    const { productId, specType, specName } = _gradState;
+    if (!productId || !specName) { App.toast('Επιλέξτε προϊόν και πρότυπο', 'warn'); return; }
+    if (!confirm(`Επαναφορά "${specName}" στις global τιμές για αυτή την υποπερίοδο;`)) return;
+
+    const ok = await window.pyBridge?.call?.(
+      'save_subperiod_specifications', subperiodId, productId, specType, specName, []);
+    if (ok) {
+      App.toast('Επανήλθε στο global', 'ok');
+      await _loadGradationTable(subperiodId);
+    } else {
+      App.toast('Σφάλμα', 'fail');
+    }
+  }
+
+  async function copySubperiodSpecs(subperiodId) {
+    if (!confirm('Θα αντιγραφούν οι προδιαγραφές (MB/SE/FI + κοκκομετρία) από την πιο πρόσφατη υποπερίοδο με δεδομένα, αντικαθιστώντας τυχόν υπάρχουσες τιμές σε αυτή την υποπερίοδο. Συνέχεια;')) return;
+
+    const result = await window.pyBridge?.call?.('copy_previous_subperiod_specs', subperiodId);
+    if (result?.ok) {
+      App.toast(`Αντιγράφηκαν ${result.mb_se_fl_count} τιμές MB/SE/FI + ${result.sieve_count} γραμμές κοκκομετρίας`, 'ok');
+      await loadCePeriods();
+    } else {
+      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
     }
   }
 
@@ -2654,6 +2840,8 @@
     _saveNewCePeriod, _openCeFolder, showCePeriodView,
     _enterArchiveFromHistory,
     showSubperiodSpecsModal, _saveSubperiodSpecs,
+    showSubperiodGradationModal, _loadGradationSpecNames, _loadGradationTable,
+    _saveSubperiodGradation, _resetSubperiodGradation, copySubperiodSpecs,
   };
 
   // ============================================================

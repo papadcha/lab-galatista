@@ -3,10 +3,12 @@
 # db_manager.py
 # Εργαστήριο Λατομείων Γαλάτιστας
 # ─────────────────────────────────────────────────────────────
-# Έκδοση : 0.99.4
+# Έκδοση : 0.99.5
 # Ημ/νία  : 2026-07-02
 # ─────────────────────────────────────────────────────────────
 # Ιστορικό:
+#   0.99.5 — Migration 013: tbl_subperiod_specifications (κοκκομετρία
+#             ανά προϊόν+υποπερίοδο+πρότυπο) — CURRENT_SCHEMA_VERSION → 13
 #   0.99.4 — Migration 012: tbl_subperiod_specs (MB/SE/FL ανά
 #             προϊόν+υποπερίοδο) — CURRENT_SCHEMA_VERSION → 12
 #   0.99.2 — CE period functions: get/create/update + expiry status
@@ -358,7 +360,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 12
+CURRENT_SCHEMA_VERSION = 13
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = _local_db_dir
@@ -489,6 +491,7 @@ def initialize_database():
         10: os.path.join(MIGRATIONS_DIR, 'migration_010_document_library.sql'),
         11: os.path.join(MIGRATIONS_DIR, 'migration_011_pdf_font_ibmplex.sql'),
         12: os.path.join(MIGRATIONS_DIR, 'migration_012_subperiod_specs.sql'),
+        13: os.path.join(MIGRATIONS_DIR, 'migration_013_subperiod_gradation_specs.sql'),
     }
 
     needs_recalc = False
@@ -1948,6 +1951,132 @@ def save_specifications(product_id: int, spec_type: str,
     conn.commit()
     conn.close()
     return True
+
+def get_subperiod_specifications(subperiod_id: int, product_id: int) -> list:
+    """Επιστρέφει τα per-υποπερίοδο overrides κοκκομετρίας για ένα προϊόν."""
+    conn = get_connection()
+    results = [dict(r) for r in conn.execute("""
+        SELECT * FROM tbl_subperiod_specifications
+         WHERE subperiod_id=? AND product_id=?
+         ORDER BY spec_type, sieve_mm DESC
+    """, (subperiod_id, product_id)).fetchall()]
+    conn.close()
+    return results
+
+def save_subperiod_specifications(subperiod_id: int, product_id: int, spec_type: str,
+                                  spec_name: str, specs: list) -> bool:
+    """
+    Αποθηκεύει override κοκκομετρίας για (subperiod_id, product_id, spec_type, spec_name).
+    Replace mode: διαγράφει το παλιό override και εισάγει το νέο.
+    Άδειο specs[] = επαναφορά σε global (διαγραφή override).
+    """
+    conn = get_connection()
+    conn.execute(
+        "DELETE FROM tbl_subperiod_specifications "
+        "WHERE subperiod_id=? AND product_id=? AND spec_type=? AND spec_name=?",
+        (subperiod_id, product_id, spec_type, spec_name)
+    )
+    for s in specs:
+        lo = s.get('lower_limit')
+        hi = s.get('upper_limit')
+        conn.execute("""
+            INSERT INTO tbl_subperiod_specifications
+                (subperiod_id, product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (subperiod_id, product_id, spec_type, spec_name, s['sieve_mm'], lo, hi))
+    conn.commit()
+    conn.close()
+    return True
+
+def get_effective_specifications(subperiod_id: int, product_id: int) -> list:
+    """
+    Προδιαγραφές κοκκομετρίας που ισχύουν πραγματικά για ένα (υποπερίοδο,
+    προϊόν): global τιμές, εκτός από τα (spec_type, spec_name) που έχουν
+    override στην υποπερίοδο — εκείνα αντικαθίστανται εξ ολοκλήρου
+    (all-or-nothing ανά όνομα προδιαγραφής, όχι ανά κόσκινο).
+    """
+    global_specs = get_specifications(product_id)
+    sub_specs    = get_subperiod_specifications(subperiod_id, product_id)
+    sub_names    = {(r['spec_type'], r['spec_name']) for r in sub_specs}
+    merged = [r for r in global_specs if (r['spec_type'], r['spec_name']) not in sub_names]
+    return merged + sub_specs
+
+def find_previous_subperiod_with_data(subperiod_id: int):
+    """
+    Βρίσκει την πιο πρόσφατη προγενέστερη υποπερίοδο (οποιασδήποτε CE
+    period) που έχει έστω μία τιμή σε tbl_subperiod_specs (MB/SE/FL) ή
+    tbl_subperiod_specifications (κοκκομετρία). Επιστρέφει subperiod_id
+    ή None.
+    """
+    conn = get_connection()
+    target = conn.execute(
+        "SELECT valid_from FROM tbl_subperiods WHERE id=?", (subperiod_id,)
+    ).fetchone()
+    if not target:
+        conn.close()
+        return None
+    candidates = conn.execute("""
+        SELECT id FROM tbl_subperiods
+         WHERE valid_from < ? AND id != ?
+         ORDER BY valid_from DESC
+    """, (target['valid_from'], subperiod_id)).fetchall()
+    for c in candidates:
+        has_mb_se_fl = conn.execute(
+            "SELECT 1 FROM tbl_subperiod_specs WHERE subperiod_id=? LIMIT 1", (c['id'],)
+        ).fetchone()
+        has_sieve = conn.execute(
+            "SELECT 1 FROM tbl_subperiod_specifications WHERE subperiod_id=? LIMIT 1", (c['id'],)
+        ).fetchone()
+        if has_mb_se_fl or has_sieve:
+            conn.close()
+            return c['id']
+    conn.close()
+    return None
+
+def copy_previous_subperiod_specs(subperiod_id: int) -> dict:
+    """
+    Αντιγράφει MB/SE/FL + κοκκομετρία από την πλησιέστερη προγενέστερη
+    υποπερίοδο με δεδομένα στη δοσμένη υποπερίοδο (αντικαθιστά ό,τι ήδη
+    υπάρχει εκεί).
+    """
+    source_id = find_previous_subperiod_with_data(subperiod_id)
+    if not source_id:
+        return {'ok': False, 'error': 'Δεν βρέθηκε προηγούμενη υποπερίοδος με δεδομένα'}
+
+    conn = get_connection()
+
+    mb_se_fl = conn.execute(
+        "SELECT product_id, mb, se, fl FROM tbl_subperiod_specs WHERE subperiod_id=?",
+        (source_id,)
+    ).fetchall()
+    conn.execute("DELETE FROM tbl_subperiod_specs WHERE subperiod_id=?", (subperiod_id,))
+    for r in mb_se_fl:
+        conn.execute("""
+            INSERT INTO tbl_subperiod_specs (subperiod_id, product_id, mb, se, fl)
+            VALUES (?, ?, ?, ?, ?)
+        """, (subperiod_id, r['product_id'], r['mb'], r['se'], r['fl']))
+
+    sieve = conn.execute("""
+        SELECT product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit
+          FROM tbl_subperiod_specifications WHERE subperiod_id=?
+    """, (source_id,)).fetchall()
+    conn.execute("DELETE FROM tbl_subperiod_specifications WHERE subperiod_id=?", (subperiod_id,))
+    for r in sieve:
+        conn.execute("""
+            INSERT INTO tbl_subperiod_specifications
+                (subperiod_id, product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (subperiod_id, r['product_id'], r['spec_type'], r['spec_name'],
+              r['sieve_mm'], r['lower_limit'], r['upper_limit']))
+
+    conn.commit()
+    conn.close()
+    return {
+        'ok': True,
+        'source_subperiod_id': source_id,
+        'mb_se_fl_count': len(mb_se_fl),
+        'sieve_count': len(sieve),
+    }
 
 def get_smtp_config() -> dict:
     """Επιστρέφει SMTP ρυθμίσεις από tbl_laboratory."""

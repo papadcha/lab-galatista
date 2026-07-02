@@ -26,7 +26,7 @@ sys.path.append(os.path.dirname(__file__))
 
 # Σύνδεση με βάση δεδομένων (εισάγεται μόνο αν υπάρχει)
 try:
-    from database.db_manager import get_connection, get_specifications
+    from database.db_manager import get_connection, get_specifications, get_effective_specifications
     DB_AVAILABLE = True
 except ImportError:
     DB_AVAILABLE = False
@@ -410,18 +410,23 @@ def get_overall_status(check_results: list) -> str:
 
 def check_sieve_analysis_vs_specs(sieve_results: list,
                                    product_id: int,
-                                   spec_type: Optional[str] = None) -> list:
+                                   spec_type: Optional[str] = None,
+                                   subperiod_id: Optional[int] = None) -> list:
     """
     Συγκρίνει κοκκομετρία με προδιαγραφές.
 
     spec_type: None=όλες | 'EN' | 'ΕΤΕΠ' | 'CE' | 'INTERNAL'
+    subperiod_id: αν δοθεί, χρησιμοποιούνται τα effective specs της
+        υποπεριόδου (subperiod override αν υπάρχει, αλλιώς global) —
+        βλ. get_effective_specifications.
 
     Επιστρέφει λίστα ελέγχων ανά κόσκινο/προδιαγραφή.
     """
     if not DB_AVAILABLE:
         return []
 
-    specs = get_specifications(product_id)
+    specs = (get_effective_specifications(subperiod_id, product_id)
+             if subperiod_id else get_specifications(product_id))
     if spec_type:
         specs = [s for s in specs if s['spec_type'] == spec_type]
 
@@ -510,16 +515,17 @@ def get_full_sample_report(sample_id: int) -> dict:
 
     from database.db_manager import get_sample, get_sieve_analysis
 
-    data       = get_sample(sample_id)
-    sample     = data['sample']
-    product_id = sample['product_id']
-    report     = {'sample': sample, 'tests': {}}
+    data         = get_sample(sample_id)
+    sample       = data['sample']
+    product_id   = sample['product_id']
+    subperiod_id = sample.get('subperiod_id')
+    report       = {'sample': sample, 'tests': {}}
 
     # Κοκκομετρία
     sieve_data = get_sieve_analysis(sample_id)
     if sieve_data:
         specs_check = check_sieve_analysis_vs_specs(
-            sieve_data['results'], product_id
+            sieve_data['results'], product_id, subperiod_id=subperiod_id
         )
         report['tests']['sieve_analysis'] = {
             'data':                     sieve_data,

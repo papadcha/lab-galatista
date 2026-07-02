@@ -167,8 +167,10 @@
     // Checkboxes δοκιμών
     buildTestsCheckboxes();
 
-    // Specs για κοκκομετρία
-    state.specs = await pyCall('get_specifications', s.product_id) || [];
+    // Specs για κοκκομετρία — per-υποπερίοδο override αν υπάρχει, αλλιώς global
+    state.specs = s.subperiod_id
+      ? await pyCall('get_effective_specifications', s.subperiod_id, s.product_id) || []
+      : await pyCall('get_specifications', s.product_id) || [];
     buildSpecOptions();
 
     show('single-sample-info');
@@ -1598,9 +1600,11 @@
       max:             Math.max(...values),
     })).sort((a,b) => b.sieve_mm - a.sieve_mm);  // descending: μεγάλα→μικρά
 
-    // Specs
+    // Specs — per-υποπερίοδο override αν υπάρχει, αλλιώς global
     const specs = productId
-      ? (await pyCall('get_specifications', productId) || [])
+      ? (activeSub?.id
+          ? (await pyCall('get_effective_specifications', activeSub.id, productId) || [])
+          : (await pyCall('get_specifications', productId) || []))
       : [];
 
     // Build spec checkboxes
