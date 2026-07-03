@@ -36,6 +36,18 @@ let pyProcess   = null;
 let _pyReqId    = 0;
 const _pyPending = new Map();  // id → resolve
 let _pythonReady = false;
+let _pyReadyWaiters = [];
+
+// Περιμένει το σήμα "Αναμονή εντολών" από τον Python backend αντί για
+// αυθαίρετο delay· αν δεν έρθει εγκαίρως, προχωράμε ούτως ή άλλως (timeout
+// ίδιο με το splash fallback, main-app.js).
+function waitForPythonReady(timeoutMs = 15000) {
+  if (_pythonReady) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), timeoutMs);
+    _pyReadyWaiters.push(() => { clearTimeout(timer); resolve(true); });
+  });
+}
 
 // ============================================================
 // ΔΗΜΙΟΥΡΓΙΑ ΠΑΡΑΘΥΡΟΥ
@@ -132,6 +144,7 @@ function startPythonBackend() {
         if (t.includes('Αναμονή εντολών')) {
           _pythonReady = true;
           mainWindow?.webContents.send('python-ready');
+          for (const notify of _pyReadyWaiters.splice(0)) notify();
         }
         continue;
       }
@@ -182,8 +195,13 @@ app.whenReady().then(() => {
     console.error('Python backend δεν ξεκίνησε:', e.message);
   }
 
-  // Αυτόματο backup + CE check + cloud sync κατά εκκίνηση
-  setTimeout(async () => {
+  // Αυτόματο backup + CE check + cloud sync κατά εκκίνηση —
+  // περιμένουμε το backend να είναι πραγματικά έτοιμο (με timeout fallback)
+  // αντί για αυθαίρετο delay
+  (async () => {
+    const ready = await waitForPythonReady();
+    if (!ready) console.warn('[Startup] Ο Python backend δεν απάντησε εγκαίρως — συνεχίζουμε ούτως ή άλλως');
+
     // ── Τοπικό backup ─────────────────────────────────────
     const result = await performBackup();
     if (result.success) {
@@ -209,7 +227,7 @@ app.whenReady().then(() => {
         console.error('[Cloud] Startup sync error:', e.message)
       );
     }
-  }, 3000);
+  })();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -442,7 +460,6 @@ ipcMain.handle('cloud-open-terminal', async () => {
 });
 
 ipcMain.handle('open-external-link', async (event, url) => {
-  const { shell } = require('electron');
   await shell.openExternal(url);
   return { ok: true };
 });
@@ -661,8 +678,7 @@ ipcMain.handle('open-document', async (event, cloudPath) => {
   const cfg = loadConfig();
   if (!cfg.cloudRemotePath) return { ok: false, error: 'Δεν έχει οριστεί cloud remote' };
 
-  const { app: electronApp, shell } = require('electron');
-  const cacheDir  = path.join(electronApp.getPath('userData'), 'documents_cache',
+  const cacheDir  = path.join(app.getPath('userData'), 'documents_cache',
                                path.dirname(cloudPath));
   fs.mkdirSync(cacheDir, { recursive: true });
 
@@ -1288,11 +1304,19 @@ function getConfigPath() {
 }
 
 function loadConfig() {
+  const configPath = getConfigPath();
   try {
-    if (fs.existsSync(getConfigPath())) {
-      return JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'));
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error('[Config] Σφάλμα ανάγνωσης, το αρχείο πιθανώς είναι κατεστραμμένο:', e.message);
+    try {
+      const corruptedPath = `${configPath}.corrupted-${Date.now()}`;
+      fs.copyFileSync(configPath, corruptedPath);
+      console.error('[Config] Αντίγραφο του κατεστραμμένου αρχείου αποθηκεύτηκε:', corruptedPath);
+    } catch(e2) {}
+  }
   return {};
 }
 
@@ -1501,19 +1525,19 @@ ipcMain.handle('list-backups', async () => {
   if (!fs.existsSync(backupRoot)) return { ok: true, files: [] };
 
   const files = [];
-  function scanDir(dir) {
+  async function scanDir(dir) {
     try {
-      for (const name of fs.readdirSync(dir)) {
+      for (const name of await fs.promises.readdir(dir)) {
         const full = path.join(dir, name);
-        const stat = fs.statSync(full);
-        if (stat.isDirectory()) { scanDir(full); }
+        const stat = await fs.promises.stat(full);
+        if (stat.isDirectory()) { await scanDir(full); }
         else if (name.endsWith('.db')) {
           files.push({ name, path: full, size: stat.size, mtime: stat.mtimeMs });
         }
       }
     } catch(e) {}
   }
-  scanDir(backupRoot);
+  await scanDir(backupRoot);
   files.sort((a, b) => b.mtime - a.mtime);
   return { ok: true, files: files.slice(0, 5) };
 });
