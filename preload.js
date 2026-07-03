@@ -186,6 +186,7 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'on-update-available':     (cb)                => ipcRenderer.once('update-available', (_e, info) => cb(info)),
   'open-update-url':         (url)               => ipcRenderer.invoke('open-update-url', url),
   'get-app-version':         ()                  => ipcRenderer.invoke('get-app-version'),
+  'get-version-history':     ()                  => ipcRenderer.invoke('get-version-history'),
 
   'generate-pdf-library':    (folder)            => ipcRenderer.invoke('generate-pdf-library', folder),
   'upload-document':         (opts)              => ipcRenderer.invoke('upload-document', opts),

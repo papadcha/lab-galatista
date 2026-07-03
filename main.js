@@ -762,6 +762,15 @@ ipcMain.handle('open-update-url', async (event, url) => {
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
+ipcMain.handle('get-version-history', () => {
+  try {
+    const filePath = path.join(__dirname, 'Ιστορικό_Εκδόσεων_lab-galatista.txt');
+    return { ok: true, content: fs.readFileSync(filePath, 'utf-8') };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
 // ============================================================
 // CE EXPIRY NOTIFICATION
 // ============================================================

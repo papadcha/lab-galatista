@@ -714,6 +714,16 @@ function _showUpdateBanner(info) {
   });
 }
 
+async function showVersionHistory() {
+  const result = await window.pyBridge?.['get-version-history']?.();
+  const content = result?.ok
+    ? `<pre style="white-space:pre-wrap;font-family:inherit;font-size:0.85em;line-height:1.5;max-height:60vh;overflow-y:auto;margin:0;">${_esc(result.content)}</pre>`
+    : `<p style="color:var(--text-muted);">Δεν ήταν δυνατή η φόρτωση του ιστορικού εκδόσεων.</p>`;
+  App.showModal('Ιστορικό Εκδόσεων', content, [
+    { label: 'Κλείσιμο', action: 'App.closeModal()' },
+  ]);
+}
+
 // ============================================================
 // ΑΡΧΙΚΟΠΟΙΗΣΗ — Banner + Wizard
 // ============================================================
@@ -1126,11 +1136,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (lab) { AppState.labInfo = lab; }
   await updateSidebarCeBadge();
 
-  // Εμφάνιση έκδοσης στο sidebar footer
+  // Εμφάνιση έκδοσης στο sidebar footer — κλικ ανοίγει το ιστορικό εκδόσεων
   if (window.pyBridge?.['get-app-version']) {
     const ver = await window.pyBridge['get-app-version']();
     const el = document.getElementById('sidebar-version');
-    if (el && ver) el.textContent = 'v' + ver;
+    if (el && ver) {
+      el.textContent = 'v' + ver;
+      el.style.cursor = 'pointer';
+      el.title = 'Δες τι άλλαξε';
+      el.addEventListener('click', showVersionHistory);
+    }
   }
 
   // Custom titlebar — κουμπιά minimize/maximize/close (frameless window)

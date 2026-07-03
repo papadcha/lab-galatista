@@ -4,6 +4,13 @@
 
 ---
 
+## v1.1.21 — 2026-07-03
+
+**Ιστορικό εκδόσεων μέσα στην εφαρμογή + αναδιοργάνωση τεκμηρίωσης**
+- Νέο: πατώντας τον αριθμό έκδοσης στο sidebar footer (`#sidebar-version`, `src/main-app.js`) ανοίγει modal με το ιστορικό εκδόσεων, φορτωμένο μέσω νέου IPC handler `get-version-history` (main.js) που διαβάζει το bundled `Ιστορικό_Εκδόσεων_lab-galatista.txt` (προστέθηκε στο `package.json` → `build.files`, ίδιο μοτίβο με το ήδη υπάρχον `standards.json`).
+- Αναδιοργάνωση: το προηγούμενο ενιαίο `Εκκρεμότητες_lab-galatista.txt` (mix ιστορικού + εκκρεμοτήτων) χωρίστηκε σε δύο ξεχωριστά αρχεία — `Ιστορικό_Εκδόσεων_lab-galatista.txt` (bundled στον installer, ορατό στον χρήστη μέσα από την εφαρμογή) και `Εκκρεμότητες_lab-galatista.txt` (μόνο to-do list, παραμένει το Desktop symlink target, όχι bundled). Το `Εκκρεμότητες_lab-galatista.txt` εμπλουτίστηκε με τα roadmap items που ήταν μέχρι τώρα μόνο σε memory/συζητήσεις (διακρίβωση εξοπλισμού, audit trail, σύγκριση υποπεριόδων, περιοδικό email, trend chart, τεχνικό χρέος από code review) ώστε να μη χαθούν.
+- Επαληθεύτηκε end-to-end με Playwright `_electron`: κλικ στο sidebar-version ανοίγει σωστά το modal με το αναμενόμενο περιεχόμενο.
+
 ## v1.1.20 — 2026-07-03
 
 **Fix: το update-checker δεν έδειχνε ποτέ νέα έκδοση («δεν βγάζει την αναβάθμιση στην εκκίνηση»)**
