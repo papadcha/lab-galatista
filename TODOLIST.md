@@ -78,18 +78,7 @@
       μήνες), πιάνει σταδιακή ολίσθηση ποιότητας. Ο χρήστης το
       χαρακτήρισε "υπερβολή" προς το παρόν — χαμηλή προτεραιότητα.
 
-- [ ] Τεχνικό χρέος από code review main.js (Gemini, 2026-07-02,
-      επαληθευμένα ένα-ένα):
-      - Sync/recursive fs στο list-backups handler (scanDir) — μετατροπή
-        σε fs.promises.*
-      - Hardcoded setTimeout(...,3000) στο app.whenReady() — θα
-        μπορούσε να αντικατασταθεί από το ήδη υπάρχον python-ready
-        σήμα αντί για arbitrary delay
-      - Άδειο catch(e){} στο loadConfig() — αν καταστραφεί το
-        lab-config.json, το επόμενο save οποιασδήποτε ρύθμισης θα
-        σβήσει σιωπηλά όλες τις υπόλοιπες αποθηκευμένες ρυθμίσεις
-      - Διπλό require('electron') για shell σε 2 σημεία (dead/redundant
-        code, αβλαβές)
+- [x] ~~Τεχνικό χρέος από code review main.js~~ (Gemini, 2026-07-02) — **DONE 2026-07-03** (commit `549b1c8`), και τα 4 σημεία διορθώθηκαν: sync scanDir → fs.promises, python-ready wait αντί για setTimeout(3000), loadConfig() κρατά αντίγραφο κατεστραμμένου config αντί να το σβήνει σιωπηλά, αφαιρέθηκαν τα 2 redundant require('electron').
 
 ## ΜΕΓΑΛΕΣ / ΑΝΑΒΛΗΘΗΚΑΝ
 
