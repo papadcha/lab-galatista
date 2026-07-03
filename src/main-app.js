@@ -1073,12 +1073,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Κρύβω splash όταν ο Python backend είναι έτοιμος.
   // Δύο περιπτώσεις: Python έτοιμος πριν ή μετά το DOMContentLoaded.
+  const PYTHON_READY_TIMEOUT_MS = 15000; // αν ο backend δεν απαντήσει ως τότε, κάτι πήγε στραβά στην εκκίνηση
   if (window.pyBridge?.['is-python-ready']) {
     const alreadyReady = await window.pyBridge['is-python-ready']();
     if (alreadyReady) {
       hideSplash();
     } else if (window.pyBridge?.['on-python-ready']) {
-      window.pyBridge['on-python-ready'](hideSplash);
+      let pythonReadyFired = false;
+      window.pyBridge['on-python-ready'](() => {
+        pythonReadyFired = true;
+        hideSplash();
+      });
+      setTimeout(() => {
+        if (pythonReadyFired) return;
+        hideSplash();
+        App.toast('Η εφαρμογή δεν μπόρεσε να συνδεθεί με τη βάση δεδομένων. Κλείστε και ανοίξτε ξανά την εφαρμογή· αν επιμένει, επικοινωνήστε με τον διαχειριστή.', 'fail');
+      }, PYTHON_READY_TIMEOUT_MS);
     } else {
       setTimeout(hideSplash, 4000);
     }
