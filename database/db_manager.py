@@ -7,6 +7,8 @@
 # Ημ/νία  : 2026-07-02
 # ─────────────────────────────────────────────────────────────
 # Ιστορικό:
+#   0.99.6 — Migration 014: un-bake σύνθετο name στα προϊόντα (fix
+#             διπλού/λείποντος εύρους κόκκου) — CURRENT_SCHEMA_VERSION → 14
 #   0.99.5 — Migration 013: tbl_subperiod_specifications (κοκκομετρία
 #             ανά προϊόν+υποπερίοδο+πρότυπο) — CURRENT_SCHEMA_VERSION → 13
 #   0.99.4 — Migration 012: tbl_subperiod_specs (MB/SE/FL ανά
@@ -360,7 +362,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 13
+CURRENT_SCHEMA_VERSION = 14
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = _local_db_dir
@@ -492,6 +494,7 @@ def initialize_database():
         11: os.path.join(MIGRATIONS_DIR, 'migration_011_pdf_font_ibmplex.sql'),
         12: os.path.join(MIGRATIONS_DIR, 'migration_012_subperiod_specs.sql'),
         13: os.path.join(MIGRATIONS_DIR, 'migration_013_subperiod_gradation_specs.sql'),
+        14: os.path.join(MIGRATIONS_DIR, 'migration_014_unbake_product_name.sql'),
     }
 
     needs_recalc = False
@@ -2184,7 +2187,10 @@ def add_product(material_type: str, d_min: float, d_max: float,
             "Απαιτείται 0 ≤ d_min < d_max."
         )
 
-    name = _build_product_name(material_type, d_min, d_max)
+    # Σημείωση: το name αποθηκεύεται ΩΜΟ (=material_type) — η σύνθεση με
+    # d_min/d_max ("3Α 0/31.5") γίνεται μόνο στο display layer
+    # (App.formatProduct() στο frontend, _build_product_name() στο PDF).
+    display_name = _build_product_name(material_type, d_min, d_max)
 
     conn = get_connection()
     try:
@@ -2197,14 +2203,14 @@ def add_product(material_type: str, d_min: float, d_max: float,
         ).fetchone()
         if existing:
             raise ValueError(
-                f"Υπάρχει ήδη '{name}'. "
+                f"Υπάρχει ήδη '{display_name}'. "
                 "Χρησιμοποιήστε διαφορετικό τύπο ή εύρος κόκκου."
             )
         cursor = conn.execute(
             """INSERT INTO tbl_products
                    (name, material_type, d_min, d_max, standard, category, active)
                VALUES (?, ?, ?, ?, ?, ?, 1)""",
-            (name, material_type, d_min, d_max, standard, category)
+            (material_type, material_type, d_min, d_max, standard, category)
         )
         conn.commit()
         return cursor.lastrowid
@@ -2256,7 +2262,10 @@ def update_product(product_id: int, material_type: str, d_min: float,
     if d_min < 0 or d_max <= 0 or d_min >= d_max:
         raise ValueError(f"Μη έγκυρα όρια κόκκου: d_min={d_min}, d_max={d_max}.")
 
-    name = _build_product_name(material_type, d_min, d_max)
+    # Σημείωση: το name αποθηκεύεται ΩΜΟ (=material_type) — η σύνθεση με
+    # d_min/d_max ("3Α 0/31.5") γίνεται μόνο στο display layer
+    # (App.formatProduct() στο frontend, _build_product_name() στο PDF).
+    display_name = _build_product_name(material_type, d_min, d_max)
 
     conn = get_connection()
     try:
@@ -2268,7 +2277,7 @@ def update_product(product_id: int, material_type: str, d_min: float,
             (material_type, d_min, d_max, product_id)
         ).fetchone()
         if existing:
-            raise ValueError(f"Υπάρχει ήδη '{name}'.")
+            raise ValueError(f"Υπάρχει ήδη '{display_name}'.")
 
         if code:
             conn.execute(
@@ -2276,7 +2285,7 @@ def update_product(product_id: int, material_type: str, d_min: float,
                       SET name=?, material_type=?, d_min=?, d_max=?,
                           standard=?, category=?, code=?
                     WHERE id=?""",
-                (name, material_type, d_min, d_max, standard, category, code, product_id)
+                (material_type, material_type, d_min, d_max, standard, category, code, product_id)
             )
         else:
             conn.execute(
@@ -2284,7 +2293,7 @@ def update_product(product_id: int, material_type: str, d_min: float,
                       SET name=?, material_type=?, d_min=?, d_max=?,
                           standard=?, category=?
                     WHERE id=?""",
-                (name, material_type, d_min, d_max, standard, category, product_id)
+                (material_type, material_type, d_min, d_max, standard, category, product_id)
             )
         conn.commit()
         return True

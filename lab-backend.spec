@@ -21,6 +21,7 @@ a = Analysis(
         ('database/migration_011_pdf_font_ibmplex.sql',  'database'),
         ('database/migration_012_subperiod_specs.sql',   'database'),
         ('database/migration_013_subperiod_gradation_specs.sql', 'database'),
+        ('database/migration_014_unbake_product_name.sql', 'database'),
         ('standards.json',                               '.'),
         ('fonts',                                        'fonts'),
         ('src/assets/logopage.png',                      'src/assets'),

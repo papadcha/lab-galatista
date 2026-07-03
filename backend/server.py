@@ -117,6 +117,7 @@ from database.db_manager import (
     save_subperiod_specifications,
     get_effective_specifications,
     copy_previous_subperiod_specs,
+    _build_product_name,
 )
 from calculations import (
     suggest_mb_initial_volume,
@@ -1186,8 +1187,9 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
 
         def meta_tbl(W=None):
             if W is None: W = W_p
-            pn = esc(sample.get('product_name',''))
-            ps = pn  # το product_name ήδη περιέχει d_min/d_max
+            ps = esc(_build_product_name(
+                sample.get('product_name', ''), sample.get('d_min', 0), sample.get('d_max', 0)
+            ))
             rows = [
                 [Paragraph('<b>Κωδικός Δείγματος</b>', ST_SMALL),
                  Paragraph(f'<b>{esc(sample.get("code"))}</b>', ST_BODY),
@@ -1756,9 +1758,9 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
             for k, v in sieve_data.items()
         ], reverse=True)
 
-        prod_name = product.get('name','')
         d_min = product.get('d_min','')
         d_max = product.get('d_max','')
+        prod_name = _build_product_name(product.get('name',''), d_min, d_max) if product else ''
         period_str = f"{fmt_date(from_date)} — {fmt_date(to_date)}"
         sub_report = sub.get('lab_report_number','') or ''
 
