@@ -7,6 +7,9 @@
 # Ημ/νία  : 2026-07-02
 # ─────────────────────────────────────────────────────────────
 # Ιστορικό:
+#   0.99.7 — Migration 015: idempotent re-fix 3Α/Ε4 category=ALL_IN για
+#             ΚΑΘΕ υπάρχουσα βάση (το migration_001 δεν έπιανε βάσεις
+#             που "γεννήθηκαν" φρέσκιες πριν το v1.1.18) — CURRENT_SCHEMA_VERSION → 15
 #   0.99.6 — Migration 014: un-bake σύνθετο name στα προϊόντα (fix
 #             διπλού/λείποντος εύρους κόκκου) — CURRENT_SCHEMA_VERSION → 14
 #   0.99.5 — Migration 013: tbl_subperiod_specifications (κοκκομετρία
@@ -362,7 +365,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 14
+CURRENT_SCHEMA_VERSION = 15
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = _local_db_dir
@@ -495,6 +498,7 @@ def initialize_database():
         12: os.path.join(MIGRATIONS_DIR, 'migration_012_subperiod_specs.sql'),
         13: os.path.join(MIGRATIONS_DIR, 'migration_013_subperiod_gradation_specs.sql'),
         14: os.path.join(MIGRATIONS_DIR, 'migration_014_unbake_product_name.sql'),
+        15: os.path.join(MIGRATIONS_DIR, 'migration_015_fix_allin_category_data.sql'),
     }
 
     needs_recalc = False

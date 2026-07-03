@@ -1342,17 +1342,24 @@ function getDataFolder() {
   return cfg.dataFolder || null;
 }
 
+// Καθαρισμός segment πριν μπει σε path.join — π.χ. ο κωδικός δείγματος
+// περιέχει πάντα "/" από το εύρος κόκκου (π.χ. "ΑΜΜ0/4"), που το Windows/Node
+// το διαβάζει σαν directory separator αν περάσει ακαθάριστο σε filename.
+function _sanitizeFsSegment(s) {
+  return String(s).replace(/[/\\?%*:|"<>]/g, '-').trim();
+}
+
 function getPdfPath(productFolder, fileName, subperiodFolder = null) {
   // productFolder: πχ "ΑΜΜ0-4" ή "3Α0-31.5"
   // subperiodFolder: πχ "UP1" αν pdf_subfolder=true, αλλιώς null
   const base = getDataFolder();
   if (!base) return null;
-  const safe = (productFolder || 'ΑΛΛΟ').replace(/[?%*:|"<>]/g, '-').trim();
+  const safe = _sanitizeFsSegment(productFolder || 'ΑΛΛΟ');
   const dir  = subperiodFolder
     ? path.join(base, 'pdf', subperiodFolder, safe)
     : path.join(base, 'pdf', safe);
   fs.mkdirSync(dir, { recursive: true });
-  return path.join(dir, fileName);
+  return path.join(dir, _sanitizeFsSegment(fileName));
 }
 
 function getStatisticsPath(fileName) {
@@ -1360,7 +1367,7 @@ function getStatisticsPath(fileName) {
   if (!base) return null;
   const dir = path.join(base, 'statistics');
   fs.mkdirSync(dir, { recursive: true });
-  return path.join(dir, fileName);
+  return path.join(dir, _sanitizeFsSegment(fileName));
 }
 
 function getBackupPath() {

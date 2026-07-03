@@ -214,6 +214,6 @@ contextBridge.exposeInMainWorld('pyBridge', {
   update_ce_period:          (id, ceNumber, ceBody, validFrom, validTo) =>
     call('update_ce_period', id, ceNumber, ceBody, validFrom, validTo),
   get_subperiod_for_date:    (date)               => call('get_subperiod_for_date', date),
-  update_subperiod:          (id, reportNumber, notes, pdfSub, mb, se, fl, sieve) =>
-    call('update_subperiod', id, reportNumber, notes, pdfSub, mb, se, fl, sieve),
+  update_subperiod:          (id, reportNumber, notes, pdfSub, mb, se, fl, sieve, validFrom) =>
+    call('update_subperiod', id, reportNumber, notes, pdfSub, mb, se, fl, sieve, validFrom),
 });
