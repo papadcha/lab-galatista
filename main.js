@@ -705,9 +705,13 @@ async function checkForUpdates() {
   const { net } = require('electron');
   const currentVersion = app.getVersion();
 
+  // Cache-busting query param: το GitHub API στέλνει Cache-Control: max-age=60,
+  // αλλά το Chromium net stack του Electron δεν το επανα-επικυρώνει σωστά
+  // μεταξύ επανεκκινήσεων της εφαρμογής — το αποτέλεσμα μένει "κολλημένο"
+  // στην πρώτη ποτέ απάντηση επ' άπειρον. Μοναδικό URL ανά κλήση = πάντα fresh fetch.
   const request = net.request({
     method: 'GET',
-    url: 'https://api.github.com/repos/papadcha/lab-galatista/releases/latest',
+    url: `https://api.github.com/repos/papadcha/lab-galatista/releases/latest?_=${Date.now()}`,
     headers: { 'User-Agent': 'lab-galatista-updater' },
   });
 
