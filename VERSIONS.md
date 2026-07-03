@@ -180,4 +180,4 @@ build.files) και διαβάζεται από την εφαρμογή μέσω
 χρήστης πατήσει τον αριθμό έκδοσης στο sidebar footer
 (#sidebar-version, main-app.js). Ενημέρωσέ το σε κάθε version bump,
 μαζί με το CHANGELOG.md (τεχνικό, πλήρες) και το ξεχωριστό αρχείο
-Εκκρεμότητες_lab-galatista.txt (to-do list, μόνο Desktop).
+TODOLIST.md (to-do list, μόνο Desktop).

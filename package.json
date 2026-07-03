@@ -38,7 +38,7 @@
       "preload.js",
       "settings.js",
       "standards.json",
-      "Ιστορικό_Εκδόσεων_lab-galatista.txt",
+      "VERSIONS.md",
       "src/**/*",
       "fonts/**/*",
       "node_modules/**/*",
