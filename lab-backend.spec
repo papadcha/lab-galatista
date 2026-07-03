@@ -19,6 +19,8 @@ a = Analysis(
         ('database/migration_009_ce_periods.sql',        'database'),
         ('database/migration_010_document_library.sql',  'database'),
         ('database/migration_011_pdf_font_ibmplex.sql',  'database'),
+        ('database/migration_012_subperiod_specs.sql',   'database'),
+        ('database/migration_013_subperiod_gradation_specs.sql', 'database'),
         ('standards.json',                               '.'),
         ('fonts',                                        'fonts'),
         ('src/assets/logopage.png',                      'src/assets'),
