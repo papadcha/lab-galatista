@@ -494,19 +494,32 @@ window.pyBridge?.['on-archive-close-dialog']?.(() => {
   );
 });
 
-// Standards check
-async function checkDocumentStandards() {
+// Standards check — μοιραζόμενο μεταξύ sidebar badge (εδώ) και library.js banner/badges
+let _standardsCache = null;
+async function fetchStandards() {
+  if (_standardsCache) return _standardsCache;
   try {
     const resp = await fetch(
       'https://raw.githubusercontent.com/papadcha/lab-galatista/master/standards.json'
     );
-    if (!resp.ok) return;
-    const standards = await resp.json();
+    if (resp.ok) _standardsCache = await resp.json();
+  } catch(e) { /* offline or fetch error — silent */ }
+  return _standardsCache || [];
+}
+// Επιστρέφει το matching standard entry αν το έγγραφο έχει παλιά έκδοση, αλλιώς null
+function findOutdatedStandard(doc, standards) {
+  const std = standards.find(s => s.code === doc.code);
+  return (std && std.latest !== doc.version) ? std : null;
+}
+App.fetchStandards      = fetchStandards;
+App.findOutdatedStandard = findOutdatedStandard;
+
+async function checkDocumentStandards() {
+  try {
+    const standards = await fetchStandards();
+    if (!standards.length) return;
     const docs = await pyCall('get_documents_for_standards_check') || [];
-    const outdated = docs.filter(d => {
-      const std = standards.find(s => s.code === d.code);
-      return std && std.latest !== d.version;
-    });
+    const outdated = docs.filter(d => findOutdatedStandard(d, standards));
     const badge = document.getElementById('library-badge');
     if (badge) {
       badge.style.display = outdated.length ? 'inline' : 'none';

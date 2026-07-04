@@ -4,6 +4,14 @@
 
 ---
 
+## v1.1.24 — 2026-07-04
+
+**Cleanup: αφαίρεση διπλού κώδικα ελέγχου "νέα έκδοση EN προτύπου"**
+
+- Ο έλεγχος για ξεπερασμένη έκδοση προτύπου (standards.json) υλοποιούνταν δύο φορές ξεχωριστά: το sidebar badge (`main-app.js`, `checkDocumentStandards()`) και το banner/badges της Βιβλιοθήκης (`library.js`, `showStandardsAlert()`/`renderDocuments()`) — κάθε ένα με δικό του `fetch()` του `standards.json` και δική του σύγκριση `std.latest !== d.version`.
+- Consolidation: νέα shared helpers στο `App` (`fetchStandards()` με caching, `findOutdatedStandard()`) που χρησιμοποιούνται και από τα δύο σημεία. Side benefit: το `standards.json` πλέον κατεβαίνει μία φορά ανά συνεδρία αντί για δύο (μία στο startup, μία σε κάθε επίσκεψη στη Βιβλιοθήκη).
+- Επαληθεύτηκε end-to-end σε live Electron app: το network fetch έγινε ακριβώς μία φορά μετά από startup + επίσκεψη στη Βιβλιοθήκη, η Βιβλιοθήκη συνέχισε να αποδίδει κανονικά.
+
 ## v1.1.23 — 2026-07-04
 
 **Fix: επιλογές κοκκομετρίας δεν εμφανίζονταν με την πρώτη + πιο ανοιχτό μπλε στο PDF**

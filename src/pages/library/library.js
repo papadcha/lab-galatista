@@ -29,11 +29,7 @@
   // ── Sections ─────────────────────────────────────────────
   async function loadSections() {
     _sections = await pyCall('get_doc_sections') || [];
-    // Fetch standards για badge
-    try {
-      const r = await fetch('https://raw.githubusercontent.com/papadcha/lab-galatista/master/standards.json');
-      if (r.ok) _standards = await r.json();
-    } catch(e) {}
+    _standards = await App.fetchStandards();
     renderSections();
     if (_sections.length) selectSection(_sections[0]);
   }
@@ -80,14 +76,11 @@
     const alert = document.getElementById('library-standards-alert');
     const msg   = document.getElementById('library-standards-msg');
     if (!alert || !_standards.length) return;
-    const outdated = docs.filter(d => {
-      const std = _standards.find(s => s.code === d.code);
-      return std && std.latest !== d.version;
-    });
+    const outdated = docs.filter(d => App.findOutdatedStandard(d, _standards));
     if (outdated.length) {
       alert.style.display = 'block';
       msg.textContent = `${outdated.length} έγγραφ${outdated.length===1?'ο':'α'} με παλιά έκδοση: ` +
-        outdated.map(d => `${d.code} (έχεις: ${d.version || '—'}, τελευταία: ${_standards.find(s=>s.code===d.code)?.latest})`).join(', ');
+        outdated.map(d => `${d.code} (έχεις: ${d.version || '—'}, τελευταία: ${App.findOutdatedStandard(d, _standards)?.latest})`).join(', ');
     } else {
       alert.style.display = 'none';
     }
@@ -114,11 +107,11 @@
                         background:${col}22;color:${col};border:1px solid ${col}44;">${lbl}</span>`;
       }
       // Standards check badge
-      const std = _standards.find(s => s.code === d.code);
-      const outdatedBadge = std && std.latest !== d.version
+      const outdatedStd = App.findOutdatedStandard(d, _standards);
+      const outdatedBadge = outdatedStd
         ? `<span style="font-size:11px;padding:2px 7px;border-radius:10px;
              background:rgba(180,83,9,.12);color:#b45309;border:1px solid rgba(180,83,9,.3);">
-             Νέα έκδοση: ${_esc(std.latest)}</span>`
+             Νέα έκδοση: ${_esc(outdatedStd.latest)}</span>`
         : '';
 
       return `
