@@ -1581,8 +1581,129 @@
       if (lastSync && cfg.lastSync) {
         lastSync.textContent = 'Τελευταίο sync: ' + cfg.lastSync + (cfg.lastSyncStatus === 'ok' ? ' ✓' : ' ✗');
       }
+      await loadRetentionStatus();
     } else {
       if (step3Body) step3Body.classList.remove('hidden');
+    }
+  }
+
+  // ── Διατήρηση Backup στο Cloud ──────────────────────────────
+
+  async function loadRetentionStatus() {
+    const status = await pyBridgeCall('retention-get-status');
+    if (!status?.ok) return;
+    const daysInput  = document.getElementById('retention-days');
+    const autoToggle = document.getElementById('retention-auto-toggle');
+    const lockInfo   = document.getElementById('retention-lock-info');
+    const releaseBtn = document.getElementById('retention-force-release-btn');
+
+    if (daysInput) daysInput.value = status.days;
+    if (autoToggle) autoToggle.checked = status.autoEnabled && status.isMine;
+
+    if (lockInfo) {
+      if (status.lock && !status.isMine) {
+        const when = new Date(status.lock.enabledAt).toLocaleString('el-GR');
+        lockInfo.textContent = `Ήδη ενεργό σε άλλη συσκευή (${status.lock.hostname}, από ${when})`;
+        lockInfo.style.color = 'var(--warn-light,#f59e0b)';
+      } else if (status.lock && status.isMine) {
+        lockInfo.textContent = 'Ενεργό σε αυτή τη συσκευή';
+        lockInfo.style.color = 'var(--ok-light,#22c55e)';
+      } else {
+        lockInfo.textContent = '';
+      }
+    }
+    if (releaseBtn) releaseBtn.style.display = status.lock ? 'inline-block' : 'none';
+  }
+
+  async function saveRetentionDays() {
+    const days = parseInt(document.getElementById('retention-days')?.value) || 90;
+    await pyBridgeCall('retention-set-days', days);
+    App.toast('Διατήρηση αποθηκεύτηκε: ' + days + ' ημέρες', 'ok');
+  }
+
+  async function toggleRetentionAuto(checked) {
+    if (checked) {
+      const result = await pyBridgeCall('retention-enable-auto');
+      if (result?.ok) {
+        App.toast('Αυτόματος καθαρισμός ενεργοποιήθηκε', 'ok');
+      } else if (result?.error === 'owned_by_other') {
+        App.toast('Ήδη ενεργό σε άλλη συσκευή — απενεργοποίησέ το εκεί πρώτα', 'warn');
+      } else {
+        App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      }
+    } else {
+      await pyBridgeCall('retention-disable-auto');
+      App.toast('Αυτόματος καθαρισμός απενεργοποιήθηκε', 'ok');
+    }
+    await loadRetentionStatus();
+  }
+
+  async function forceReleaseRetentionLock() {
+    App.showModal(
+      '🔓 Εξαναγκασμένη Απελευθέρωση',
+      '<div style="font-size:13px;">Αυτό θα αφαιρέσει το lock ανεξάρτητα από ποια συσκευή το κατέχει. ' +
+      'Χρησιμοποίησέ το μόνο αν η άλλη συσκευή δεν υπάρχει πια ή δεν λειτουργεί.</div>',
+      [
+        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+        { label: '🔓 Απελευθέρωση', action: 'SettingsPage._doForceReleaseRetentionLock()' },
+      ]
+    );
+  }
+
+  async function _doForceReleaseRetentionLock() {
+    App.closeModal();
+    await pyBridgeCall('retention-force-release');
+    App.toast('Το lock απελευθερώθηκε', 'ok');
+    await loadRetentionStatus();
+  }
+
+  async function previewRetentionCleanup() {
+    const el = document.getElementById('retention-preview-result');
+    if (el) { el.textContent = 'Έλεγχος...'; el.style.color = 'var(--text-muted)'; }
+    const result = await pyBridgeCall('retention-preview');
+    if (!el) return;
+    if (!result?.ok) {
+      el.textContent = 'Σφάλμα: ' + (result?.error || '');
+      el.style.color = 'var(--fail-light,#ef4444)';
+      return;
+    }
+    if (result.files.length === 0) {
+      el.textContent = `Κανένα backup παλαιότερο από ${result.days} ημέρες.`;
+      el.style.color = 'var(--ok-light,#22c55e)';
+    } else {
+      el.textContent = `${result.files.length} backup παλαιότερα από ${result.days} ημέρες θα διαγραφούν στον επόμενο αυτόματο καθαρισμό (ή πάτησε "Καθαρισμός Τώρα").`;
+      el.style.color = 'var(--warn-light,#f59e0b)';
+    }
+  }
+
+  async function runRetentionCleanupNow() {
+    const preview = await pyBridgeCall('retention-preview');
+    if (!preview?.ok) { App.toast('Σφάλμα: ' + (preview?.error || ''), 'fail'); return; }
+    if (preview.files.length === 0) {
+      App.toast('Κανένα backup προς διαγραφή', 'ok');
+      return;
+    }
+    App.showModal(
+      '🧹 Καθαρισμός Backup στο Cloud',
+      `<div style="font-size:13px;">Θα διαγραφούν <strong>${preview.files.length}</strong> backup ` +
+      `παλαιότερα από <strong>${preview.days}</strong> ημέρες από το cloud. ` +
+      `Τα backups "FINAL" (κλεισίματος υποπεριόδου) δεν επηρεάζονται. Η ενέργεια δεν αναιρείται.</div>`,
+      [
+        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+        { label: '🧹 Διαγραφή', action: 'SettingsPage._doRunRetentionCleanupNow()' },
+      ]
+    );
+  }
+
+  async function _doRunRetentionCleanupNow() {
+    App.closeModal();
+    App.toast('Καθαρισμός σε εξέλιξη...', 'info');
+    const result = await pyBridgeCall('retention-run-cleanup');
+    if (result?.ok) {
+      App.toast('Ο καθαρισμός ολοκληρώθηκε', 'ok');
+      await previewRetentionCleanup();
+    } else {
+      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
     }
   }
 
@@ -2828,6 +2949,10 @@
     _confirmRestore2, _doRestore,
     loadCloudSync, selectRemote, testCloudConnection, saveCloudPath,
     changeCloudPath, syncNow, restoreFromCloud, syncDocumentLibrary, openRcloneConfig, openLink,
+    // Cloud backup retention
+    saveRetentionDays, toggleRetentionAuto,
+    forceReleaseRetentionLock, _doForceReleaseRetentionLock,
+    previewRetentionCleanup, runRetentionCleanupNow, _doRunRetentionCleanupNow,
     // CE Periods
     loadCePeriods, showNewSubperiodModal, _saveNewSubperiod,
     showEditSubperiodModal, _saveEditSubperiod,

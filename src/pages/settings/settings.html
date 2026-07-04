@@ -537,6 +537,39 @@
         <div id="cloud-last-sync" style="margin-top:8px;font-size:12px;color:var(--text-muted);"></div>
       </div>
 
+      <!-- Διατήρηση Backup στο Cloud -->
+      <div id="retention-section" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="font-weight:600;font-size:13px;margin-bottom:6px;">🧹 Διατήρηση Backup στο Cloud</div>
+        <p class="form-card-intro" style="margin-top:0;">
+          Ο διαχειριστής και ο χειριστής μοιράζονται το ίδιο cloud remote —
+          ο αυτόματος καθαρισμός επιτρέπεται μόνο σε ΜΙΑ συσκευή τη φορά.
+        </p>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <label style="margin:0;font-size:13px;">Διατήρηση backup (ημέρες)</label>
+          <input type="number" id="retention-days" min="1" style="width:80px;">
+          <button class="btn-secondary btn-sm" onclick="SettingsPage.saveRetentionDays()">✓ Αποθήκευση</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+          <input type="checkbox" id="retention-auto-toggle"
+                 onchange="SettingsPage.toggleRetentionAuto(this.checked)">
+          <span style="font-size:13px;">Αυτόματος καθαρισμός από αυτή τη συσκευή</span>
+        </label>
+        <div id="retention-lock-info" class="form-hint" style="margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-secondary btn-sm" onclick="SettingsPage.previewRetentionCleanup()">
+            👁 Προεπισκόπηση Καθαρισμού
+          </button>
+          <button class="btn-secondary btn-sm" onclick="SettingsPage.runRetentionCleanupNow()">
+            🧹 Καθαρισμός Τώρα
+          </button>
+          <button class="btn-secondary btn-sm" id="retention-force-release-btn" style="display:none;"
+                  onclick="SettingsPage.forceReleaseRetentionLock()">
+            🔓 Εξαναγκασμένη Απελευθέρωση
+          </button>
+        </div>
+        <div id="retention-preview-result" class="form-hint" style="margin-top:8px;"></div>
+      </div>
+
 
     <!-- CE Period Management -->
     <div class="form-card" style="margin-top:16px;">
