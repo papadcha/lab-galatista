@@ -1,6 +1,6 @@
 {
   "name": "lab-galatista",
-  "version": "1.1.22",
+  "version": "1.1.23",
   "description": "Εργαστήριο Λατομείων Γαλάτιστας — Σύστημα Ποιοτικού Ελέγχου",
   "main": "main.js",
   "scripts": {

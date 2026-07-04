@@ -173,6 +173,12 @@
       : await pyCall('get_specifications', s.product_id) || [];
     buildSpecOptions();
 
+    // Εμφάνιση sieve options αν υπάρχει κοκκομετρία — ανεξάρτητα από το αν
+    // το προϊόν έχει προδιαγραφές (buildSpecOptions επιστρέφει νωρίς σε
+    // αυτή την περίπτωση, δεν πρέπει να κρύβει και το ίδιο το panel).
+    const hasSieve = state.requiredTests.includes('sieve');
+    hasSieve ? show('sieve-options') : hide('sieve-options');
+
     show('single-sample-info');
   }
 
@@ -247,10 +253,6 @@
         ${esc(name)}
       </label>
     `).join('');
-
-    // Εμφάνιση sieve options αν υπάρχει κοκκομετρία
-    const hasSieve = state.requiredTests.includes('sieve');
-    if (hasSieve) show('sieve-options');
   }
 
   // ============================================================

@@ -989,7 +989,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         total_pages = len(page_list)
 
         # ── Χρώματα / Styles ──────────────────────────────────
-        BLUE_DARK  = colors.HexColor('#1a3a6b')
+        BLUE_DARK  = colors.HexColor('#3a6bb0')
         BLUE_MID   = colors.HexColor('#2563a8')
         BLUE_LIGHT = colors.HexColor('#e8f0fa')
         RED_FAIL   = colors.HexColor('#b91c1c')
@@ -1657,7 +1657,7 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
             except: pass
 
         # Χρώματα
-        BLUE_DARK  = colors.HexColor('#1a3a6b')
+        BLUE_DARK  = colors.HexColor('#3a6bb0')
         BLUE_LIGHT = colors.HexColor('#e8f0fa')
         GRAY_ROW   = colors.HexColor('#f5f5f5')
         WHITE      = colors.white
