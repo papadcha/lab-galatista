@@ -1,22 +1,3 @@
-/**
- * main.js
- * Εργαστήριο Λατομείων Γαλάτιστας
- * ─────────────────────────────────────────────────────────────
- * Έκδοση : 0.99.4
- * Ημ/νία  : 2026-06-02
- * ─────────────────────────────────────────────────────────────
- * Ιστορικό:
- *   0.99.4 — getPdfPath με υποπερίοδο subfolder
- *             save-statistics IPC handler
- *   0.99.3 — Clean Start, backup naming
- *   0.99.2 — CE expiry + split cloud sync
- *   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
- * ─────────────────────────────────────────────────────────────
- * Ιστορικό:
- *   0.99.2 — CE expiry notification + split cloud sync
- *             ce-notify-snooze/clear, ce-get-suggested-folder
- *   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
- */
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path       = require('path');
 const fs         = require('fs');
@@ -65,7 +46,7 @@ function createWindow() {
       nodeIntegration:     false,
       contextIsolation:    true,
       preload:             path.join(__dirname, 'preload.js'),
-      webSecurity:         false,  // Επιτρέπει φόρτωση τοπικών αρχείων
+      webSecurity:         true,
     },
     // Εμφάνιση παραθύρου μόνο όταν είναι έτοιμο
     show: false,
@@ -620,7 +601,9 @@ async function initActivePeriodStart() {
     _pyPending.set(id, resolve);
     try { pyProcess.stdin.write(req); }
     catch(e) { _pyPending.delete(id); resolve(null); return; }
-    setTimeout(() => { _pyPending.delete(id); resolve(null); }, 5000);
+    setTimeout(() => {
+      if (_pyPending.has(id)) { _pyPending.delete(id); resolve(null); }
+    }, 5000);
   });
 
   const validFrom = period?.active_subperiod?.valid_from || period?.valid_from;
@@ -668,7 +651,9 @@ async function performCleanStart(options = {}) {
       _pyPending.set(id, resolve);
       try { pyProcess.stdin.write(req); }
       catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-      setTimeout(() => { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }, 30000);
+      setTimeout(() => {
+        if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
+      }, 30000);
     });
     if (!vacuumResult?.ok) fs.copyFileSync(dbPath, finalPath);
   } catch(e) {
@@ -704,7 +689,9 @@ async function performCleanStart(options = {}) {
     _pyPending.set(id, resolve);
     try { pyProcess.stdin.write(req); }
     catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-    setTimeout(() => { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }, 30000);
+    setTimeout(() => {
+      if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
+    }, 30000);
   });
 
   if (!cleanResult?.ok) return cleanResult;
@@ -712,10 +699,16 @@ async function performCleanStart(options = {}) {
   // 4. Διαγραφή daily backups — κρατάμε μόνο το FINAL
   _pruneBackups(backupDir, 0);
 
-  // 5. Reset config — κρατάμε μόνο το cloud remote (το dataFolder/activePeriodStart
-  //    θα οριστούν ξανά μέσω wizard στην επόμενη εκκίνηση)
+  // 5. Reset config — μόνο το dataFolder/activePeriodStart καθαρίζονται
+  //    (θα οριστούν ξανά μέσω wizard στην επόμενη εκκίνηση)· όλες οι
+  //    υπόλοιπες global ρυθμίσεις (cloud remote, retention, sync status)
+  //    ΔΕΝ αφορούν συγκεκριμένη περίοδο και πρέπει να διατηρηθούν.
   saveConfig({
-    cloudRemotePath: cfg.cloudRemotePath || null
+    cloudRemotePath:           cfg.cloudRemotePath || null,
+    cloudRetentionDays:        cfg.cloudRetentionDays,
+    cloudRetentionAutoEnabled: cfg.cloudRetentionAutoEnabled,
+    cloudLastSync:             cfg.cloudLastSync,
+    cloudLastSyncStatus:       cfg.cloudLastSyncStatus,
   });
 
   return { ok: true, finalPath, deleted: cleanResult.deleted };
@@ -746,7 +739,9 @@ async function _pyCallMain(method, args = [], timeoutMs = 15000) {
     _pyPending.set(id, resolve);
     try { pyProcess.stdin.write(req); }
     catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-    setTimeout(() => { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }, timeoutMs);
+    setTimeout(() => {
+      if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
+    }, timeoutMs);
   });
 }
 
@@ -950,7 +945,9 @@ async function checkCeExpiryAndNotify() {
         _pyPending.set(id, resolve);
         try { pyProcess.stdin.write(reqLine); }
         catch (e) { _pyPending.delete(id); resolve(null); }
-        setTimeout(() => { _pyPending.delete(id); resolve(null); }, 8000);
+        setTimeout(() => {
+          if (_pyPending.has(id)) { _pyPending.delete(id); resolve(null); }
+        }, 8000);
       }, 1500);
     });
 
@@ -1033,8 +1030,9 @@ async function runSplitCloudSync(dataFolder, remotePath) {
 
   const pdfLocal  = path.join(dataFolder, 'pdf');
   const pdfRemote = remotePath + '/pdf';
+  let r2 = null;
   if (fs.existsSync(pdfLocal)) {
-    const r2 = await runRclone(
+    r2 = await runRclone(
       ['copy', pdfLocal, pdfRemote,
        '--checksum', '--create-empty-src-dirs'],
       180000
@@ -1044,7 +1042,7 @@ async function runSplitCloudSync(dataFolder, remotePath) {
     }
   }
 
-  if (isNetworkError(r1.error)) {
+  if (isNetworkError(r1.error) || isNetworkError(r2?.error)) {
     return { ok: false, noInternet: true, error: 'Δεν υπάρχει σύνδεση' };
   }
   return { ok: true };
@@ -1101,7 +1099,7 @@ ipcMain.handle('ce-select-folder', async () => {
 
 app.on('window-all-closed', () => {
   // Τερματισμός Python
-  if (pyProcess) {
+  if (pyProcess && !pyProcess.killed) {
     pyProcess.kill();
   }
   if (process.platform !== 'darwin') {
@@ -1176,7 +1174,7 @@ ipcMain.handle('open-guide', async (event, testType) => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,
+      webSecurity: true,
     },
   });
 
@@ -1261,7 +1259,7 @@ ipcMain.handle('generate-report-pdf', async (event, opts = {}) => {
     }
 
     async function renderPDF(mode, landscape) {
-      const htmlPath = path.join(tmp, `rpt_${mode}_${ts}.html`);
+      const htmlPath = path.join(os.tmpdir(), `rpt_${mode}_${ts}.html`);
       fs.writeFileSync(htmlPath, makeHTML(mode), 'utf8');
       const puppeteer = await getPuppeteer();
       const browser = await puppeteer.launch({
@@ -1280,10 +1278,10 @@ ipcMain.handle('generate-report-pdf', async (event, opts = {}) => {
     }
 
     const portraitData  = await renderPDF('portrait', false);
-    const portraitPath  = path.join(tmp, `rpt_portrait_${ts}.pdf`);
+    const portraitPath  = path.join(os.tmpdir(), `rpt_portrait_${ts}.pdf`);
     fs.writeFileSync(portraitPath, portraitData);
     const landscapeData = await renderPDF('landscape', true);
-    const landscapePath = path.join(tmp, `rpt_landscape_${ts}.pdf`);
+    const landscapePath = path.join(os.tmpdir(), `rpt_landscape_${ts}.pdf`);
     fs.writeFileSync(landscapePath, landscapeData);
 
     const mergeResult = await callPython('merge_pdfs', [portraitPath, landscapePath, output]);
@@ -1556,11 +1554,17 @@ function getPeriodStartStamp() {
 }
 
 function _fileHash(filePath) {
-  try {
-    return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
-  } catch(e) {
-    return null;
-  }
+  return new Promise((resolve) => {
+    try {
+      const hash   = crypto.createHash('sha256');
+      const stream = fs.createReadStream(filePath);
+      stream.on('data',  (chunk) => hash.update(chunk));
+      stream.on('end',   () => resolve(hash.digest('hex')));
+      stream.on('error', () => resolve(null));
+    } catch(e) {
+      resolve(null);
+    }
+  });
 }
 
 function _latestBackupFile(backupDir, final) {
@@ -1593,7 +1597,7 @@ async function performBackup(final = false) {
     // Αν το περιεχόμενο είναι ίδιο με το πιο πρόσφατο backup του ίδιου τύπου
     // (final/non-final), δεν κρατάμε διπλότυπο — άσχετα από ημέρα/ώρα.
     const latest = _latestBackupFile(backupDir, final);
-    if (latest && _fileHash(latest) === _fileHash(tmpDest)) {
+    if (latest && (await _fileHash(latest)) === (await _fileHash(tmpDest))) {
       fs.unlinkSync(tmpDest);
       return { success: true, path: latest, skipped: true };
     }

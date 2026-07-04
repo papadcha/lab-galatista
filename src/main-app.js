@@ -1094,29 +1094,36 @@ function initTitlebar() {
 document.addEventListener('DOMContentLoaded', async () => {
   try {
 
-  // Κρύβω splash όταν ο Python backend είναι έτοιμος.
-  // Δύο περιπτώσεις: Python έτοιμος πριν ή μετά το DOMContentLoaded.
+  // Περιμένω τον Python backend να είναι έτοιμος ΠΡΙΝ κάνω οποιαδήποτε
+  // κλήση δεδομένων παρακάτω (get_products κλπ) — αλλιώς σε αργή εκκίνηση
+  // backend, αρχικές pyCall μπορεί να λήξουν σε timeout πριν προλάβει να
+  // απαντήσει το Python, αφήνοντας άδεια κομμάτια στο dashboard ακόμα και
+  // μετά το κρύψιμο του splash.
   const PYTHON_READY_TIMEOUT_MS = 15000; // αν ο backend δεν απαντήσει ως τότε, κάτι πήγε στραβά στην εκκίνηση
   if (window.pyBridge?.['is-python-ready']) {
     const alreadyReady = await window.pyBridge['is-python-ready']();
     if (alreadyReady) {
       hideSplash();
     } else if (window.pyBridge?.['on-python-ready']) {
-      let pythonReadyFired = false;
-      window.pyBridge['on-python-ready'](() => {
-        pythonReadyFired = true;
-        hideSplash();
+      await new Promise((resolve) => {
+        let pythonReadyFired = false;
+        window.pyBridge['on-python-ready'](() => {
+          pythonReadyFired = true;
+          hideSplash();
+          resolve();
+        });
+        setTimeout(() => {
+          if (pythonReadyFired) return;
+          hideSplash();
+          App.toast('Η εφαρμογή δεν μπόρεσε να συνδεθεί με τη βάση δεδομένων. Κλείστε και ανοίξτε ξανά την εφαρμογή· αν επιμένει, επικοινωνήστε με τον διαχειριστή.', 'fail');
+          resolve();
+        }, PYTHON_READY_TIMEOUT_MS);
       });
-      setTimeout(() => {
-        if (pythonReadyFired) return;
-        hideSplash();
-        App.toast('Η εφαρμογή δεν μπόρεσε να συνδεθεί με τη βάση δεδομένων. Κλείστε και ανοίξτε ξανά την εφαρμογή· αν επιμένει, επικοινωνήστε με τον διαχειριστή.', 'fail');
-      }, PYTHON_READY_TIMEOUT_MS);
     } else {
-      setTimeout(hideSplash, 4000);
+      await new Promise((resolve) => setTimeout(() => { hideSplash(); resolve(); }, 4000));
     }
   } else {
-    setTimeout(hideSplash, 4000);
+    await new Promise((resolve) => setTimeout(() => { hideSplash(); resolve(); }, 4000));
   }
 
   // Sidebar navigation
