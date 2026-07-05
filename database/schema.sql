@@ -464,7 +464,8 @@ CREATE TABLE IF NOT EXISTS tbl_documents (
     url        TEXT,
     notes      TEXT,
     created_at TEXT    DEFAULT (datetime('now')),
-    updated_at TEXT    DEFAULT (datetime('now'))
+    updated_at TEXT    DEFAULT (datetime('now')),
+    deleted_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tbl_schema_version (

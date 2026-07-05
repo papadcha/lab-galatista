@@ -96,7 +96,7 @@ def get_doc_sections() -> list:
             SELECT s.id, s.name, s.icon, s.is_custom, s.sort_order,
                    COUNT(d.id) AS doc_count
             FROM tbl_doc_sections s
-            LEFT JOIN tbl_documents d ON d.section_id = s.id
+            LEFT JOIN tbl_documents d ON d.section_id = s.id AND d.deleted_at IS NULL
             GROUP BY s.id
             ORDER BY s.sort_order, s.id
         """).fetchall()
@@ -159,7 +159,7 @@ def get_documents(section_id: int) -> list:
     try:
         rows = conn.execute("""
             SELECT * FROM tbl_documents
-            WHERE section_id=?
+            WHERE section_id=? AND deleted_at IS NULL
             ORDER BY title
         """, (section_id,)).fetchall()
         return [dict(r) for r in rows]
@@ -207,13 +207,20 @@ def update_document(doc_id: int, title: str, code: str = None,
         conn.close()
 
 def delete_document(doc_id: int) -> dict:
+    """Soft-delete — γράφει deleted_at αντί για DELETE, ώστε η διαγραφή να
+    μπορεί να διαδοθεί σε άλλες εγκαταστάσεις μέσω sync (βλ.
+    import_document_library). Το cloud αρχείο διαγράφεται ξεχωριστά από
+    τον caller (main.js, delete-document-cloud)."""
     conn = get_connection()
     try:
         row = conn.execute(
             'SELECT cloud_path FROM tbl_documents WHERE id=?', (doc_id,)
         ).fetchone()
         cloud_path = row['cloud_path'] if row else None
-        conn.execute('DELETE FROM tbl_documents WHERE id=?', (doc_id,))
+        conn.execute(
+            "UPDATE tbl_documents SET deleted_at=datetime('now'), updated_at=datetime('now') WHERE id=?",
+            (doc_id,)
+        )
         conn.commit()
         return {'ok': True, 'cloud_path': cloud_path}
     except Exception as e:
@@ -230,7 +237,7 @@ def get_documents_for_standards_check() -> list:
             SELECT d.id, d.title, d.code, d.version, s.name AS section_name
             FROM tbl_documents d
             JOIN tbl_doc_sections s ON s.id = d.section_id
-            WHERE d.code IS NOT NULL AND d.code != ''
+            WHERE d.code IS NOT NULL AND d.code != '' AND d.deleted_at IS NULL
         """).fetchall()
         return [dict(r) for r in rows]
     finally:
@@ -238,14 +245,17 @@ def get_documents_for_standards_check() -> list:
 
 def export_document_library() -> list:
     """
-    Εξάγει όλα τα έγγραφα με το όνομα (όχι id) της ενότητάς τους, για
-    ανταλλαγή manifest με άλλες εγκαταστάσεις (Sync Βιβλιοθήκης).
+    Εξάγει όλα τα έγγραφα (ΚΑΙ τα soft-deleted, ώστε η διαγραφή τους να
+    διαδοθεί) με το όνομα (όχι id) της ενότητάς τους, updated_at/deleted_at
+    για upsert-by-timestamp στην άλλη πλευρά. Ανταλλαγή manifest μεταξύ
+    εγκαταστάσεων (Sync Βιβλιοθήκης).
     """
     conn = get_connection()
     try:
         rows = conn.execute("""
             SELECT d.title, d.code, d.version, d.expires_at, d.cloud_path,
-                   d.url, d.notes, s.name AS section_name, s.icon AS section_icon
+                   d.url, d.notes, d.updated_at, d.deleted_at,
+                   s.name AS section_name, s.icon AS section_icon
             FROM tbl_documents d
             JOIN tbl_doc_sections s ON s.id = d.section_id
             WHERE d.cloud_path IS NOT NULL AND d.cloud_path != ''
@@ -256,16 +266,22 @@ def export_document_library() -> list:
 
 def import_document_library(items: list) -> dict:
     """
-    Εισάγει έγγραφα από manifest άλλης εγκατάστασης — μόνο προσθήκες.
+    Εισάγει/ενημερώνει/διαγράφει έγγραφα από manifest άλλης εγκατάστασης.
     Ταύτιση με cloud_path (μοναδικό, αφού όλα τα αρχεία ζουν σε κοινό
-    cloud σημείο). Η ενότητα βρίσκεται/δημιουργείται με βάση το όνομα.
+    cloud σημείο). Upsert βάσει updated_at — "τελευταία γραφή κερδίζει"
+    (last-write-wins με local ρολόγια· αποδεκτό για μικρή, εσωτερική χρήση,
+    δεν προσπαθούμε να λύσουμε clock skew). Ένα εισερχόμενο deleted_at
+    διαδίδεται σαν soft-delete αντί να αγνοηθεί.
     """
     conn = get_connection()
     added = 0
+    updated = 0
+    deleted = 0
     try:
-        existing_paths = {
-            row[0] for row in conn.execute(
-                "SELECT cloud_path FROM tbl_documents WHERE cloud_path IS NOT NULL"
+        existing = {
+            row['cloud_path']: dict(row)
+            for row in conn.execute(
+                "SELECT id, cloud_path, updated_at FROM tbl_documents WHERE cloud_path IS NOT NULL"
             ).fetchall()
         }
         sections_by_name = {
@@ -274,30 +290,63 @@ def import_document_library(items: list) -> dict:
         }
         for item in items:
             cloud_path = item.get('cloud_path')
-            if not cloud_path or cloud_path in existing_paths:
+            if not cloud_path:
                 continue
-            section_name = item.get('section_name') or 'Άλλα'
-            section_id = sections_by_name.get(section_name)
-            if section_id is None:
-                max_order = conn.execute(
-                    'SELECT COALESCE(MAX(sort_order),0)+1 FROM tbl_doc_sections'
-                ).fetchone()[0]
-                cur = conn.execute(
-                    'INSERT INTO tbl_doc_sections (name, icon, is_custom, sort_order) VALUES (?,?,1,?)',
-                    (section_name, item.get('section_icon') or '📁', max_order)
+            incoming_updated_at = item.get('updated_at')
+            incoming_deleted_at = item.get('deleted_at')
+            local = existing.get(cloud_path)
+
+            if local is None:
+                # Νέο έγγραφο — αν φτάνει ήδη διαγραμμένο από την άλλη
+                # πλευρά, δεν έχει νόημα να δημιουργηθεί τοπικά καθόλου.
+                if incoming_deleted_at:
+                    continue
+                section_name = item.get('section_name') or 'Άλλα'
+                section_id = sections_by_name.get(section_name)
+                if section_id is None:
+                    max_order = conn.execute(
+                        'SELECT COALESCE(MAX(sort_order),0)+1 FROM tbl_doc_sections'
+                    ).fetchone()[0]
+                    cur = conn.execute(
+                        'INSERT INTO tbl_doc_sections (name, icon, is_custom, sort_order) VALUES (?,?,1,?)',
+                        (section_name, item.get('section_icon') or '📁', max_order)
+                    )
+                    section_id = cur.lastrowid
+                    sections_by_name[section_name] = section_id
+                conn.execute("""
+                    INSERT INTO tbl_documents
+                        (section_id, title, code, version, expires_at, cloud_path, url, notes, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?)
+                """, (section_id, item.get('title'), item.get('code'), item.get('version'),
+                      item.get('expires_at'), cloud_path, item.get('url'), item.get('notes'),
+                      incoming_updated_at))
+                added += 1
+                continue
+
+            # Υπάρχει ήδη τοπικά — upsert μόνο αν το εισερχόμενο είναι
+            # γνήσια πιο πρόσφατο (string compare — ίδια μορφή SQLite
+            # datetime('now') παντού, οπότε lexicographic σύγκριση δουλεύει).
+            local_updated_at = local.get('updated_at') or ''
+            if not incoming_updated_at or incoming_updated_at <= local_updated_at:
+                continue
+            if incoming_deleted_at:
+                conn.execute(
+                    "UPDATE tbl_documents SET deleted_at=?, updated_at=? WHERE id=?",
+                    (incoming_deleted_at, incoming_updated_at, local['id'])
                 )
-                section_id = cur.lastrowid
-                sections_by_name[section_name] = section_id
-            conn.execute("""
-                INSERT INTO tbl_documents
-                    (section_id, title, code, version, expires_at, cloud_path, url, notes)
-                VALUES (?,?,?,?,?,?,?,?)
-            """, (section_id, item.get('title'), item.get('code'), item.get('version'),
-                  item.get('expires_at'), cloud_path, item.get('url'), item.get('notes')))
-            existing_paths.add(cloud_path)
-            added += 1
+                deleted += 1
+            else:
+                conn.execute("""
+                    UPDATE tbl_documents
+                    SET title=?, code=?, version=?, expires_at=?, url=?, notes=?,
+                        updated_at=?, deleted_at=NULL
+                    WHERE id=?
+                """, (item.get('title'), item.get('code'), item.get('version'),
+                      item.get('expires_at'), item.get('url'), item.get('notes'),
+                      incoming_updated_at, local['id']))
+                updated += 1
         conn.commit()
-        return {'ok': True, 'added': added}
+        return {'ok': True, 'added': added, 'updated': updated, 'deleted': deleted}
     except Exception as e:
         conn.rollback()
         return {'ok': False, 'error': str(e)}
@@ -340,7 +389,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 15
+CURRENT_SCHEMA_VERSION = 16
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = _local_db_dir
@@ -474,6 +523,7 @@ def initialize_database():
         13: os.path.join(MIGRATIONS_DIR, 'migration_013_subperiod_gradation_specs.sql'),
         14: os.path.join(MIGRATIONS_DIR, 'migration_014_unbake_product_name.sql'),
         15: os.path.join(MIGRATIONS_DIR, 'migration_015_fix_allin_category_data.sql'),
+        16: os.path.join(MIGRATIONS_DIR, 'migration_016_document_library_soft_delete.sql'),
     }
 
     needs_recalc = False

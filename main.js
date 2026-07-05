@@ -391,10 +391,11 @@ ipcMain.handle('sync-document-library', async () => {
       } catch(e) { /* αγνόησε κατεστραμμένο manifest */ }
     }
 
-    // 5. Εισαγωγή νέων εγγράφων (μόνο προσθήκες, βάσει cloud_path)
+    // 5. Upsert εγγράφων βάσει cloud_path + updated_at (προσθήκες, ενημερώσεις,
+    //    και soft-delete tombstones από άλλες εγκαταστάσεις)
     const result = await _pyCallMain('import_document_library', [allItems]);
     if (!result?.ok) return { ok: false, error: result?.error || 'Άγνωστο σφάλμα' };
-    return { ok: true, added: result.added };
+    return { ok: true, added: result.added, updated: result.updated, deleted: result.deleted };
   } catch (e) {
     return { ok: false, error: e.message };
   }

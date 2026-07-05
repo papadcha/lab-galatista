@@ -1773,9 +1773,11 @@
     App.toast('Sync βιβλιοθήκης σε εξέλιξη...', 'info');
     const result = await pyBridgeCall('sync-document-library');
     if (result?.ok) {
-      App.toast(result.added > 0
-        ? `Sync βιβλιοθήκης: +${result.added} νέα έγγραφα`
-        : 'Sync βιβλιοθήκης: καμία αλλαγή', 'ok');
+      const parts = [];
+      if (result.added)   parts.push(`+${result.added} νέα`);
+      if (result.updated) parts.push(`${result.updated} ενημερώθηκαν`);
+      if (result.deleted) parts.push(`${result.deleted} διαγράφηκαν`);
+      App.toast(parts.length ? `Sync βιβλιοθήκης: ${parts.join(', ')}` : 'Sync βιβλιοθήκης: καμία αλλαγή', 'ok');
     } else if (result?.noInternet) {
       App.toast('Δεν υπάρχει σύνδεση internet', 'warn');
     } else {

@@ -3,7 +3,7 @@
 Τελευταία ενημέρωση: 2026-07-05
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί).
-Τρέχουσα έκδοση: v1.1.27
+Τρέχουσα έκδοση: v1.1.28
 
 ---
 
@@ -22,12 +22,6 @@
       `restore-from-archive`, main.js) που ήδη κάνει ακριβώς αυτό το
       connection-swap trick για CE period archives — ίσως γενικευτεί
       ώστε να δέχεται οποιοδήποτε backup path.
-- [ ] Διάδοση επεξεργασίας/διαγραφής στη βιβλιοθήκη εγγράφων — το
-      additions-only sync (v1.1.11) δεν διαδίδει edits/deletes ακόμα.
-      Design εγκεκριμένο (2026-07-02, όχι ακόμα υλοποιημένο): προσθήκη
-      updated_at/deleted_at στο tbl_documents, upsert logic στο
-      import_document_library() αντί για "insert μόνο αν λείπει".
-
 ## ESM REDESIGN (εκκρεμότητα μεσαίου μεγέθους)
 
 - [ ] CommonJS → ESM, αναβάθμιση Electron 28→latest, puppeteer

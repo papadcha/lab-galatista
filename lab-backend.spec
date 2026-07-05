@@ -23,6 +23,7 @@ a = Analysis(
         ('database/migration_013_subperiod_gradation_specs.sql', 'database'),
         ('database/migration_014_unbake_product_name.sql', 'database'),
         ('database/migration_015_fix_allin_category_data.sql', 'database'),
+        ('database/migration_016_document_library_soft_delete.sql', 'database'),
         ('standards.json',                               '.'),
         ('fonts',                                        'fonts'),
         ('src/assets/logopage.png',                      'src/assets'),
