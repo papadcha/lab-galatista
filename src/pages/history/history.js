@@ -5,6 +5,10 @@
  * Έκδοση : 0.99.0
  * Ημ/νία  : 2026-06-02
  */
+// ES module — φορτώνεται με πραγματικό <script type="module" src="...">
+// (βλ. main-app.js: Pages.history.module + navigateTo()).
+import { pyCall, App, AppState } from '../../main-app.js';
+
 (() => {
 
   // ============================================================

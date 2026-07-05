@@ -100,7 +100,7 @@ const Pages = {
   dashboard: { html: 'pages/dashboard/dashboard.html', js: 'pages/dashboard/dashboard.js', module: true },
   samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js',     module: true },
   tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js'         },
-  history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js'     },
+  history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js',     module: true },
   reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
   library:   { html: 'pages/library/library.html',     js: 'pages/library/library.js'     },
   settings:  { html: 'pages/settings/settings.html',   js: 'pages/settings/settings.js'   },
