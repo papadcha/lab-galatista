@@ -9,6 +9,13 @@
  *   0.99.2 — CE period management UI + subperiod modal
  *   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
  */
+// ES module — φορτώνεται με πραγματικό <script type="module" src="...">
+// (βλ. main-app.js: Pages.settings.module + navigateTo()).
+import {
+  pyCall, pyCallStrict, App, AppState,
+  navigateTo, _esc, _formatCeDate, _toIsoDate, _updateSidebarArchiveBanner,
+} from '../../main-app.js';
+
 (() => {
 
   // ============================================================
