@@ -1035,6 +1035,24 @@ ipcMain.handle('get-allowed-versions', async () => {
   return allowed || { versions: [], latestRecommendedVersion: null, safeDowngradeFloor: null, notice: null };
 });
 
+// Γιατί το token είναι embedded (και όχι server-side proxy): η εφαρμογή
+// δεν έχει δικό της backend/server — μόνο 2 τοπικές εγκαταστάσεις χωρίς
+// κοινή υποδομή (βλ. Multi-Install Architecture). Ένα proxy θα σήμαινε
+// να στηθεί/συντηρείται ξεχωριστό server μόνο για αυτή τη λειτουργία,
+// δυσανάλογο για ένα εσωτερικό εργαλείο 2 χρηστών. Αντ' αυτού, το token
+// είναι fine-grained PAT scoped ΜΟΝΟ σε "Issues: write" στο συγκεκριμένο
+// repo — επαληθεύτηκε εμπειρικά ότι απορρίπτεται (403) σε write στο
+// contents API, άρα ακόμα κι αν εξαχθεί από το .exe το χειρότερο δυνατό
+// είναι spam issues, όχι αλλαγή κώδικα/releases/δεδομένων.
+//
+// Rotation αν ποτέ χρειαστεί (π.χ. issue spam κατάχρηση): (1) revoke το
+// τρέχον token στο GitHub (Settings → Developer settings → Fine-grained
+// tokens), (2) δημιούργησε νέο με το ΙΔΙΟ στενό scope (μόνο Issues: write,
+// μόνο αυτό το repo), (3) αντικατέστησε την τιμή στο τοπικό
+// github-token.json (gitignored, ΔΕΝ μπαίνει στο git), (4) νέο release —
+// οι ήδη εγκατεστημένες εκδόσεις κρατάνε το παλιό (πλέον ανενεργό) token
+// μέχρι να αναβαθμιστούν, οπότε το report-version-issue απλά θα αποτυγχάνει
+// σιωπηλά γι' αυτές μέχρι την αναβάθμιση.
 function _loadGithubToken() {
   try {
     const raw = fs.readFileSync(path.join(__dirname, 'github-token.json'), 'utf-8');

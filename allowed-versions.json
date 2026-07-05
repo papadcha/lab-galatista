@@ -1,9 +1,10 @@
 {
   "_comment": "Χειροκίνητα συντηρούμενο αρχείο — ενημερώνεται σε κάθε release, ή εκτάκτως αν μια έκδοση αποδειχτεί προβληματική (βλ. TODOLIST.md). latestRecommendedVersion μπορεί να είναι ΠΙΣΩ από την τελευταία GitHub release αν αυτή έχει γνωστό πρόβλημα.",
-  "latestRecommendedVersion": "1.1.31",
+  "latestRecommendedVersion": "1.1.32",
   "safeDowngradeFloor": "1.1.23",
   "notice": null,
   "versions": [
+    { "version": "1.1.32", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.32/Setup.1.1.32.exe", "notes": "Διορθώσεις σταθερότητας: memory leak, button-lock, code duplication" },
     { "version": "1.1.31", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.31/Setup.1.1.31.exe", "notes": "Επιλεκτική Επαναφορά Δείγματος από Backup" },
     { "version": "1.1.30", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.30/Setup.1.1.30.exe", "notes": "Ενοποίηση Παλιότερων Εκδόσεων + Αναφοράς Προβλήματος στο Ιστορικό Εκδόσεων, με χρωματισμό" },
     { "version": "1.1.29", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.29/Setup.1.1.29.exe", "notes": "Αναφορά προβλήματος έκδοσης + λίστα παλιότερων εκδόσεων μέσα από την εφαρμογή" },

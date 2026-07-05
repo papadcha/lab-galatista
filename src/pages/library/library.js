@@ -6,7 +6,8 @@
 
   // ── Helpers ───────────────────────────────────────────────
   const pyCall = App.pyCall || window.pyCall;
-  function _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  // _esc: ίδιο όνομα με το global του main-app.js, πανομοιότυπη λογική —
+  // αφαιρέθηκε το τοπικό αντίγραφο.
   function _fmt(d) {
     if (!d) return '—';
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {

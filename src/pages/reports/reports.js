@@ -1217,14 +1217,10 @@
     if (toEl   && !toEl.value)   toEl.value   = fmtMax;
   }
 
-  function _fmtDateGR(d) {
-    if (!d) return '';
-    if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
-      const [y,m,day] = d.substring(0,10).split('-');
-      return `${day}/${m}/${y}`;
-    }
-    return d;
-  }
+  // Πανομοιότυπη λογική με το global _formatCeDate (main-app.js) —
+  // κρατάει το τοπικό όνομα (πολλά call sites) σαν alias αντί για δικό
+  // της αντίγραφο.
+  const _fmtDateGR = _formatCeDate;
 
   function _toISOLocal(v) {
     if (!v || !v.trim()) return null;

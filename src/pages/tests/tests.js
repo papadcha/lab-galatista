@@ -32,12 +32,9 @@
   function show(id) { el(id)?.classList.remove('hidden'); }
   function hide(id) { el(id)?.classList.add('hidden');    }
 
-  function esc(s) {
-    if (s == null) return '';
-    return String(s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+  // Πανομοιότυπη λογική με το global _esc (main-app.js) — κρατάει το
+  // τοπικό όνομα (πολλά call sites) σαν alias αντί για δικό της αντίγραφο.
+  const esc = _esc;
 
   // ============================================================
   // INIT

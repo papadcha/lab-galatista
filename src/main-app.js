@@ -198,9 +198,25 @@ const App = {
     document.getElementById('modal-content').innerHTML   = content;
     document.getElementById('modal-actions').innerHTML   = buttons.map(b => `
       <button class="${b.secondary ? 'btn-secondary' : 'btn-primary'}"
-              onclick="${b.action}">${b.label}</button>
+              onclick="App._withButtonLock(this, () => { ${b.action} })">${b.label}</button>
     `).join('');
     document.getElementById('modal-overlay').classList.remove('hidden');
+  },
+
+  // Κεντρικός μηχανισμός κλειδώματος κουμπιού για async ενέργειες modal —
+  // εφαρμόζεται αυτόματα σε ΟΛΑ τα κουμπιά του showModal() παραπάνω, ώστε
+  // ένα γρήγορο διπλό-κλικ να μην στέλνει διπλό αίτημα στο backend (καμία
+  // αλλαγή δεν χρειάζεται στα 20+ σημεία που καλούν showModal). Αν το
+  // action κλείσει το modal (συνηθισμένο), το κουμπί απλά δεν υπάρχει πια
+  // όταν προσπαθήσουμε να το ξανα-ενεργοποιήσουμε — αβλαβές.
+  async _withButtonLock(btn, fn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+      await fn();
+    } finally {
+      if (btn && document.body.contains(btn)) btn.disabled = false;
+    }
   },
 
   closeModal() {

@@ -474,7 +474,7 @@
         'add_product', materialType, dmin, dmax, standard, category
       );
       App.closeModal();
-      App.toast(`Προϊόν "${name}" προστέθηκε`, 'ok');
+      App.toast(`Προϊόν "${materialType}" προστέθηκε`, 'ok');
       await loadProducts();
       await _refreshAppStateProducts();
       if (newId) openSievesCard(newId);
@@ -693,6 +693,16 @@
    *  • Κόκκινο pill αν sieve_mm > d_max * 3  (προφανής ασυμφωνία)
    *  • Free entry: input + autocomplete από ISO_SIEVES
    */
+  // Καταχωρείται μία φορά ανά φόρτωση του module (όχι μέσα στο
+  // renderSievesSelector(), που καλείται πολλές φορές ανά επίσκεψη στη
+  // σελίδα — αλλιώς μαζεύονταν δεκάδες listeners, βλ. code review).
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('sieve-context-menu');
+    if (menu && menu.style.display === 'block' && !menu.contains(e.target)) {
+      _hideSieveContextMenu();
+    }
+  });
+
   function renderSievesSelector() {
     const container = el('sieves-selector');
     if (!container) return;
@@ -823,9 +833,6 @@
         </div>
       </div>
     `;
-
-    // Κλείσιμο context menu αν κάνει κλικ αλλού
-    document.addEventListener('click', _hideSieveContextMenu, { once: false });
   }
 
   // ─── Context menu ───
@@ -2239,18 +2246,11 @@
     await window.pyBridge?.['open-pdf']?.(folder);
   }
 
-  function _esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function _fmtDate(d) {
-    if (!d) return '';
-    if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
-      const [y, m, day] = d.substring(0, 10).split('-');
-      return `${day}/${m}/${y}`;
-    }
-    return d;
-  }
+  // _esc/_toIsoDate ζουν πλέον μόνο στο main-app.js (global, ίδιο scope
+  // chain) — αφαιρέθηκαν οι τοπικές, πανομοιότυπες υλοποιήσεις εδώ.
+  // _fmtDate κρατάει το τοπικό όνομα (πολλά call sites) αλλά δείχνει
+  // στην ίδια global υλοποίηση (_formatCeDate) αντί για δικό της αντίγραφο.
+  const _fmtDate = _formatCeDate;
 
   // ── Επεξεργασία Υποπεριόδου ────────────────────────────────
 
@@ -2738,15 +2738,9 @@
     }
   }
 
-  // Βοηθητική: DD/MM/YYYY ή YYYY-MM-DD → YYYY-MM-DD για date input
-  function _toIsoDate(d) {
-    if (!d) return '';
-    if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.substring(0, 10);
-    // DD/MM/YYYY
-    const parts = d.split('/');
-    if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-    return d;
-  }
+  // _toIsoDate: ίδιο όνομα με το global του main-app.js, πανομοιότυπη
+  // λογική — αφαιρέθηκε το τοπικό αντίγραφο, τα call sites παρακάτω
+  // λύνονται πλέον στο global μέσω scope chain.
 
   // ── Νέα CE Period ────────────────────────────────────────
 
