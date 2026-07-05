@@ -9,11 +9,15 @@
 
 ## ΜΙΚΡΕΣ / ΓΝΩΣΤΕΣ ΕΚΚΡΕΜΟΤΗΤΕΣ
 
-## ESM REDESIGN (εκκρεμότητα μεσαίου μεγέθους)
+## ESM REDESIGN (εκκρεμότητα μεσαίου μεγέθους) — v2.0.0
 
 - [ ] CommonJS → ESM, αναβάθμιση Electron 28→latest, puppeteer
       21→latest (pinned λόγω puppeteer 22+ ESM-only). Ξεκίνα από τη
       μετατροπή main.js, preload.js, src/ σε ESM πρώτα.
+      **Branch**: `v2-esm-redesign` (δημιουργήθηκε 2026-07-05 από
+      master) — το master παίρνει bug fixes/features κανονικά (v1.x),
+      περνάνε περιοδικά με merge στο `v2-esm-redesign`· το αντίθετο ΟΧΙ
+      μέχρι να ολοκληρωθεί, οπότε γίνεται merge πίσω + tag v2.0.0.
 
 ## ROADMAP — ΕΓΚΕΚΡΙΜΕΝΑ ΓΙΑ ΤΟ ΜΕΛΛΟΝ (όχι τρέχουσα φάση)
 
