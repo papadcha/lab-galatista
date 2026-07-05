@@ -19,6 +19,20 @@
       περνάνε περιοδικά με merge στο `v2-esm-redesign`· το αντίθετο ΟΧΙ
       μέχρι να ολοκληρωθεί, οπότε γίνεται merge πίσω + tag v2.0.0.
 
+- [ ] Modularization του main.js (προτάθηκε από code review, 2026-07-06)
+      — σήμερα ακολουθεί γραμμική λογική σε ένα μεγάλο αρχείο. Διαχωρισμός
+      σε ξεχωριστά αρχεία ανά ευθύνη (π.χ. ui.js/api.js/utils.js, ή ανά
+      domain: cloud-sync.js, archive-mode.js, retention.js κλπ) — φυσικό
+      επακόλουθο της μετατροπής σε ESM (import/export ενεργοποιεί το
+      σπάσιμο σε αρχεία που σήμερα το CommonJS δεν το επιβάλλει).
+
+- [ ] State management (προτάθηκε από code review, 2026-07-06) — η
+      κατάσταση της εφαρμογής (main.js: `_archiveMode`, `_archivePeriodId`,
+      `_archiveDataFolder`, `_pyPending`, κλπ· main-app.js: `AppState`)
+      είναι σήμερα διάσπαρτες global μεταβλητές. Πρόταση: ενιαίο state
+      object/store ανά process (main.js side, main-app.js side) αντί για
+      πολλαπλές ανεξάρτητες globals — μαζί με το modularization παραπάνω.
+
 - [ ] Κατάργηση του generic `pyBridge.call`/`py-call` dispatcher
       (preload.js/main.js) — προτάθηκε από code review (Gemini #4,
       2026-07-05). Σήμερα 64 διαφορετικές Python μεθόδους περνάνε από
