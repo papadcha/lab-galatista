@@ -1,6 +1,6 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-07-05 (src/ πλήρως σε ESM — 7/7 σελίδες)
+Τελευταία ενημέρωση: 2026-07-05 (Electron 28→43, puppeteer αφαιρέθηκε)
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί).
 Τρέχουσα έκδοση: v1.1.32
@@ -61,9 +61,18 @@
         σελίδα ξεχωριστά (re-init σε επαναπλοήγηση, πραγματικά modals/
         forms/υπολογισμοί/CRUD flows), 0 console errors παντού.
 
-- [ ] Αναβάθμιση Electron 28→latest, puppeteer 21→latest (pinned λόγω
-      puppeteer 22+ ESM-only — τώρα που το main process είναι ESM αυτό
-      το εμπόδιο μάλλον έχει λυθεί, χρειάζεται επιβεβαίωση).
+- [x] Αναβάθμιση Electron 28→43 (Φάση 4, βλ. CHANGELOG-v2.md) —
+      ολοκληρώθηκε 2026-07-05. Το puppeteer **αφαιρέθηκε εντελώς** αντί
+      να αναβαθμιστεί: ήταν μόνο fallback στο `generate-report-pdf` (η
+      κύρια μέθοδος είναι Python/reportlab) και δεν συσκευαζόταν καν
+      στο installer (`!node_modules/puppeteer/**/*`) — άρα δεν δούλευε
+      ποτέ στην πραγματική εγκατάσταση, μόνο σε dev mode. Αντικαταστάθηκε
+      με κρυφό `BrowserWindow` + `webContents.printToPDF()` (μηδέν
+      επιπλέον dependency, δουλεύει και packaged). Αφαιρέθηκε επίσης το
+      ορφανό `puppeteer-core` (ποτέ δεν το import-άριζε ο κώδικας).
+      Βρέθηκε πραγματικό bug κατά την επαλήθευση: τα `margins` του
+      `printToPDF` είναι σε ίντσες, όχι pixels όπως λέει (λάθος) το
+      bundled `electron.d.ts` — διορθώθηκε.
       **Branch**: `v2-esm-redesign` (δημιουργήθηκε 2026-07-05 από
       master) — το master παίρνει bug fixes/features κανονικά (v1.x),
       περνάνε περιοδικά με merge στο `v2-esm-redesign`· το αντίθετο ΟΧΙ

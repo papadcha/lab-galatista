@@ -10,6 +10,51 @@
 
 ---
 
+## Φάση 4 — Electron 28→43, αφαίρεση puppeteer (2026-07-05)
+
+- **`package.json`**: `electron` `^28.3.3` → `^43.0.0` (15 major versions —
+  ήταν πίσω ειδικά λόγω του puppeteer 22+ ESM-only περιορισμού, που δεν
+  ισχύει πια αφού το main process είναι ESM από τη Φάση 1).
+  `electron-builder` ήδη στο latest (`^26.15.3`), καμία αλλαγή.
+- **Αφαιρέθηκε εντελώς το `puppeteer`** (και το ορφανό `puppeteer-core`,
+  που δεν το import-άριζε πουθενά ο κώδικας — ήταν εσωτερική εξάρτηση του
+  puppeteer, ο ξεχωριστός top-level ορισμός ήταν κατάλοιπο). Το puppeteer
+  ήταν μόνο fallback στο `generate-report-pdf` (η κύρια μέθοδος είναι
+  Python/reportlab, όταν δίνεται sampleId) και **δεν συσκευαζόταν καν στο
+  installer** (`!node_modules/puppeteer/**/*` στο `files`) — άρα το
+  fallback δεν δούλευε ποτέ στην πραγματική εγκατάσταση, μόνο σε dev mode.
+- **`modules/pdf-generation.js`**: το fallback αντικαταστάθηκε με κρυφό
+  `BrowserWindow` (`show:false`) + `webContents.printToPDF()` — το ήδη
+  ενσωματωμένο Chromium του Electron, μηδέν επιπλέον dependency, δουλεύει
+  και packaged. Bug που βρέθηκε κατά την επαλήθευση: τα `margins` του
+  `printToPDF` είναι σε **ίντσες**, όχι pixels όπως λέει (λάθος) το
+  bundled `electron.d.ts` — το πρώτο live test απέτυχε με "margins must
+  be less than or equal to pageSize" με τιμές σε pixels· διορθώθηκε.
+- **`allowScripts`**: αφαιρέθηκε το ασυνεπές `puppeteer@25.0.4` (δεν
+  ταίριαζε με το πραγματικό `puppeteer@21.11.0` dependency), προστέθηκε
+  `electron@43.0.0` και το νέο transitive `electron-winstaller@5.4.0`
+  (ελέγχθηκε το install script του — αντιγράφει απλώς το σωστό 7z binary
+  για το NSIS packaging, ακίνδυνο).
+
+Επαληθεύτηκε: `node --check` σε όλα τα αλλαγμένα αρχεία· ζωντανή εκκίνηση
+Electron 43 (Python backend, backup, cloud sync όλα καθαρά)· το νέο
+BrowserWindow fallback παρήγαγε πραγματικό, έγκυρο 2-σέλιδο PDF
+(portrait+landscape merge) μέσω playwright-core `_electron` (καλέστηκε ο
+IPC handler απευθείας χωρίς sampleId για να αναγκαστεί το fallback path,
+αφού η πραγματική χρήση περνάει πάντα από το Python path)· πλήρης κύκλος
+πλοήγησης στις 7 σελίδες, 0 console errors.
+
+Εκτός scope, για σημείωση: το `npm audit` δείχνει 1 high-severity
+ευπάθεια στο `nodemailer` (CRLF injection κ.ά.), άσχετη με αυτή την
+αναβάθμιση.
+
+**Αρχεία:**
+- `package.json`
+- `package-lock.json`
+- `modules/pdf-generation.js`
+
+---
+
 ## Φάση 3 (ολοκλήρωση) — και οι 7 σελίδες σε ESM (2026-07-05)
 
 Ολοκληρώθηκε η μετατροπή του `src/` σε ESM: dashboard.js, samples.js,
