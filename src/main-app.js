@@ -98,7 +98,7 @@ const Pages = {
   // module:true — η σελίδα έχει μετατραπεί σε ES module (import/export)·
   // βλ. navigateTo() παρακάτω για τη διαφορά στον τρόπο φόρτωσης.
   dashboard: { html: 'pages/dashboard/dashboard.html', js: 'pages/dashboard/dashboard.js', module: true },
-  samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js'     },
+  samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js',     module: true },
   tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js'         },
   history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js'     },
   reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
