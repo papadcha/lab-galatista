@@ -1,6 +1,6 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-07-05
+Τελευταία ενημέρωση: 2026-07-05 (ESM modularization + state management ολοκληρώθηκαν)
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί).
 Τρέχουσα έκδοση: v1.1.32
@@ -11,27 +11,38 @@
 
 ## ESM REDESIGN (εκκρεμότητα μεσαίου μεγέθους) — v2.0.0
 
-- [ ] CommonJS → ESM, αναβάθμιση Electron 28→latest, puppeteer
-      21→latest (pinned λόγω puppeteer 22+ ESM-only). Ξεκίνα από τη
-      μετατροπή main.js, preload.js, src/ σε ESM πρώτα.
+- [x] main.js → ESM (`import`/`export`), preload.js → preload.cjs
+      (ρητά CommonJS — το Electron 28 αποτυγχάνει σιωπηλά να εκτελέσει ESM
+      preload script, επαληθεύτηκε εμπειρικά), `"type": "module"` στο
+      package.json. Ολοκληρώθηκε 2026-07-05 (Φάση 1, βλ. CHANGELOG-v2.md).
+
+- [x] Modularization του main.js (προτάθηκε από code review, 2026-07-06)
+      — ολοκληρώθηκε 2026-07-05 (Φάση 2, βλ. CHANGELOG-v2.md). main.js:
+      1968 → 237 γραμμές. Domain λογική σε 9 νέα modules/ αρχεία:
+      state.js, python-bridge.js, config.js, cloud-sync.js, retention.js,
+      archive-mode.js, clean-start.js, update-check.js, ce-period.js,
+      pdf-generation.js, email.js, document-library.js (μένουν μόνο
+      createWindow, app lifecycle, window IPC, init-active-period-start,
+      guide window).
+
+- [x] State management (προτάθηκε από code review, 2026-07-06) — έγινε
+      μαζί με το modularization παραπάνω: `modules/state.js`, ενιαίο
+      mutable state object (`mainWindow`, `pyProcess`, `pyPending`,
+      `archiveMode`, κλπ) αντί για διάσπαρτες global μεταβλητές στο main.js
+      (το main-app.js είχε ήδη ενιαίο `AppState`, δεν χρειάστηκε αλλαγή
+      εκεί).
+
+- [ ] src/ (renderer) → ESM — το main-app.js και τα υπόλοιπα renderer
+      αρχεία φορτώνονται ακόμα με απλά `<script src="...">`, όχι
+      `import`/`export`.
+
+- [ ] Αναβάθμιση Electron 28→latest, puppeteer 21→latest (pinned λόγω
+      puppeteer 22+ ESM-only — τώρα που το main process είναι ESM αυτό
+      το εμπόδιο μάλλον έχει λυθεί, χρειάζεται επιβεβαίωση).
       **Branch**: `v2-esm-redesign` (δημιουργήθηκε 2026-07-05 από
       master) — το master παίρνει bug fixes/features κανονικά (v1.x),
       περνάνε περιοδικά με merge στο `v2-esm-redesign`· το αντίθετο ΟΧΙ
       μέχρι να ολοκληρωθεί, οπότε γίνεται merge πίσω + tag v2.0.0.
-
-- [ ] Modularization του main.js (προτάθηκε από code review, 2026-07-06)
-      — σήμερα ακολουθεί γραμμική λογική σε ένα μεγάλο αρχείο. Διαχωρισμός
-      σε ξεχωριστά αρχεία ανά ευθύνη (π.χ. ui.js/api.js/utils.js, ή ανά
-      domain: cloud-sync.js, archive-mode.js, retention.js κλπ) — φυσικό
-      επακόλουθο της μετατροπής σε ESM (import/export ενεργοποιεί το
-      σπάσιμο σε αρχεία που σήμερα το CommonJS δεν το επιβάλλει).
-
-- [ ] State management (προτάθηκε από code review, 2026-07-06) — η
-      κατάσταση της εφαρμογής (main.js: `_archiveMode`, `_archivePeriodId`,
-      `_archiveDataFolder`, `_pyPending`, κλπ· main-app.js: `AppState`)
-      είναι σήμερα διάσπαρτες global μεταβλητές. Πρόταση: ενιαίο state
-      object/store ανά process (main.js side, main-app.js side) αντί για
-      πολλαπλές ανεξάρτητες globals — μαζί με το modularization παραπάνω.
 
 - [ ] Κατάργηση του generic `pyBridge.call`/`py-call` dispatcher
       (preload.js/main.js) — προτάθηκε από code review (Gemini #4,
