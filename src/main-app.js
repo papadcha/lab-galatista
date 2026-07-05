@@ -1232,6 +1232,31 @@ function initTitlebar() {
   window.pyBridge['on-window-maximized-change']?.(setMaxIcon);
 }
 
+// ============================================================
+// ΕΚΘΕΣΗ ΣΤΟ WINDOW — συμβατότητα με τα page scripts
+// ============================================================
+// main-app.js είναι πλέον ES module (βλ. index.html: type="module"),
+// άρα οι top-level function δηλώσεις του ΔΕΝ γίνονται πια αυτόματα
+// window properties όπως όταν ήταν classic script — και τα 7 page
+// scripts (dashboard.js, samples.js, κλπ.) παραμένουν classic scripts
+// που τις καλούν ως γυμνά ονόματα (π.χ. bare `_esc(...)`, `navigateTo(...)`),
+// όπως και κάποιο inline `onclick="..."` HTML που παράγεται εδώ.
+// Χωρίς αυτή τη ρητή έκθεση θα έσπαγαν με ReferenceError.
+Object.assign(window, {
+  navigateTo, loadFile, Pages,
+  _updateSidebarArchiveBanner, enterArchiveMode, _doEnterArchiveMode,
+  exitArchiveMode, _doExitArchiveMode, _doForceQuit,
+  fetchStandards, findOutdatedStandard, checkDocumentStandards,
+  _formatCeDate, updateSidebarCeBadge,
+  _showCeExpiryToast, _dismissCeToast, _snoozeCeToast,
+  _dismissDataFolderToast, _snoozeDataFolderToast, _showDataFolderMismatchToast,
+  _showUpdateBanner, _parseVersionsMd, showVersionHistory, _submitVersionIssueReport,
+  checkAndShowInitBanner, _removeInitBanner, _showInitBanner, showSetupWizard,
+  _showWizardStep, _wizardStep1, _wizardStep2, _wizardStep3, _wizardActions,
+  _wizardNext, _wizardBack, _wizardFinish, updateSuggestedWizardFolder, _wizardSelectFolder,
+  _toIsoDate, _esc, hideSplash, initTitlebar,
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
 
