@@ -101,7 +101,7 @@ const Pages = {
   samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js',     module: true },
   tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js',         module: true },
   history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js',     module: true },
-  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
+  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js',     module: true },
   library:   { html: 'pages/library/library.html',     js: 'pages/library/library.js',     module: true },
   settings:  { html: 'pages/settings/settings.html',   js: 'pages/settings/settings.js'   },
 };
@@ -411,9 +411,9 @@ window.AppState   = AppState;
 // modules (βλ. Pages{ module:true }) και κάνουν πλέον ρητό `import` αντί
 // να βασίζονται σε γυμνά globals. Προστίθεται ΜΑΖΙ με τα window.X παραπάνω
 // (όχι αντί) — τα classic-script pages συνεχίζουν να δουλεύουν αμετάβλητα.
-// Σημείωση: το `_esc` δηλώνεται πολύ πιο κάτω στο αρχείο — λειτουργεί εδώ
-// λόγω hoisting των function declarations.
-export { App, pyCall, pyCallStrict, AppState, _esc };
+// Σημείωση: το `_esc`/`_formatCeDate` δηλώνονται πολύ πιο κάτω στο αρχείο —
+// λειτουργούν εδώ λόγω hoisting των function declarations.
+export { App, pyCall, pyCallStrict, AppState, _esc, _formatCeDate };
 
 // Wizard functions — exposed μετά το App
 // ── Archive Mode ─────────────────────────────────────────────

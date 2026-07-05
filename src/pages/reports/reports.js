@@ -14,6 +14,10 @@
  *   0.99.3 — Footer: αριθμός έκθεσης εξωτ. εργαστηρίου
  *   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
  */
+// ES module — φορτώνεται με πραγματικό <script type="module" src="...">
+// (βλ. main-app.js: Pages.reports.module + navigateTo()).
+import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
+
 (() => {
 
   // ============================================================
