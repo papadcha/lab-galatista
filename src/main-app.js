@@ -95,7 +95,9 @@ async function pyCallStrict(method, ...args) {
 // ============================================================
 
 const Pages = {
-  dashboard: { html: 'pages/dashboard/dashboard.html', js: 'pages/dashboard/dashboard.js' },
+  // module:true — η σελίδα έχει μετατραπεί σε ES module (import/export)·
+  // βλ. navigateTo() παρακάτω για τη διαφορά στον τρόπο φόρτωσης.
+  dashboard: { html: 'pages/dashboard/dashboard.html', js: 'pages/dashboard/dashboard.js', module: true },
   samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js'     },
   tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js'         },
   history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js'     },
@@ -127,10 +129,8 @@ async function navigateTo(pageId) {
   const oldScript = document.getElementById('page-script');
   if (oldScript) oldScript.remove();
 
-  // Φόρτωση JS περιεχομένου και εκτέλεση ως inline script
+  // Φόρτωση JS και εκτέλεση
   try {
-    const jsContent = await loadFile(Pages[pageId].js);
-
     // Αναμονή για DOM render
     await new Promise(r => setTimeout(r, 50));
 
@@ -147,9 +147,20 @@ async function navigateTo(pageId) {
     container.id    = 'page-script-container';
     document.body.appendChild(container);
 
-    const script       = document.createElement('script');
-    script.id          = 'page-script';
-    script.textContent = jsContent;
+    const script = document.createElement('script');
+    script.id    = 'page-script';
+    if (Pages[pageId].module) {
+      // ES module σελίδα: πραγματικό <script type="module" src="..."> με
+      // cache-busting query string — ο browser κάνει cache τα modules ανά
+      // resolved URL, οπότε χωρίς αυτό δεν θα ξανάτρεχε σε επόμενη πλοήγηση
+      // στην ίδια σελίδα (επαληθεύτηκε εμπειρικά).
+      script.type = 'module';
+      script.src  = Pages[pageId].js + '?v=' + Date.now();
+    } else {
+      // Παλιό μονοπάτι: fetch ως κείμενο + εκτέλεση ως inline classic script
+      // (ξανατρέχει πάντα, αφού είναι νέο <script> στοιχείο κάθε φορά).
+      script.textContent = await loadFile(Pages[pageId].js);
+    }
     container.appendChild(script);
     console.log('[NAV] Script loaded:', Pages[pageId].js);
   } catch(e) {
@@ -395,6 +406,12 @@ window.App        = App;
 window.pyCall     = pyCall;
 window.pyCallStrict = pyCallStrict;
 window.AppState   = AppState;
+
+// Πραγματικά ESM exports — για τις σελίδες που έχουν ήδη μετατραπεί σε
+// modules (βλ. Pages{ module:true }) και κάνουν πλέον ρητό `import` αντί
+// να βασίζονται σε γυμνά globals. Προστίθεται ΜΑΖΙ με τα window.X παραπάνω
+// (όχι αντί) — τα classic-script pages συνεχίζουν να δουλεύουν αμετάβλητα.
+export { App, pyCall, pyCallStrict, AppState };
 
 // Wizard functions — exposed μετά το App
 // ── Archive Mode ─────────────────────────────────────────────

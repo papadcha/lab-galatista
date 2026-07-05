@@ -11,6 +11,11 @@
  */
 'use strict';
 
+// ES module — φορτώνεται με πραγματικό <script type="module" src="...">
+// (βλ. main-app.js: Pages.dashboard.module + navigateTo()), άρα το relative
+// path παρακάτω λύνεται ως προς το πραγματικό path αυτού του αρχείου.
+import { pyCall, App } from '../../main-app.js';
+
 window.Dashboard = (() => {
 
   let currentFilter = 'recent'; // default — ΠΑΝΤΑ ξεκινα με recent
