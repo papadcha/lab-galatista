@@ -5,6 +5,10 @@
  * Έκδοση : 0.99.0
  * Ημ/νία  : 2026-06-02
  */
+// ES module — φορτώνεται με πραγματικό <script type="module" src="...">
+// (βλ. main-app.js: Pages.tests.module + navigateTo()).
+import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
+
 (() => {
 
   // ============================================================
@@ -32,8 +36,8 @@
   function show(id) { el(id)?.classList.remove('hidden'); }
   function hide(id) { el(id)?.classList.add('hidden');    }
 
-  // Πανομοιότυπη λογική με το global _esc (main-app.js) — κρατάει το
-  // τοπικό όνομα (πολλά call sites) σαν alias αντί για δικό της αντίγραφο.
+  // Alias του imported _esc — κρατάει το τοπικό όνομα (πολλά call sites)
+  // αντί να μετονομαστούν όλα σε _esc.
   const esc = _esc;
 
   // ============================================================

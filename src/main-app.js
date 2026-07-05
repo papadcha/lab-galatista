@@ -99,7 +99,7 @@ const Pages = {
   // βλ. navigateTo() παρακάτω για τη διαφορά στον τρόπο φόρτωσης.
   dashboard: { html: 'pages/dashboard/dashboard.html', js: 'pages/dashboard/dashboard.js', module: true },
   samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js',     module: true },
-  tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js'         },
+  tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js',         module: true },
   history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js',     module: true },
   reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
   library:   { html: 'pages/library/library.html',     js: 'pages/library/library.js',     module: true },
@@ -411,7 +411,9 @@ window.AppState   = AppState;
 // modules (βλ. Pages{ module:true }) και κάνουν πλέον ρητό `import` αντί
 // να βασίζονται σε γυμνά globals. Προστίθεται ΜΑΖΙ με τα window.X παραπάνω
 // (όχι αντί) — τα classic-script pages συνεχίζουν να δουλεύουν αμετάβλητα.
-export { App, pyCall, pyCallStrict, AppState };
+// Σημείωση: το `_esc` δηλώνεται πολύ πιο κάτω στο αρχείο — λειτουργεί εδώ
+// λόγω hoisting των function declarations.
+export { App, pyCall, pyCallStrict, AppState, _esc };
 
 // Wizard functions — exposed μετά το App
 // ── Archive Mode ─────────────────────────────────────────────
