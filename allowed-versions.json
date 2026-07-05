@@ -1,0 +1,14 @@
+{
+  "_comment": "Χειροκίνητα συντηρούμενο αρχείο — ενημερώνεται σε κάθε release, ή εκτάκτως αν μια έκδοση αποδειχτεί προβληματική (βλ. TODOLIST.md). latestRecommendedVersion μπορεί να είναι ΠΙΣΩ από την τελευταία GitHub release αν αυτή έχει γνωστό πρόβλημα.",
+  "latestRecommendedVersion": "1.1.28",
+  "safeDowngradeFloor": "1.1.23",
+  "notice": null,
+  "versions": [
+    { "version": "1.1.28", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.28/Setup.1.1.28.exe", "notes": "Διάδοση επεξεργασίας/διαγραφής στη Βιβλιοθήκη Εγγράφων" },
+    { "version": "1.1.27", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.27/Setup.1.1.27.exe", "notes": "Ενισχύσεις ακεραιότητας δεδομένων (backup integrity check, Archive Mode fix, CE expiry fix)" },
+    { "version": "1.1.26", "date": "2026-07-04", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.26/Setup.1.1.26.exe", "notes": "Εσωτερικές διορθώσεις από code review" },
+    { "version": "1.1.25", "date": "2026-07-04", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.25/Setup.1.1.25.exe", "notes": "Διατήρηση Backup στο Cloud (retention)" },
+    { "version": "1.1.24", "date": "2026-07-04", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.24/Setup.1.1.24.exe", "notes": "Cleanup: αφαίρεση διπλού κώδικα ελέγχου νέας έκδοσης EN προτύπου" },
+    { "version": "1.1.23", "date": "2026-07-04", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.23/Setup.1.1.23.exe", "notes": "Fix: επιλογές κοκκομετρίας δεν εμφανίζονταν με την πρώτη + πιο ανοιχτό μπλε στο PDF" }
+  ]
+}
