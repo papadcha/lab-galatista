@@ -379,6 +379,214 @@ def find_archive_db(data_folder: str) -> dict:
     files.sort(key=os.path.getmtime, reverse=True)
     return {'ok': True, 'path': files[0]}
 
+# ============================================================
+# ΕΠΙΛΕΚΤΙΚΗ ΕΠΑΝΑΦΟΡΑ ΔΕΙΓΜΑΤΟΣ ΑΠΟ BACKUP
+# ============================================================
+
+def inspect_backup_samples(backup_path: str) -> dict:
+    """Read-only προεπισκόπηση δειγμάτων μέσα σε backup αρχείο — ξεχωριστό,
+    προσωρινό connection, δεν επηρεάζει καθόλου τη ζωντανή σύνδεση (DB_PATH)."""
+    if not os.path.exists(backup_path):
+        return {'ok': False, 'error': 'Το αρχείο δεν βρέθηκε'}
+    try:
+        conn = sqlite3.connect(backup_path)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("""
+            SELECT s.id, s.code, s.date, s.location, s.batch, s.comments,
+                   p.name AS product_name, p.d_min, p.d_max,
+                   cp.ce_number, sp.lab_report_number, sp.valid_from AS subperiod_valid_from
+            FROM tbl_samples s
+            LEFT JOIN tbl_products p ON p.id = s.product_id
+            LEFT JOIN tbl_subperiods sp ON sp.id = s.subperiod_id
+            LEFT JOIN tbl_ce_periods cp ON cp.id = sp.ce_period_id
+            ORDER BY s.date DESC, s.id DESC
+        """).fetchall()
+        return {'ok': True, 'samples': [dict(r) for r in rows]}
+    except Exception as e:
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+def check_sample_code_conflict(code: str) -> dict:
+    """Ελέγχει αν υπάρχει ήδη δείγμα με αυτόν τον κωδικό στη ζωντανή βάση —
+    επιστρέφει τα στοιχεία του για σύγκριση πριν/μετά αν ναι."""
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM tbl_samples WHERE code=?", (code,)).fetchone()
+        return {'ok': True, 'exists': row is not None, 'sample': dict(row) if row else None}
+    finally:
+        conn.close()
+
+def merge_sample_from_backup(backup_path: str, backup_sample_id: int, overwrite_sample_id=None) -> dict:
+    """Βαθιά αντιγραφή ενός δείγματος (+ όλες οι δοκιμές του, όλα τα runs)
+    από backup αρχείο μέσα στη ζωντανή βάση.
+
+    overwrite_sample_id=None  → νέα εισαγωγή (αποτυγχάνει αν υπάρχει ήδη το code)
+    overwrite_sample_id=<id>  → αντικατάσταση υπαρκτού δείγματος: ίδιο id,
+                                 διαγράφονται οι παλιές δοκιμές του και μπαίνουν
+                                 οι νέες από το backup.
+
+    Το δείγμα (σε νέα εισαγωγή) μπαίνει πάντα στην ΤΡΕΧΟΥΣΑ ενεργή υποπερίοδο
+    της ζωντανής βάσης, όχι στο subperiod_id του backup. Το product/technician/
+    source γίνεται remap κατά code/name (όχι raw id, που διαφέρει ανά βάση).
+    """
+    if not os.path.exists(backup_path):
+        return {'ok': False, 'error': 'Το αρχείο backup δεν βρέθηκε'}
+
+    src = sqlite3.connect(backup_path)
+    src.row_factory = sqlite3.Row
+    dst = get_connection()
+    try:
+        sample = src.execute("SELECT * FROM tbl_samples WHERE id=?", (backup_sample_id,)).fetchone()
+        if not sample:
+            return {'ok': False, 'error': 'Το δείγμα δεν βρέθηκε στο backup'}
+        sample = dict(sample)
+
+        if not overwrite_sample_id:
+            exists = dst.execute("SELECT id FROM tbl_samples WHERE code=?", (sample['code'],)).fetchone()
+            if exists:
+                return {'ok': False, 'error': 'conflict', 'existing_sample_id': exists['id']}
+
+        # Remap product/technician/source κατά code/name μεταξύ backup και ζωντανής βάσης
+        product_id = None
+        if sample.get('product_id'):
+            src_prod = src.execute("SELECT code FROM tbl_products WHERE id=?", (sample['product_id'],)).fetchone()
+            if src_prod and src_prod['code']:
+                dst_prod = dst.execute("SELECT id FROM tbl_products WHERE code=?", (src_prod['code'],)).fetchone()
+                product_id = dst_prod['id'] if dst_prod else None
+        if product_id is None:
+            return {'ok': False, 'error': 'Το προϊόν του δείγματος δεν βρέθηκε στη ζωντανή βάση (διαφορετικός κωδικός προϊόντος;)'}
+
+        technician_id = None
+        if sample.get('technician_id'):
+            src_tech = src.execute("SELECT name FROM tbl_technicians WHERE id=?", (sample['technician_id'],)).fetchone()
+            if src_tech:
+                dst_tech = dst.execute("SELECT id FROM tbl_technicians WHERE name=?", (src_tech['name'],)).fetchone()
+                technician_id = dst_tech['id'] if dst_tech else None
+
+        source_id = None
+        if sample.get('source_id'):
+            src_src = src.execute("SELECT code FROM tbl_sources WHERE id=?", (sample['source_id'],)).fetchone()
+            if src_src:
+                dst_src = dst.execute("SELECT id FROM tbl_sources WHERE code=?", (src_src['code'],)).fetchone()
+                source_id = dst_src['id'] if dst_src else None
+
+        if overwrite_sample_id:
+            live_sample_id = overwrite_sample_id
+            dst.execute("""
+                UPDATE tbl_samples
+                SET date=?, location=?, batch=?, comments=?, product_id=?,
+                    technician_id=?, source_id=?, updated_at=datetime('now')
+                WHERE id=?
+            """, (sample['date'], sample['location'], sample['batch'], sample['comments'],
+                  product_id, technician_id, source_id, live_sample_id))
+            # Σειρά διαγραφής: παιδιά πριν τους γονείς, αλλιώς σπάει το FK
+            # constraint (π.χ. tbl_sieve_results -> tbl_sieve_analysis).
+            dst.execute("""
+                DELETE FROM tbl_sieve_results WHERE sieve_analysis_id IN
+                    (SELECT id FROM tbl_sieve_analysis WHERE sample_id=?)
+            """, (live_sample_id,))
+            dst.execute("""
+                DELETE FROM tbl_flakiness_results WHERE flakiness_id IN
+                    (SELECT id FROM tbl_flakiness WHERE sample_id=?)
+            """, (live_sample_id,))
+            dst.execute("""
+                DELETE FROM tbl_se_measurements WHERE se_id IN
+                    (SELECT id FROM tbl_sand_equivalent WHERE sample_id=?)
+            """, (live_sample_id,))
+            dst.execute("DELETE FROM tbl_flakiness WHERE sample_id=?", (live_sample_id,))
+            dst.execute("DELETE FROM tbl_sieve_analysis WHERE sample_id=?", (live_sample_id,))
+            dst.execute("DELETE FROM tbl_methylene_blue WHERE sample_id=?", (live_sample_id,))
+            dst.execute("DELETE FROM tbl_sand_equivalent WHERE sample_id=?", (live_sample_id,))
+        else:
+            active_sub = dst.execute("""
+                SELECT sp.id FROM tbl_subperiods sp
+                JOIN tbl_ce_periods cp ON cp.id = sp.ce_period_id
+                WHERE cp.active=1 AND sp.active=1 LIMIT 1
+            """).fetchone()
+            subperiod_id = active_sub['id'] if active_sub else None
+            cur = dst.execute("""
+                INSERT INTO tbl_samples (code, date, product_id, technician_id, location,
+                    batch, comments, subperiod_id, source_id, entry_date)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
+            """, (sample['code'], sample['date'], product_id, technician_id, sample['location'],
+                  sample['batch'], sample['comments'], subperiod_id, source_id, sample.get('entry_date')))
+            live_sample_id = cur.lastrowid
+
+        # ── Κοκκομετρία (+ αποτελέσματα κοσκίνων) — όλα τα runs, όχι μόνο official ──
+        sieve_id_map = {}
+        for row in [dict(r) for r in src.execute(
+                "SELECT * FROM tbl_sieve_analysis WHERE sample_id=?", (backup_sample_id,)).fetchall()]:
+            old_id = row['id']
+            cur = dst.execute("""
+                INSERT INTO tbl_sieve_analysis (sample_id, date, weight_initial, weight_dry,
+                    weight_washed, wash_loss_pct, comments, run_no, is_official, rejected_reason)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
+            """, (live_sample_id, row['date'], row['weight_initial'], row['weight_dry'],
+                  row['weight_washed'], row['wash_loss_pct'], row['comments'], row['run_no'],
+                  row['is_official'], row['rejected_reason']))
+            sieve_id_map[old_id] = cur.lastrowid
+            for r in src.execute("SELECT * FROM tbl_sieve_results WHERE sieve_analysis_id=?", (old_id,)).fetchall():
+                dst.execute("""
+                    INSERT INTO tbl_sieve_results (sieve_analysis_id, sieve_mm, weight_retained, passing_percent)
+                    VALUES (?,?,?,?)
+                """, (cur.lastrowid, r['sieve_mm'], r['weight_retained'], r['passing_percent']))
+
+        # ── Πλακοειδή (+ αποτελέσματα ανά κλάσμα) ──
+        for row in [dict(r) for r in src.execute(
+                "SELECT * FROM tbl_flakiness WHERE sample_id=?", (backup_sample_id,)).fetchall()]:
+            old_id = row['id']
+            new_sieve_id = sieve_id_map.get(row['sieve_analysis_id']) if row['sieve_analysis_id'] else None
+            cur = dst.execute("""
+                INSERT INTO tbl_flakiness (sample_id, sieve_analysis_id, date, fi_index,
+                    comments, weight_m0, run_no, is_official, rejected_reason)
+                VALUES (?,?,?,?,?,?,?,?,?)
+            """, (live_sample_id, new_sieve_id, row['date'], row['fi_index'], row['comments'],
+                  row['weight_m0'], row['run_no'], row['is_official'], row['rejected_reason']))
+            for r in src.execute("SELECT * FROM tbl_flakiness_results WHERE flakiness_id=?", (old_id,)).fetchall():
+                dst.execute("""
+                    INSERT INTO tbl_flakiness_results (flakiness_id, sieve_mm, weight_fraction, weight_passing)
+                    VALUES (?,?,?,?)
+                """, (cur.lastrowid, r['sieve_mm'], r['weight_fraction'], r['weight_passing']))
+
+        # ── Μπλε Μεθυλενίου ──
+        for row in src.execute("SELECT * FROM tbl_methylene_blue WHERE sample_id=?", (backup_sample_id,)).fetchall():
+            row = dict(row)
+            dst.execute("""
+                INSERT INTO tbl_methylene_blue (sample_id, date, weight_sample, water_volume,
+                    volume_initial, volume_final, mb_value, comments, weight_m0, moisture_pct,
+                    run_no, is_official, rejected_reason)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (live_sample_id, row['date'], row['weight_sample'], row['water_volume'],
+                  row['volume_initial'], row['volume_final'], row['mb_value'], row['comments'],
+                  row['weight_m0'], row['moisture_pct'], row['run_no'], row['is_official'],
+                  row['rejected_reason']))
+
+        # ── Ισοδύναμο Άμμου (+ μετρήσεις) ──
+        for row in [dict(r) for r in src.execute(
+                "SELECT * FROM tbl_sand_equivalent WHERE sample_id=?", (backup_sample_id,)).fetchall()]:
+            old_id = row['id']
+            cur = dst.execute("""
+                INSERT INTO tbl_sand_equivalent (sample_id, date, se_final, requires_3rd,
+                    comments, run_no, is_official, rejected_reason)
+                VALUES (?,?,?,?,?,?,?,?)
+            """, (live_sample_id, row['date'], row['se_final'], row['requires_3rd'],
+                  row['comments'], row['run_no'], row['is_official'], row['rejected_reason']))
+            for r in src.execute("SELECT * FROM tbl_se_measurements WHERE se_id=?", (old_id,)).fetchall():
+                dst.execute("""
+                    INSERT INTO tbl_se_measurements (se_id, measurement_no, h1, h2, se_value)
+                    VALUES (?,?,?,?,?)
+                """, (cur.lastrowid, r['measurement_no'], r['h1'], r['h2'], r['se_value']))
+
+        dst.commit()
+        return {'ok': True, 'sample_id': live_sample_id}
+    except Exception as e:
+        dst.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        src.close()
+        dst.close()
+
 def get_connection() -> sqlite3.Connection:
     """Επιστρέφει σύνδεση με τη βάση δεδομένων."""
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)

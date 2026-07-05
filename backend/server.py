@@ -84,6 +84,9 @@ from database.db_manager import (
     switch_db,
     restore_db,
     find_archive_db,
+    inspect_backup_samples,
+    check_sample_code_conflict,
+    merge_sample_from_backup,
     get_doc_sections,
     create_doc_section,
     update_doc_section,
@@ -843,6 +846,10 @@ METHODS = {
     'switch_db':           lambda args: switch_db(args[0]),
     'restore_db':          lambda args: restore_db(),
     'find_archive_db':               lambda args: find_archive_db(args[0]),
+    'inspect_backup_samples':        lambda args: inspect_backup_samples(args[0]),
+    'check_sample_code_conflict':    lambda args: check_sample_code_conflict(args[0]),
+    'merge_sample_from_backup':      lambda args: merge_sample_from_backup(
+                                          args[0], args[1], args[2] if len(args) > 2 else None),
     # Document Library
     'get_doc_sections':              lambda args: get_doc_sections(),
     'create_doc_section':            lambda args: create_doc_section(args[0], args[1] if len(args)>1 else '📁'),

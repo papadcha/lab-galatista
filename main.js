@@ -819,6 +819,61 @@ ipcMain.handle('is-archive-mode', () => {
 });
 
 // ============================================================
+// ΕΠΙΛΕΚΤΙΚΗ ΕΠΑΝΑΦΟΡΑ ΔΕΙΓΜΑΤΟΣ ΑΠΟ BACKUP
+// ============================================================
+// Δύο μονοπάτια: (α) το δείγμα ανήκει στην ΤΡΕΧΟΥΣΑ ενεργή υποπερίοδο →
+// βαθιά αντιγραφή μέσα στη ζωντανή βάση (merge-sample-from-backup)·
+// (β) ανήκει σε ΠΡΟΗΓΟΥΜΕΝΗ περίοδο → γενίκευση του Archive Mode ώστε να
+// συνδέεται απευθείας πάνω σε ΟΠΟΙΟΔΗΠΟΤΕ επιλεγμένο backup αρχείο (όχι
+// μόνο auto-discovered *_FINAL.db μέσω find_archive_db) — οι όποιες
+// διορθώσεις γράφονται μόνο εκεί, καμία επίδραση στη ζωντανή χρήση. Η
+// έξοδος γίνεται με το ήδη υπάρχον restore-from-archive (γενικό, δεν
+// διαφέρει ανά τρόπο εισόδου).
+
+ipcMain.handle('inspect-backup-samples', async (event, backupPath) => {
+  return await _pyCallMain('inspect_backup_samples', [backupPath]);
+});
+
+ipcMain.handle('check-sample-code-conflict', async (event, code) => {
+  return await _pyCallMain('check_sample_code_conflict', [code]);
+});
+
+ipcMain.handle('merge-sample-from-backup', async (event, { backupPath, backupSampleId, overwriteSampleId }) => {
+  if (_archiveMode) {
+    return { ok: false, error: 'Δεν επιτρέπεται συγχώνευση ενώ βρίσκεστε σε λειτουργία αρχείου — επιστρέψτε πρώτα στην τρέχουσα περίοδο' };
+  }
+  // Ασφάλεια: πλήρες backup της ζωντανής βάσης πριν από οποιαδήποτε
+  // εγγραφή — ώστε μια αντικατάσταση "ξεχασμένων" αλλαγών να είναι
+  // αναστρέψιμη αν αποδειχτεί λάθος κίνηση.
+  const safety = await performBackup(false);
+  if (!safety?.success) {
+    return { ok: false, error: 'Δεν ήταν δυνατή η λήψη backup ασφαλείας πριν την επαναφορά: ' + (safety?.error || '') };
+  }
+  return await _pyCallMain('merge_sample_from_backup',
+    [backupPath, backupSampleId, overwriteSampleId ?? null], 30000);
+});
+
+ipcMain.handle('switch-to-backup-file', async (event, backupPath) => {
+  if (!fs.existsSync(backupPath)) return { ok: false, error: 'Το αρχείο backup δεν βρέθηκε' };
+  // Ασφάλεια: αντίγραφο ΤΟΥ ΙΔΙΟΥ backup πριν επιτραπεί επεξεργασία πάνω
+  // του — μια διόρθωση εδώ γράφεται απευθείας στο αρχείο, χωρίς undo.
+  try {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    fs.copyFileSync(backupPath, backupPath + '.before-edit-' + stamp);
+  } catch(e) {
+    return { ok: false, error: 'Δεν ήταν δυνατή η λήψη αντιγράφου ασφαλείας του backup: ' + e.message };
+  }
+  const switched = await _pyCallMain('switch_db', [backupPath]);
+  if (!switched?.ok) return switched;
+  _archiveMode       = true;
+  _archivePeriodId   = null;
+  _archiveDataFolder = backupPath;
+  const cfgA = loadConfig();
+  saveConfig({ ...cfgA, archiveDataFolder: backupPath });
+  return { ok: true, dbPath: backupPath };
+});
+
+// ============================================================
 // DOCUMENT LIBRARY — upload / open / delete
 // ============================================================
 

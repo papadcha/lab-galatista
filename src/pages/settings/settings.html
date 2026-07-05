@@ -445,6 +445,21 @@
     </div>
 
     <div class="form-card" style="margin-top:16px;">
+      <h3 class="form-card-title">🎯 Επιλεκτική Επαναφορά Δείγματος</h3>
+      <p class="form-card-intro">
+        Επαναφορά ενός συγκεκριμένου δείγματος από παλιότερο backup, χωρίς
+        να επηρεαστεί το υπόλοιπο της βάσης. Αν το δείγμα ανήκει στην
+        τρέχουσα περίοδο, εισάγεται στη ζωντανή βάση. Αν ανήκει σε
+        προηγούμενη περίοδο, ανοίγει σε λειτουργία αρχείου για επεξεργασία
+        πάνω στο ίδιο το backup.
+      </p>
+      <button class="btn-secondary" onclick="SettingsPage.browseAndInspectBackup()">
+        📂 Επιλογή Backup Αρχείου&hellip;
+      </button>
+      <div id="selective-restore-results" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="form-card" style="margin-top:16px;">
       <h3 class="form-card-title">☁ Cloud Sync</h3>
       <p class="form-card-intro">Συγχρονισμός με cloud storage μέσω rclone. Γίνεται αυτόματα κατά την εκκίνηση αν υπάρχει σύνδεση.</p>
 

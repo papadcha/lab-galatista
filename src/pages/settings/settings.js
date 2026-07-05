@@ -1897,6 +1897,147 @@
     restoreFromBackup(res.path, res.name);
   }
 
+  // ── Επιλεκτική Επαναφορά Δείγματος ───────────────────────────
+
+  async function browseAndInspectBackup() {
+    const res = await window.pyBridge['select-backup-file']?.();
+    if (!res?.ok) return;
+    await inspectBackupFile(res.path);
+  }
+
+  async function inspectBackupFile(backupPath) {
+    const container = document.getElementById('selective-restore-results');
+    if (container) container.innerHTML = '<span class="form-hint">Ανάλυση backup...</span>';
+
+    const result = await window.pyBridge['inspect-backup-samples']?.(backupPath);
+    if (!result?.ok) {
+      if (container) container.innerHTML =
+        `<span style="color:var(--fail-light,#ef4444);font-size:12px;">Σφάλμα: ${_esc(result?.error || '')}</span>`;
+      return;
+    }
+    if (!result.samples?.length) {
+      if (container) container.innerHTML = '<span class="form-hint">Δεν βρέθηκαν δείγματα σε αυτό το backup.</span>';
+      return;
+    }
+
+    const active = await pyCall('get_active_ce_period');
+    const activeCeNumber      = active?.ce_number;
+    const activeSubValidFrom  = active?.active_subperiod?.valid_from;
+
+    state._selectiveRestoreBackupPath = backupPath;
+    state._selectiveRestoreSamples    = result.samples;
+
+    const rows = result.samples.map((s, idx) => {
+      const isCurrentPeriod = s.ce_number === activeCeNumber && s.subperiod_valid_from === activeSubValidFrom;
+      const badge = isCurrentPeriod
+        ? '<span style="color:var(--ok-light,#22c55e);font-size:11px;">τρέχουσα περίοδος</span>'
+        : '<span style="color:var(--warn-light,#f59e0b);font-size:11px;">προηγούμενη περίοδος</span>';
+      const action = isCurrentPeriod
+        ? `<button class="btn-secondary btn-sm" onclick="SettingsPage.startMergeSample(${idx})">↓ Εισαγωγή</button>`
+        : `<button class="btn-secondary btn-sm" onclick="SettingsPage.openBackupInArchiveMode()">📂 Λειτουργία Αρχείου</button>`;
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;
+             padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <div>
+            <strong>${_esc(s.code)}</strong>
+            <span style="color:var(--text-muted);font-size:12px;"> — ${_esc(s.date)} — ${_esc(s.product_name || '')}</span><br>
+            ${badge}
+          </div>
+          ${action}
+        </div>`;
+    }).join('');
+
+    if (container) container.innerHTML = `<div style="max-height:260px;overflow-y:auto;">${rows}</div>`;
+  }
+
+  async function startMergeSample(idx) {
+    const backupPath = state._selectiveRestoreBackupPath;
+    const sample      = state._selectiveRestoreSamples?.[idx];
+    if (!backupPath || !sample) return;
+
+    const conflict = await window.pyBridge['check-sample-code-conflict']?.(sample.code);
+    if (conflict?.exists) {
+      const existing = conflict.sample;
+      App.showModal(
+        '⚠ Το δείγμα υπάρχει ήδη',
+        `<div style="font-size:13px;">
+          Υπάρχει ήδη δείγμα με κωδικό <strong>${_esc(sample.code)}</strong> στη ζωντανή βάση.
+          Η επαναφορά θα <strong>αντικαταστήσει όλες τις δοκιμές</strong> του με την έκδοση από το backup.
+          <table style="margin-top:10px;width:100%;font-size:12px;">
+            <tr><td style="color:var(--text-muted);">Ημερομηνία:</td><td>${_esc(existing.date||'—')} → ${_esc(sample.date||'—')}</td></tr>
+            <tr><td style="color:var(--text-muted);">Σημείο δειγματοληψίας:</td><td>${_esc(existing.location||'—')} → ${_esc(sample.location||'—')}</td></tr>
+            <tr><td style="color:var(--text-muted);">Παρτίδα:</td><td>${_esc(existing.batch||'—')} → ${_esc(sample.batch||'—')}</td></tr>
+            <tr><td style="color:var(--text-muted);">Σχόλια:</td><td>${_esc(existing.comments||'—')} → ${_esc(sample.comments||'—')}</td></tr>
+          </table>
+          <p style="margin-top:10px;color:var(--warn-light,#f59e0b);">Θα ληφθεί αυτόματο backup ασφαλείας πριν την αντικατάσταση.</p>
+        </div>`,
+        [
+          { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+          { label: '⚠ Αντικατάσταση', action: `SettingsPage._doMergeSample(${idx}, ${existing.id})` },
+        ]
+      );
+      return;
+    }
+    await _doMergeSample(idx, null);
+  }
+
+  async function _doMergeSample(idx, overwriteSampleId) {
+    App.closeModal();
+    const backupPath = state._selectiveRestoreBackupPath;
+    const sample      = state._selectiveRestoreSamples?.[idx];
+    if (!backupPath || !sample) return;
+    App.toast('Επαναφορά σε εξέλιξη...', 'info');
+    const result = await window.pyBridge['merge-sample-from-backup']?.({
+      backupPath, backupSampleId: sample.id, overwriteSampleId,
+    });
+    if (result?.ok) {
+      App.toast('Το δείγμα επαναφέρθηκε επιτυχώς', 'ok');
+    } else {
+      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+    }
+  }
+
+  function openBackupInArchiveMode() {
+    const backupPath = state._selectiveRestoreBackupPath;
+    if (!backupPath) return;
+    App.showModal(
+      '📂 Άνοιγμα Backup σε Λειτουργία Αρχείου',
+      `<div style="font-size:13px;">
+        Θα συνδεθείτε απευθείας πάνω σε αυτό το backup αρχείο — μπορείτε να
+        περιηγηθείτε, να επεξεργαστείτε, να εκτυπώσετε δείγματα κανονικά.
+        Οποιαδήποτε διόρθωση γράφεται <strong>μόνο σε αυτό το αρχείο backup</strong>,
+        καμία επίδραση στην τρέχουσα χρήση. Θα ληφθεί αυτόματα αντίγραφο
+        ασφαλείας του backup πριν την είσοδο.
+      </div>`,
+      [
+        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+        { label: '📂 Είσοδος', action: 'SettingsPage._doOpenBackupInArchiveMode()' },
+      ]
+    );
+  }
+
+  async function _doOpenBackupInArchiveMode() {
+    App.closeModal();
+    const backupPath = state._selectiveRestoreBackupPath;
+    if (!backupPath) return;
+    App.toast('Σύνδεση με backup...', 'info');
+    const result = await window.pyBridge['switch-to-backup-file']?.(backupPath);
+    if (!result?.ok) {
+      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      return;
+    }
+    const fakeName = backupPath.split(/[\\/]/).pop();
+    if (typeof AppState !== 'undefined') {
+      AppState.archiveMode   = true;
+      AppState.archivePeriod = { ce_number: 'Backup: ' + fakeName };
+    }
+    if (typeof _updateSidebarArchiveBanner === 'function') {
+      _updateSidebarArchiveBanner(AppState.archivePeriod);
+    }
+    App.toast('Λειτουργία αρχείου ενεργή', 'warn');
+    if (typeof navigateTo === 'function') navigateTo('dashboard');
+  }
+
   async function selectDataFolder() {
     const result = await window.pyBridge['select-data-folder']?.();
     if (result?.success) {
@@ -2952,6 +3093,9 @@
     selectDataFolder, clearDataFolder, manualBackup,
     loadBackupList, restoreFromBackup, browseAndRestore,
     _confirmRestore2, _doRestore,
+    // Επιλεκτική επαναφορά δείγματος
+    browseAndInspectBackup, startMergeSample, _doMergeSample,
+    openBackupInArchiveMode, _doOpenBackupInArchiveMode,
     loadCloudSync, selectRemote, testCloudConnection, saveCloudPath,
     changeCloudPath, syncNow, restoreFromCloud, syncDocumentLibrary, openRcloneConfig, openLink,
     // Cloud backup retention

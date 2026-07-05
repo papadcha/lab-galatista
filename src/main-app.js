@@ -388,8 +388,9 @@ function _updateSidebarArchiveBanner(period) {
   const ceEl   = document.getElementById('archive-banner-ce');
   if (!banner) return;
   if (period) {
-    if (ceEl) ceEl.textContent = period.ce_number +
-      ' (' + _formatCeDate(period.valid_from) + ' – ' + _formatCeDate(period.valid_to) + ')';
+    const range = (period.valid_from || period.valid_to)
+      ? ` (${_formatCeDate(period.valid_from)} – ${_formatCeDate(period.valid_to)})` : '';
+    if (ceEl) ceEl.textContent = period.ce_number + range;
     banner.style.display = 'block';
   } else {
     banner.style.display = 'none';
