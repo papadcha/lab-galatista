@@ -14,18 +14,16 @@
   "author": "Λατομεία Γαλάτιστας ΑΕ",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^28.3.3",
+    "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
     "playwright-core": "^1.61.1"
   },
   "dependencies": {
-    "nodemailer": "^8.0.7",
-    "puppeteer": "^21.11.0",
-    "puppeteer-core": "^25.0.4"
+    "nodemailer": "^8.0.7"
   },
   "allowScripts": {
-    "electron@28.3.3": true,
-    "puppeteer@25.0.4": true
+    "electron@43.0.0": true,
+    "electron-winstaller@5.4.0": true
   },
   "build": {
     "appId": "gr.galatista.lab",
@@ -46,7 +44,6 @@
       "!node_modules/electron/**/*",
       "!node_modules/electron-builder/**/*",
       "!node_modules/playwright-core/**/*",
-      "!node_modules/puppeteer/**/*",
       "!dist/**/*",
       "!dist-installer/**/*"
     ],

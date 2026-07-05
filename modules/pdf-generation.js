@@ -1,7 +1,8 @@
-// PDF Generation: report PDF (reportlab μέσω Python, με Puppeteer fallback),
-// print-to-pdf (renderer webContents), periodic PDF, save/open/print PDF
-// βοηθητικά IPC handlers.
-import { app, dialog, shell, ipcMain } from 'electron';
+// PDF Generation: report PDF (reportlab μέσω Python, με fallback μέσω
+// κρυφού BrowserWindow + printToPDF — όχι πια puppeteer, βλ. σχόλιο στο
+// renderPDF), print-to-pdf (renderer webContents), periodic PDF,
+// save/open/print PDF βοηθητικά IPC handlers.
+import { app, BrowserWindow, dialog, shell, ipcMain } from 'electron';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -14,11 +15,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 const appRootDir = path.join(__dirname, '..');
 
-let _puppeteer = null;
-async function getPuppeteer() {
-  if (!_puppeteer) _puppeteer = (await import('puppeteer')).default;
-  return _puppeteer;
-}
+// Electron's printToPDF margins είναι σε ίντσες στην πράξη (παρά το ότι το
+// bundled electron.d.ts λέει "in pixels" — επαληθεύτηκε εμπειρικά: τιμές σε
+// px προκαλούν "margins must be less than or equal to pageSize").
+const MM_TO_IN = 1 / 25.4;
 
 ipcMain.handle('generate-report-pdf', async (event, opts = {}) => {
   try {
@@ -75,22 +75,33 @@ ipcMain.handle('generate-report-pdf', async (event, opts = {}) => {
 </head><body>${html}</body></html>`;
     }
 
+    // Πριν χρησιμοποιούσε puppeteer (ξεχωριστό Chromium download) — ΜΗΝ
+    // συσκευαζόταν καν στο installer (`!node_modules/puppeteer/**/*`), άρα
+    // αυτό το fallback δεν δούλευε ποτέ στην πραγματική εγκατάσταση. Ένα
+    // κρυφό BrowserWindow χρησιμοποιεί το ήδη ενσωματωμένο Chromium του
+    // Electron — καμία επιπλέον εξάρτηση, δουλεύει και packaged.
     async function renderPDF(mode, landscape) {
-      const htmlPath = path.join(os.tmpdir(), `rpt_${mode}_${ts}.html`);
-      fs.writeFileSync(htmlPath, makeHTML(mode), 'utf8');
-      const puppeteer = await getPuppeteer();
-      const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true });
+      const win = new BrowserWindow({
+        show: false,
+        webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+      });
       try {
-        const page = await browser.newPage();
-        await page.setContent(fs.readFileSync(htmlPath, 'utf8'), { waitUntil: 'domcontentloaded' });
+        await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(makeHTML(mode)));
         await new Promise(r => setTimeout(r, 1500));
-        return await page.pdf({ format: 'A4', landscape,
+        return await win.webContents.printToPDF({
+          landscape,
+          pageSize: 'A4',
           printBackground: true,
-          margin: { top: '16mm', bottom: '14mm', left: '14mm', right: '14mm' } });
+          margins: {
+            marginType: 'custom',
+            top:    16 * MM_TO_IN,
+            bottom: 14 * MM_TO_IN,
+            left:   14 * MM_TO_IN,
+            right:  14 * MM_TO_IN,
+          },
+        });
       } finally {
-        await browser.close();
-        try { fs.unlinkSync(htmlPath); } catch {}
+        win.destroy();
       }
     }
 
