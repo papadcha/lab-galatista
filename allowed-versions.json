@@ -1,9 +1,10 @@
 {
   "_comment": "Χειροκίνητα συντηρούμενο αρχείο — ενημερώνεται σε κάθε release, ή εκτάκτως αν μια έκδοση αποδειχτεί προβληματική (βλ. TODOLIST.md). latestRecommendedVersion μπορεί να είναι ΠΙΣΩ από την τελευταία GitHub release αν αυτή έχει γνωστό πρόβλημα.",
-  "latestRecommendedVersion": "1.1.28",
+  "latestRecommendedVersion": "1.1.29",
   "safeDowngradeFloor": "1.1.23",
   "notice": null,
   "versions": [
+    { "version": "1.1.29", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.29/Setup.1.1.29.exe", "notes": "Αναφορά προβλήματος έκδοσης + λίστα παλιότερων εκδόσεων μέσα από την εφαρμογή" },
     { "version": "1.1.28", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.28/Setup.1.1.28.exe", "notes": "Διάδοση επεξεργασίας/διαγραφής στη Βιβλιοθήκη Εγγράφων" },
     { "version": "1.1.27", "date": "2026-07-05", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.27/Setup.1.1.27.exe", "notes": "Ενισχύσεις ακεραιότητας δεδομένων (backup integrity check, Archive Mode fix, CE expiry fix)" },
     { "version": "1.1.26", "date": "2026-07-04", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v1.1.26/Setup.1.1.26.exe", "notes": "Εσωτερικές διορθώσεις από code review" },

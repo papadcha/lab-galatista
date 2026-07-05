@@ -40,6 +40,10 @@ database/laboratory.db.backup*
 # ---- Runtime config (μηχανο-ειδικά paths + cloud remote) ----
 lab-config.json
 
+# ---- GitHub token για version-issue reporting (μπαίνει στο bundle κατά
+#      το build, ΠΟΤΕ στο git — issues:write only, βλ. TODOLIST.md) ----
+github-token.json
+
 # ---- Bundled binaries ανά πλατφόρμα (κατεβαίνουν ξεχωριστά) ----
 resources/python/
 resources/rclone/

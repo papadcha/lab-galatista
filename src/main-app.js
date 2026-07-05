@@ -711,10 +711,20 @@ function _showUpdateBanner(info) {
   const existing = document.getElementById('update-banner');
   if (existing) return;
 
+  const isRollback = info.kind === 'rollback';
   const banner = document.createElement('div');
   banner.id        = 'update-banner';
-  banner.className = 'update-banner';
-  banner.innerHTML = `
+  banner.className = 'update-banner' + (isRollback ? ' update-banner-warn' : '');
+  banner.innerHTML = isRollback ? `
+    <div class="update-banner-icon">⚠</div>
+    <div class="update-banner-body">
+      <div class="update-banner-title">Η έκδοσή σας (v${_esc(info.current)}) έχει γνωστό πρόβλημα</div>
+      <div class="update-banner-msg">Προτείνεται προσωρινή επιστροφή σε v${_esc(info.latest)}${info.notes ? ' — ' + _esc(info.notes) : ''}</div>
+    </div>
+    <button class="btn-primary btn-sm" id="update-banner-btn">Λήψη v${_esc(info.latest)}</button>
+    <button class="btn-secondary btn-sm" style="margin-left:4px;"
+            onclick="document.getElementById('update-banner')?.remove()">✕</button>
+  ` : `
     <div class="update-banner-icon">⬆</div>
     <div class="update-banner-body">
       <div class="update-banner-title">Νέα έκδοση διαθέσιμη: v${_esc(info.latest)}</div>

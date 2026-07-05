@@ -178,6 +178,8 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'open-update-url':         (url)               => ipcRenderer.invoke('open-update-url', url),
   'get-app-version':         ()                  => ipcRenderer.invoke('get-app-version'),
   'get-version-history':     ()                  => ipcRenderer.invoke('get-version-history'),
+  'get-allowed-versions':    ()                  => ipcRenderer.invoke('get-allowed-versions'),
+  'report-version-issue':    (lastGood, desc)    => ipcRenderer.invoke('report-version-issue', lastGood, desc),
 
   'generate-pdf-library':    (folder)            => ipcRenderer.invoke('generate-pdf-library', folder),
   'upload-document':         (opts)              => ipcRenderer.invoke('upload-document', opts),

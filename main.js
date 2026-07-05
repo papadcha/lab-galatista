@@ -890,55 +890,81 @@ ipcMain.handle('force-quit', async () => {
 // UPDATE CHECK
 // ============================================================
 
-async function checkForUpdates() {
+// Σύγκριση semantic version — a>b: 1, a<b: -1, ίσα: 0
+function _cmpVersion(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i]||0) > (pb[i]||0)) return 1;
+    if ((pa[i]||0) < (pb[i]||0)) return -1;
+  }
+  return 0;
+}
+
+function _fetchJsonViaNet(url, headers = {}) {
   const { net } = require('electron');
-  const currentVersion = app.getVersion();
-
-  // Cache-busting query param: το GitHub API στέλνει Cache-Control: max-age=60,
-  // αλλά το Chromium net stack του Electron δεν το επανα-επικυρώνει σωστά
-  // μεταξύ επανεκκινήσεων της εφαρμογής — το αποτέλεσμα μένει "κολλημένο"
-  // στην πρώτη ποτέ απάντηση επ' άπειρον. Μοναδικό URL ανά κλήση = πάντα fresh fetch.
-  const request = net.request({
-    method: 'GET',
-    url: `https://api.github.com/repos/papadcha/lab-galatista/releases/latest?_=${Date.now()}`,
-    headers: { 'User-Agent': 'lab-galatista-updater' },
-  });
-
-  const body = await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
+    const request = net.request({ method: 'GET', url, headers });
     let data = '';
     request.on('response', (response) => {
       response.on('data', (chunk) => { data += chunk.toString(); });
-      response.on('end', () => resolve(data));
+      response.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch(e) { reject(e); }
+      });
       response.on('error', reject);
     });
     request.on('error', reject);
     request.end();
   });
+}
 
-  const release = JSON.parse(body);
-  const latestTag = release.tag_name?.replace(/^v/, '');
-  if (!latestTag) return;
+// allowed-versions.json — χειροκίνητα συντηρούμενο αρχείο στο GitHub. Δεν
+// συμπίπτει απαραίτητα με το τελευταίο release: αν μια έκδοση αποδειχτεί
+// προβληματική, το latestRecommendedVersion παραμένει εσκεμμένα πίσω μέχρι
+// να διορθωθεί (βλ. TODOLIST.md).
+async function _fetchAllowedVersions() {
+  try {
+    // Ίδιο cache-busting τέχνασμα με πριν — μοναδικό URL ανά κλήση.
+    return await _fetchJsonViaNet(
+      `https://raw.githubusercontent.com/papadcha/lab-galatista/master/allowed-versions.json?_=${Date.now()}`,
+      { 'User-Agent': 'lab-galatista-updater' }
+    );
+  } catch(e) {
+    return null;
+  }
+}
 
-  // Σύγκριση semantic version
-  const cmp = (a, b) => {
-    const pa = a.split('.').map(Number);
-    const pb = b.split('.').map(Number);
-    for (let i = 0; i < 3; i++) {
-      if ((pa[i]||0) > (pb[i]||0)) return 1;
-      if ((pa[i]||0) < (pb[i]||0)) return -1;
-    }
-    return 0;
-  };
+async function checkForUpdates() {
+  const currentVersion = app.getVersion();
+  const allowed = await _fetchAllowedVersions();
+  if (!allowed?.latestRecommendedVersion) return; // offline ή αρχείο λείπει — σιωπηλά, όπως πριν
 
-  if (cmp(latestTag, currentVersion) > 0) {
-    const downloadUrl = release.assets?.find(a => a.name.endsWith('.exe'))?.browser_download_url
-                     || release.html_url;
+  const recommended = allowed.latestRecommendedVersion;
+  const entry = allowed.versions?.find(v => v.version === recommended);
+  const cmp = _cmpVersion(recommended, currentVersion);
+
+  if (cmp > 0) {
+    // Υπάρχει νεότερη, προτεινόμενη έκδοση
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('update-available', {
+        kind:    'update',
         current: currentVersion,
-        latest:  latestTag,
-        url:     downloadUrl,
-        notes:   release.body || '',
+        latest:  recommended,
+        url:     entry?.downloadUrl || `https://github.com/papadcha/lab-galatista/releases/tag/v${recommended}`,
+        notes:   entry?.notes || '',
+      });
+    }
+  } else if (cmp < 0 && allowed.notice) {
+    // Η τρέχουσα έκδοση είναι πιο πρόσφατη από την προτεινόμενη ΚΑΙ υπάρχει
+    // ρητή σημείωση προβλήματος — δεν εμφανίζουμε ποτέ αυτό το banner μόνο
+    // επειδή ξεχάστηκε να ενημερωθεί το latestRecommendedVersion.
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-available', {
+        kind:    'rollback',
+        current: currentVersion,
+        latest:  recommended,
+        url:     entry?.downloadUrl || `https://github.com/papadcha/lab-galatista/releases/tag/v${recommended}`,
+        notes:   allowed.notice,
       });
     }
   }
@@ -947,6 +973,74 @@ async function checkForUpdates() {
 ipcMain.handle('open-update-url', async (event, url) => {
   await shell.openExternal(url);
   return { ok: true };
+});
+
+ipcMain.handle('get-allowed-versions', async () => {
+  const allowed = await _fetchAllowedVersions();
+  return allowed || { versions: [], latestRecommendedVersion: null, safeDowngradeFloor: null, notice: null };
+});
+
+function _loadGithubToken() {
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, 'github-token.json'), 'utf-8');
+    return JSON.parse(raw).token || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+// Δημιουργεί GitHub issue (όχι αλλαγή αρχείου) — το token έχει δικαίωμα
+// ΜΟΝΟ "Issues: write" στο συγκεκριμένο repo, τίποτα άλλο. Ένας άνθρωπος
+// (εγώ) βλέπει το issue και αποφασίζει αν θα ενημερωθεί το
+// allowed-versions.json — δεν αλλάζει τίποτα αυτόματα.
+ipcMain.handle('report-version-issue', async (event, lastGoodVersion, description) => {
+  const token = _loadGithubToken();
+  if (!token) return { ok: false, error: 'Η αναφορά δεν είναι διαθέσιμη σε αυτή την εγκατάσταση' };
+  const currentVersion = app.getVersion();
+  const hostname = os.hostname() || 'άγνωστο';
+  const bodyText = [
+    `**Τρέχουσα έκδοση (πιθανώς προβληματική):** v${currentVersion}`,
+    `**Τελευταία έκδοση που δούλευε σωστά (κατά τον χρήστη):** v${lastGoodVersion}`,
+    `**Μηχάνημα:** ${hostname}`,
+    '',
+    '**Περιγραφή προβλήματος:**',
+    description || '(καμία περιγραφή)',
+  ].join('\n');
+
+  try {
+    const payload = JSON.stringify({
+      title: `[Αναφορά χρήστη] Πρόβλημα από v${currentVersion} — τελευταία σταθερή κατά τον χρήστη v${lastGoodVersion}`,
+      body:  bodyText,
+    });
+    const result = await new Promise((resolve, reject) => {
+      const { net } = require('electron');
+      const request = net.request({
+        method: 'POST',
+        url: 'https://api.github.com/repos/papadcha/lab-galatista/issues',
+        headers: {
+          'Authorization':  `Bearer ${token}`,
+          'Accept':         'application/vnd.github+json',
+          'Content-Type':   'application/json',
+          'User-Agent':     'lab-galatista-app',
+        },
+      });
+      let data = '';
+      request.on('response', (response) => {
+        response.on('data', (chunk) => { data += chunk.toString(); });
+        response.on('end', () => resolve({ status: response.statusCode, data }));
+        response.on('error', reject);
+      });
+      request.on('error', reject);
+      request.write(payload);
+      request.end();
+    });
+    if (result.status !== 201) {
+      return { ok: false, error: `GitHub API σφάλμα ${result.status}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 });
 
 ipcMain.handle('get-app-version', () => app.getVersion());
