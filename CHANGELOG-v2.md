@@ -10,6 +10,40 @@
 
 ---
 
+## Φάση 2 (συνέχεια) — modularization: cloud-sync.js, retention.js (2026-07-05)
+
+Τα δύο modules έχουν πραγματική κυκλική εξάρτηση (`performStartupCloudSync`
+στο cloud-sync.js καλεί `_maybeRunAutoRetention` στο retention.js) —
+εξήχθησαν μαζί για να μη μείνει ενδιάμεση σπασμένη κατάσταση. Ασφαλής
+κυκλική εξάρτηση σε ESM όταν η χρήση γίνεται μόνο μέσα σε function
+declarations (hoisted), ποτέ στο top-level evaluation — που ισχύει εδώ.
+
+- **`modules/cloud-sync.js`** (νέο) — rclone path/config helpers,
+  `runRclone`, `isNetworkError`, όλα τα `cloud-*` IPC handlers,
+  `sync-document-library`, `cloud-open-terminal`, `open-external-link`,
+  `runSplitCloudSync`, `performStartupCloudSync`.
+- **`modules/retention.js`** (νέο) — lock file μηχανισμός (μία εγκατάσταση
+  τη φορά κάνει αυτόματο καθαρισμό remote backups), όλα τα `retention-*`
+  IPC handlers.
+- **`modules/python-bridge.js`**: προστέθηκε το `python-is-ready` handler
+  που ήταν λάθος τοποθετημένο μέσα στην ενότητα Cloud Sync του main.js.
+- **`main.js`**: αφαιρέθηκε ολόκληρη η ενότητα "IPC — Cloud Sync (rclone)"
+  + "REMOTE BACKUP RETENTION" + "SPLIT CLOUD SYNC", προστέθηκαν τα
+  αντίστοιχα imports. main.js: 1498 → 1131 γραμμές.
+
+Επαληθεύτηκε πλήρες end-to-end σε live Electron app: πραγματικό startup
+cloud sync ολοκληρώθηκε επιτυχώς (`[Cloud] Startup sync ✓` στα logs),
+`cloud-check-rclone`/`cloud-get-config`/`retention-get-status`/
+`cloud-list-remotes` όλα σωστά, πλήρης περιήγηση σελίδων χωρίς σφάλματα.
+
+**Αρχεία:**
+- `modules/cloud-sync.js` (νέο)
+- `modules/retention.js` (νέο)
+- `modules/python-bridge.js`
+- `main.js`
+
+---
+
 ## Φάση 1 — main.js σε ESM, preload.js → preload.cjs (2026-07-05)
 
 Μετατροπή main.js από CommonJS σε ESM (`import`/`export`). Δοκιμάστηκε και

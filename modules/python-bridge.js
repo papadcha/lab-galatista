@@ -128,6 +128,10 @@ export function callPython(method, args = [], timeoutMs = 15000) {
   });
 }
 
+// Renderer queries this on startup to handle the race where Python was
+// ready before DOM loaded
+ipcMain.handle('python-is-ready', () => state.pythonReady);
+
 ipcMain.handle('py-call', async (event, method, ...args) => {
   if (!state.pyProcess) return { error: 'Python backend δεν τρέχει' };
   return new Promise((resolve) => {
