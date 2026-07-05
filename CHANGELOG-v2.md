@@ -10,6 +10,34 @@
 
 ---
 
+## Φάση 2 (συνέχεια) — modularization: archive-mode.js, clean-start.js (2026-07-05)
+
+- **`modules/archive-mode.js`** (νέο) — `find-archive-db`, `switch-to-archive`,
+  `restore-from-archive`, `is-archive-mode`, και η Επιλεκτική Επαναφορά
+  Δείγματος από Backup (`inspect-backup-samples`, `check-sample-code-conflict`,
+  `merge-sample-from-backup`, `switch-to-backup-file`) — μοιράζονται την ίδια
+  υποδομή, γι' αυτό εξήχθησαν μαζί.
+- **`modules/clean-start.js`** (νέο) — `performCleanStart` + το IPC handler
+  `clean-start`.
+- **`modules/config.js`**: το `_buildBackupName` και `_pruneBackups` έγιναν
+  `export` (χρειάζονται πλέον από το `clean-start.js`).
+- **`main.js`**: αφαιρέθηκαν οι ενότητες "CLEAN START", "ARCHIVE MODE" και
+  "ΕΠΙΛΕΚΤΙΚΗ ΕΠΑΝΑΦΟΡΑ ΔΕΙΓΜΑΤΟΣ ΑΠΟ BACKUP", προστέθηκαν τα αντίστοιχα
+  side-effect imports· τα `getDataFolder`/`runSplitCloudSync` έφυγαν από τα
+  imports του main.js αφού δεν χρησιμοποιούνται πια εκεί. 1074 → 846 γραμμές.
+
+Επαληθεύτηκε: `node --check` σε όλα τα αλλαγμένα αρχεία, live εκκίνηση
+Electron app — Python backend, backup, cloud sync όλα ολοκληρώθηκαν χωρίς
+σφάλματα.
+
+**Αρχεία:**
+- `modules/archive-mode.js` (νέο)
+- `modules/clean-start.js` (νέο)
+- `modules/config.js`
+- `main.js`
+
+---
+
 ## Φάση 2 (συνέχεια) — modularization: cloud-sync.js, retention.js (2026-07-05)
 
 Τα δύο modules έχουν πραγματική κυκλική εξάρτηση (`performStartupCloudSync`

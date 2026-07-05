@@ -190,7 +190,7 @@ export async function performBackup(final = false) {
   }
 }
 
-function _buildBackupName(final = false) {
+export function _buildBackupName(final = false) {
   const now        = new Date();
   const todayStamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
   const periodStamp = getPeriodStartStamp();
@@ -199,7 +199,7 @@ function _buildBackupName(final = false) {
   return `lab_${periodStamp}_${todayStamp}_${timeStamp}.db`;
 }
 
-function _pruneBackups(backupDir, keep = 7) {
+export function _pruneBackups(backupDir, keep = 7) {
   try {
     const files = fs.readdirSync(backupDir)
       .filter(f => f.endsWith('.db') && !f.includes('_FINAL'))
