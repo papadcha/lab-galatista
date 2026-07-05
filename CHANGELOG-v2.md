@@ -10,6 +10,47 @@
 
 ---
 
+## Φάση 5 — py-call whitelist (2026-07-06)
+
+**Τελευταίο βήμα του ESM redesign· με αυτό ολοκληρώνονται όλες οι Φάσεις 1-5.**
+
+Το `window.pyBridge.call(method, ...args)` είναι εκτεθειμένο στο main
+world (contextBridge) και δεχόταν οποιοδήποτε method string, προωθώντας
+το κατευθείαν στην Python. Το `METHODS` dict της Python ήδη απορρίπτει
+άγνωστα ονόματα, αλλά αυτό δεν εμπόδιζε την εκτέλεση ΠΡΑΓΜΑΤΙΚΩΝ μεθόδων
+που προορίζονται ΜΟΝΟ για το main process (`vacuum_into`, `clean_start`,
+`switch_db`, `restore_db`, `find_archive_db` κ.ά.) — ένα μελλοντικό XSS
+θα είχε πρόσβαση σε όλες, όχι μόνο σε όσες πραγματικά χρησιμοποιεί το UI.
+
+- **`backend/server.py`**: νέο `RENDERER_METHODS` frozenset — 76
+  μέθοδοι, επαληθευμένες μία-μία έναντι πραγματικής χρήσης στο `src/`
+  (μια πρώτη naive αναζήτηση υποεκτίμησε σοβαρά τον αριθμό, αφού πολλές
+  κλήσεις γίνονται μέσω `window.pyBridge?.call?.(...)` απευθείας, όχι
+  μέσω `pyCall`/`pyCallStrict`). Νέα είσοδος `list_renderer_methods` στο
+  `METHODS` ώστε το JS να παίρνει τη λίστα ζωντανά αντί να κρατάει δικό
+  του, πιθανώς ξεπερασμένο αντίγραφο.
+- **`modules/python-bridge.js`**: ο χειριστής `py-call` κάνει cache τη
+  whitelist (φόρτωση μία φορά όταν η Python γίνεται έτοιμη) και
+  απορρίπτει οτιδήποτε δεν είναι μέσα — fail-closed αν η φόρτωση
+  αποτύχει. Το `_pyCallMain`/`callPython` (μονοπάτι main-process-only)
+  δεν άλλαξε καθόλου — τα `vacuum_into` κλπ συνεχίζουν να δουλεύουν
+  κανονικά για τους νόμιμους main-process callers τους.
+
+Επαληθεύτηκε ζωντανά με `playwright-core`'s `_electron`: κλήση των 5
+ευαίσθητων μεθόδων + μιας ανύπαρκτης απευθείας μέσω
+`window.pyBridge.call()` (ακριβώς όπως θα το έκανε ένα XSS) — όλες
+μπλοκαρίστηκαν σωστά με "Μη επιτρεπόμενη μέθοδος"· η νόμιμη μέθοδος
+`get_products` συνέχισε να δουλεύει· πλήρης κύκλος πλοήγησης στις 7
+σελίδες + πραγματικά flows του settings.js που καλούν
+`window.pyBridge.call(...)` απευθείας (`get_all_ce_periods`,
+`get_samples_count`) — 0 console errors.
+
+**Αρχεία:**
+- `backend/server.py`
+- `modules/python-bridge.js`
+
+---
+
 ## Φάση 4 — Electron 28→43, αφαίρεση puppeteer (2026-07-05)
 
 - **`package.json`**: `electron` `^28.3.3` → `^43.0.0` (15 major versions —

@@ -1,6 +1,6 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-07-05 (Electron 28→43, puppeteer αφαιρέθηκε)
+Τελευταία ενημέρωση: 2026-07-06 (ESM REDESIGN ΠΛΗΡΩΣ ΟΛΟΚΛΗΡΩΘΗΚΕ — έτοιμο για merge/tag v2.0.0)
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί).
 Τρέχουσα έκδοση: v1.1.32
@@ -78,16 +78,27 @@
       περνάνε περιοδικά με merge στο `v2-esm-redesign`· το αντίθετο ΟΧΙ
       μέχρι να ολοκληρωθεί, οπότε γίνεται merge πίσω + tag v2.0.0.
 
-- [ ] Κατάργηση του generic `pyBridge.call`/`py-call` dispatcher
-      (preload.js/main.js) — προτάθηκε από code review (Gemini #4,
-      2026-07-05). Σήμερα 64 διαφορετικές Python μεθόδους περνάνε από
-      αυτόν τον γενικό δίαυλο χωρίς whitelist· ένα μελλοντικό XSS θα
-      είχε πρόσβαση σε όλες (π.χ. vacuum_into, clean_start). Χαμηλό
-      πρακτικό ρίσκο σήμερα (τοπική desktop εφαρμογή, 2 γνωστοί
-      χρήστες, καμία γνωστή unescaped injection βρέθηκε παρά την
-      εκτενή επιθεώρηση), αλλά σωστό defense-in-depth. Μεγάλη αλλαγή
-      (64+ ρητά endpoints) — μαζί με το ήδη προγραμματισμένο "py-call
-      whitelist auto-derived from Python".
+- [x] py-call whitelist auto-derived from Python (Φάση 5, βλ.
+      CHANGELOG-v2.md) — ολοκληρώθηκε 2026-07-06. Αντί να καταργηθεί ο
+      generic dispatcher (θα απαιτούσε 76+ νέα ρητά IPC endpoints, μεγάλη
+      αλλαγή), προστέθηκε whitelist: `backend/server.py`'s νέο
+      `RENDERER_METHODS` frozenset (76 μέθοδοι, επαληθευμένες μία-μία
+      έναντι πραγματικής χρήσης στο `src/`) + νέα introspection μέθοδος
+      `list_renderer_methods`. Το `modules/python-bridge.js`'s `py-call`
+      handler τη φορτώνει μία φορά στην εκκίνηση (auto-derived, όχι
+      hand-maintained αντίγραφο) και απορρίπτει οτιδήποτε άλλο πριν καν
+      φτάσει στην Python — fail-closed αν η φόρτωση αποτύχει. Τα
+      `vacuum_into`, `clean_start`, `switch_db`, `restore_db`,
+      `find_archive_db` κλπ παραμένουν προσβάσιμα ΜΟΝΟ από το main
+      process (`_pyCallMain`, ξεχωριστό μονοπάτι), όπως ήδη ήταν.
+      Επαληθεύτηκε ζωντανά: οι ευαίσθητες μέθοδοι μπλοκάρονται όταν
+      κληθούν απευθείας μέσω `window.pyBridge.call()` (ακριβώς όπως θα το
+      έκανε ένα XSS), η νόμιμη χρήση παραμένει αμετάβλητη σε όλες τις 7
+      σελίδες.
+
+**Με αυτό, ο ΠΛΗΡΗΣ επανασχεδιασμός ESM (Φάσεις 1-5) έχει ολοκληρωθεί.**
+Επόμενο βήμα: merge `v2-esm-redesign` → `master` + tag `v2.0.0`, όποτε
+αποφασιστεί το release (βλ. στρατηγική branch παραπάνω στη Φάση 4).
 
 ## ΜΕΤΑ ΤΑ 2 ΜΕΓΑΛΑ UPDATE (ESM redesign v2.0.0 + i18n) — 2026-07-06
 
