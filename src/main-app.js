@@ -740,15 +740,126 @@ function _showUpdateBanner(info) {
   });
 }
 
+// Parser για VERSIONS.md — αναμένει επικεφαλίδες μορφής "vX.Y.Z — ημ/νία  [ΤΑΓ]"
+// ακολουθούμενες από γραμμή παύλων, ίδιο format σε κάθε release.
+function _parseVersionsMd(text) {
+  const lines = text.split('\n');
+  const entries = [];
+  let current = null;
+  const headerRe = /^v(\d+\.\d+\.\d+)\s+—\s+(\S+)(?:\s+\[(.+?)\])?\s*$/;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const m = line.match(headerRe);
+    if (m && /^-{5,}/.test(lines[i+1] || '')) {
+      if (current) entries.push(current);
+      current = { version: m[1], date: m[2], tag: m[3] || null, body: [] };
+      i++; // παράλειψη γραμμής παυλών
+      continue;
+    }
+    if (current && line.trim()) current.body.push(line.trim());
+  }
+  if (current) entries.push(current);
+  return entries;
+}
+
 async function showVersionHistory() {
-  const result = await window.pyBridge?.['get-version-history']?.();
-  const content = result?.ok
-    ? `<pre style="white-space:pre-wrap;font-family:inherit;font-size:0.85em;line-height:1.5;max-height:60vh;overflow-y:auto;margin:0;">${_esc(result.content)}</pre>`
-    : `<p style="color:var(--text-muted);">Δεν ήταν δυνατή η φόρτωση του ιστορικού εκδόσεων.</p>`;
+  const [historyResult, allowed, currentVersion] = await Promise.all([
+    window.pyBridge?.['get-version-history']?.(),
+    window.pyBridge?.['get-allowed-versions']?.(),
+    window.pyBridge?.['get-app-version']?.(),
+  ]);
+
+  if (!historyResult?.ok) {
+    App.showModal('Ιστορικό Εκδόσεων',
+      `<p style="color:var(--text-muted);">Δεν ήταν δυνατή η φόρτωση του ιστορικού εκδόσεων.</p>`,
+      [{ label: 'Κλείσιμο', action: 'App.closeModal()' }]);
+    return;
+  }
+
+  const entries    = _parseVersionsMd(historyResult.content);
+  const allowedMap = new Map((allowed?.versions || []).map(v => [v.version, v]));
+
+  const noticeHtml = allowed?.notice
+    ? `<div style="background:rgba(239,68,68,0.1);border:1px solid var(--fail);
+         border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;">
+         ⚠ ${_esc(allowed.notice)}</div>`
+    : '';
+
+  const entriesHtml = entries.map(e => {
+    const safe    = allowedMap.get(e.version);
+    const isCurrent = e.version === currentVersion;
+    const color = safe ? 'var(--ok-light,#22c55e)' : 'var(--fail-light,#ef4444)';
+    const bg    = safe ? 'rgba(34,197,94,0.06)'     : 'rgba(239,68,68,0.06)';
+    const action = safe
+      ? `<button class="btn-secondary btn-sm" onclick="window.pyBridge['open-update-url']('${_esc(safe.downloadUrl)}')">⬇ Λήψη</button>`
+      : `<span class="form-hint" style="margin:0;">δεν συνιστάται downgrade</span>`;
+    return `
+      <div style="border-left:3px solid ${color};background:${bg};border-radius:6px;
+           padding:8px 10px;margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div>
+            <strong>v${_esc(e.version)}</strong>
+            <span style="color:var(--text-muted);font-size:12px;">— ${_esc(e.date)}</span>
+            ${e.tag ? `<span style="color:var(--warn-light,#f59e0b);font-size:11px;margin-left:4px;">[${_esc(e.tag)}]</span>` : ''}
+            ${isCurrent ? `<span class="form-hint" style="margin-left:6px;">τρέχουσα</span>` : ''}
+          </div>
+          ${action}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;white-space:pre-wrap;">${_esc(e.body.join('\n'))}</div>
+      </div>`;
+  }).join('');
+
+  const reportOptions = (allowed?.versions || []).map(v =>
+    `<option value="${_esc(v.version)}">v${_esc(v.version)}</option>`
+  ).join('');
+
+  const content = `
+    ${noticeHtml}
+    <div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;">${entriesHtml}</div>
+    <div style="border-top:1px solid var(--border);padding-top:12px;">
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px;">🐞 Αναφορά Προβλήματος</div>
+      <p class="form-hint" style="margin-bottom:8px;">
+        Πράσινο = ασφαλές downgrade (με κουμπί λήψης). Κόκκινο = δεν συνιστάται
+        επιστροφή τόσο παλιά. Αν εντοπίσατε από ποια έκδοση ξεκίνησε ένα
+        πρόβλημα, αναφέρετέ το εδώ.
+      </p>
+      <label class="form-label">Τελευταία έκδοση που δούλευε σωστά</label>
+      <select id="report-last-good-version" style="margin-bottom:8px;">${reportOptions}</select>
+      <label class="form-label">Περιγραφή προβλήματος</label>
+      <textarea id="report-issue-description" rows="3"
+                placeholder="Τι παρατηρήσατε; Πότε συμβαίνει;"
+                style="margin-bottom:8px;"></textarea>
+      <button class="btn-secondary btn-sm" id="report-issue-btn"
+              onclick="App._submitVersionIssueReport()">Αποστολή Αναφοράς</button>
+    </div>
+  `;
+
   App.showModal('Ιστορικό Εκδόσεων', content, [
     { label: 'Κλείσιμο', action: 'App.closeModal()' },
   ]);
 }
+
+async function _submitVersionIssueReport() {
+  const lastGood = document.getElementById('report-last-good-version')?.value;
+  const desc     = document.getElementById('report-issue-description')?.value?.trim();
+  if (!lastGood) { App.toast('Επιλέξτε έκδοση', 'warn'); return; }
+  if (!desc)     { App.toast('Περιγράψτε το πρόβλημα', 'warn'); return; }
+
+  const btn = document.getElementById('report-issue-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const result = await window.pyBridge?.['report-version-issue']?.(lastGood, desc);
+    if (result?.ok) {
+      App.toast('Η αναφορά στάλθηκε', 'ok');
+      App.closeModal();
+    } else {
+      App.toast('Σφάλμα αναφοράς: ' + (result?.error || ''), 'fail');
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+App._submitVersionIssueReport = _submitVersionIssueReport;
 
 // ============================================================
 // ΑΡΧΙΚΟΠΟΙΗΣΗ — Banner + Wizard

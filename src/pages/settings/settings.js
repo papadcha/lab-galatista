@@ -1707,75 +1707,6 @@
     }
   }
 
-  // ── Παλιότερες Εκδόσεις / Αναφορά Προβλήματος ───────────────
-
-  async function loadAllowedVersions() {
-    const listEl   = document.getElementById('allowed-versions-list');
-    const noticeEl = document.getElementById('allowed-versions-notice');
-    const selectEl = document.getElementById('report-last-good-version');
-    if (!listEl) return;
-
-    const allowed = await pyBridgeCall('get-allowed-versions');
-    if (!allowed?.versions?.length) {
-      listEl.innerHTML = '<div class="form-hint">Δεν ήταν δυνατή η λήψη της λίστας (χωρίς σύνδεση internet;)</div>';
-      if (noticeEl) noticeEl.classList.add('hidden');
-      if (selectEl) selectEl.innerHTML = '';
-      return;
-    }
-
-    if (noticeEl) {
-      if (allowed.notice) {
-        noticeEl.textContent = '⚠ ' + allowed.notice;
-        noticeEl.classList.remove('hidden');
-      } else {
-        noticeEl.classList.add('hidden');
-      }
-    }
-
-    const currentVersion = await pyBridgeCall('get-app-version');
-    listEl.innerHTML = allowed.versions.map(v => {
-      const isCurrent = v.version === currentVersion;
-      const isRecommended = v.version === allowed.latestRecommendedVersion;
-      return `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;
-             border-bottom:1px solid var(--border);font-size:13px;">
-          <span style="min-width:64px;font-weight:600;">v${_esc(v.version)}</span>
-          <span style="flex:1;color:var(--text-muted);font-size:12px;">${_esc(v.notes || '')}</span>
-          ${isCurrent ? '<span class="form-hint" style="margin:0;">τρέχουσα</span>' : ''}
-          ${isRecommended && !isCurrent ? '<span class="form-hint" style="margin:0;color:var(--ok-light,#22c55e);">προτεινόμενη</span>' : ''}
-          <button class="btn-secondary btn-sm" onclick="window.pyBridge['open-update-url']('${_esc(v.downloadUrl)}')">⬇ Λήψη</button>
-        </div>`;
-    }).join('');
-
-    if (selectEl) {
-      selectEl.innerHTML = allowed.versions.map(v =>
-        `<option value="${_esc(v.version)}">v${_esc(v.version)}</option>`
-      ).join('');
-    }
-  }
-
-  async function submitVersionIssueReport() {
-    const lastGood = document.getElementById('report-last-good-version')?.value;
-    const desc     = document.getElementById('report-issue-description')?.value?.trim();
-    if (!lastGood) { App.toast('Επιλέξτε έκδοση', 'warn'); return; }
-    if (!desc) { App.toast('Περιγράψτε το πρόβλημα', 'warn'); return; }
-
-    const btn = document.getElementById('report-issue-btn');
-    if (btn) btn.disabled = true;
-    try {
-      const result = await pyBridgeCall('report-version-issue', lastGood, desc);
-      if (result?.ok) {
-        App.toast('Η αναφορά στάλθηκε', 'ok');
-        const descEl = document.getElementById('report-issue-description');
-        if (descEl) descEl.value = '';
-      } else {
-        App.toast('Σφάλμα αναφοράς: ' + (result?.error || ''), 'fail');
-      }
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  }
-
   async function pyBridgeCall(method, ...args) {
     try {
       const fn = window.pyBridge?.[method];
@@ -1894,7 +1825,6 @@
     if (inp) inp.value = folder;
     await loadBackupList();
     await loadCloudSync();
-    await loadAllowedVersions();
     await loadCePeriods();
   }
 
@@ -3028,8 +2958,6 @@
     saveRetentionDays, toggleRetentionAuto,
     forceReleaseRetentionLock, _doForceReleaseRetentionLock,
     previewRetentionCleanup, runRetentionCleanupNow, _doRunRetentionCleanupNow,
-    // Παλιότερες εκδόσεις / Αναφορά προβλήματος
-    loadAllowedVersions, submitVersionIssueReport,
     // CE Periods
     loadCePeriods, showNewSubperiodModal, _saveNewSubperiod,
     showEditSubperiodModal, _saveEditSubperiod,

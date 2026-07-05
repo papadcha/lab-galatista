@@ -570,39 +570,6 @@
         <div id="retention-preview-result" class="form-hint" style="margin-top:8px;"></div>
       </div>
 
-    <!-- Παλιότερες Εκδόσεις / Αναφορά Προβλήματος -->
-    <div class="form-card" style="margin-top:16px;">
-      <h3 class="form-card-title">⏪ Παλιότερες Εκδόσεις &amp; Αναφορά Προβλήματος</h3>
-      <p class="form-card-intro">
-        Αν μια νέα έκδοση δεν λειτουργεί σωστά, μπορείτε να κατεβάσετε μια
-        παλιότερη από τη λίστα παρακάτω για να συνεχίσετε τη δουλειά σας,
-        και να αναφέρετε το πρόβλημα ώστε να διορθωθεί.
-      </p>
-
-      <div id="allowed-versions-notice" class="hidden" style="background:var(--fail-bg,rgba(239,68,68,0.1));
-           border:1px solid var(--fail);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;"></div>
-
-      <div id="allowed-versions-list" style="margin-bottom:16px;">
-        <div class="form-hint">Φόρτωση λίστας εκδόσεων...</div>
-      </div>
-
-      <div style="border-top:1px solid var(--border);padding-top:12px;">
-        <div style="font-weight:600;font-size:13px;margin-bottom:6px;">🐞 Αναφορά Προβλήματος</div>
-        <p class="form-hint" style="margin-bottom:8px;">
-          Αν εντοπίσατε από ποια έκδοση ξεκίνησε ένα πρόβλημα (π.χ. κάνοντας
-          downgrade βήμα-βήμα), αναφέρετέ το εδώ.
-        </p>
-        <label class="form-label">Τελευταία έκδοση που δούλευε σωστά</label>
-        <select id="report-last-good-version" style="margin-bottom:8px;"></select>
-        <label class="form-label">Περιγραφή προβλήματος</label>
-        <textarea id="report-issue-description" rows="3"
-                  placeholder="Τι παρατηρήσατε; Πότε συμβαίνει;"
-                  style="margin-bottom:8px;"></textarea>
-        <button class="btn-secondary btn-sm" id="report-issue-btn"
-                onclick="SettingsPage.submitVersionIssueReport()">Αποστολή Αναφοράς</button>
-      </div>
-    </div>
-
     <!-- CE Period Management -->
     <div class="form-card" style="margin-top:16px;">
       <h3 class="form-card-title">📋 Διαχείριση CE Περιόδων</h3>
