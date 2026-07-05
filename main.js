@@ -1,10 +1,15 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
-const path       = require('path');
-const fs         = require('fs');
-const crypto     = require('crypto');
-const { spawn }  = require('child_process');
-const os         = require('os');
-const nodemailer = require('nodemailer');
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu, net } from 'electron';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
+import { spawn, execFile, execFileSync } from 'child_process';
+import os from 'os';
+import nodemailer from 'nodemailer';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
 let _puppeteer = null;
 async function getPuppeteer() {
   if (!_puppeteer) _puppeteer = (await import('puppeteer')).default;
@@ -45,7 +50,11 @@ function createWindow() {
     webPreferences: {
       nodeIntegration:     false,
       contextIsolation:    true,
-      preload:             path.join(__dirname, 'preload.js'),
+      // .cjs (όχι .js) — τα ESM preload scripts του Electron 28 αποτυγχάνουν
+      // σιωπηλά (κανένα contextBridge exposure, καμία εξαίρεση/σφάλμα στο
+      // console), επαληθεύτηκε εμπειρικά κατά το ESM redesign. Το .cjs
+      // αναγκάζει CommonJS ανεξάρτητα από το "type":"module" του package.json.
+      preload:             path.join(__dirname, 'preload.cjs'),
       webSecurity:         true,
     },
     // Εμφάνιση παραθύρου μόνο όταν είναι έτοιμο
@@ -234,8 +243,6 @@ app.whenReady().then(() => {
 // ============================================================
 // IPC — Cloud Sync (rclone)
 // ============================================================
-
-const { execFile } = require('child_process');
 
 function getRclonePath() {
   if (app.isPackaged) {
@@ -957,7 +964,6 @@ function _cmpVersion(a, b) {
 }
 
 function _fetchJsonViaNet(url, headers = {}) {
-  const { net } = require('electron');
   return new Promise((resolve, reject) => {
     const request = net.request({ method: 'GET', url, headers });
     let data = '';
@@ -1086,7 +1092,6 @@ ipcMain.handle('report-version-issue', async (event, lastGoodVersion, descriptio
       body:  bodyText,
     });
     const result = await new Promise((resolve, reject) => {
-      const { net } = require('electron');
       const request = net.request({
         method: 'POST',
         url: 'https://api.github.com/repos/papadcha/lab-galatista/issues',
@@ -1134,7 +1139,6 @@ ipcMain.handle('get-version-history', () => {
 async function checkCeExpiryAndNotify() {
   try {
     // Διαβάζει απευθείας από τη DB χωρίς Python IPC (main process)
-    const { execFileSync } = require('child_process');
     const dbPath = getDbPath();
     if (!dbPath) return;
 

@@ -1,6 +1,7 @@
 {
   "name": "lab-galatista",
-  "version": "1.1.32",
+  "version": "2.0.0-dev",
+  "type": "module",
   "description": "Εργαστήριο Λατομείων Γαλάτιστας — Σύστημα Ποιοτικού Ελέγχου",
   "main": "main.js",
   "scripts": {
@@ -35,7 +36,7 @@
     },
     "files": [
       "main.js",
-      "preload.js",
+      "preload.cjs",
       "standards.json",
       "VERSIONS.md",
       "github-token.json",
