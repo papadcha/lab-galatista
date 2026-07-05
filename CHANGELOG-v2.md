@@ -10,6 +10,48 @@
 
 ---
 
+## Φάση 3 (ξεκίνημα) — main-app.js σε ESM (2026-07-05)
+
+Πρώτο βήμα της μετατροπής του `src/` (renderer) σε ESM. Μόνο το
+main-app.js άλλαξε — τα 7 page scripts (dashboard.js, samples.js,
+tests.js, history.js, reports.js, library.js, settings.js) παραμένουν
+classic scripts, χωρίς καμία αλλαγή· ελαχιστοποιεί το ρίσκο σε μια
+ζωντανή εφαρμογή καθημερινής χρήσης.
+
+- **`src/index.html`**: `<script src="main-app.js">` →
+  `<script type="module" src="main-app.js">`.
+- **`src/main-app.js`**: ρητή έκθεση στο `window` κάθε top-level
+  function/const που τα page scripts ή inline `onclick="..."` HTML
+  καλούν ως γυμνό identifier — απαραίτητο πλέον αφού τα ES modules δεν
+  μοιράζονται global scope με τα classic scripts (πριν, οι top-level
+  function δηλώσεις γίνονταν αυτόματα window properties). Έλεγχος σε
+  όλο το `src/` πριν την αλλαγή αποκάλυψε ότι `_esc`, `_toIsoDate`, και
+  `_formatCeDate` καλούνται bare και **χωρίς guard** σε
+  library.js/settings.js/reports.js/tests.js — θα έσπαγαν με
+  ReferenceError χωρίς αυτή τη ρητή έκθεση. Εκτέθηκαν εξαντλητικά όλα
+  τα top-level ονόματα (όχι μόνο όσα βρέθηκαν με grep), ώστε να μη μείνει
+  κρυφή αναφορά.
+- Επαληθεύτηκε εμπειρικά πριν ξεκινήσει η αλλαγή: τα ES modules
+  (static/dynamic `import`) δουλεύουν κανονικά πάνω σε `file://` σε αυτή
+  την έκδοση Electron (καμία CORS παρεμπόδιση)· το υπάρχον τέχνασμα
+  επαναφόρτωσης σελίδας (αφαίρεση/επανεισαγωγή `<script>`) ΔΕΝ θα
+  ξανάτρεχε ένα module με τον ίδιο τρόπο (τα modules γίνονται cache ανά
+  URL από τον browser) — δεν επηρεάζει όμως τίποτα εδώ, αφού τα page
+  scripts παραμένουν classic και συνεχίζουν να χρησιμοποιούν το ίδιο
+  τέχνασμα αμετάβλητο.
+
+Επαληθεύτηκε: ζωντανή οδήγηση της εφαρμογής μέσω `playwright-core`'s
+`_electron` — πλοήγηση dashboard→samples→history→reports→library→
+settings→dashboard, και άνοιγμα modal ιστορικού εκδόσεων (δοκιμάζει
+inline `onclick="App...()"`). 0 console errors· μόνο το προϋπάρχον,
+άσχετο CSP dev-warning του Electron.
+
+**Αρχεία:**
+- `src/index.html`
+- `src/main-app.js`
+
+---
+
 ## Φάση 2 (ολοκλήρωση) — modularization: update-check.js, ce-period.js, pdf-generation.js, email.js, document-library.js (2026-07-05)
 
 main.js άδειασε από όλη την υπόλοιπη domain λογική — έμεινε μόνο το entry
