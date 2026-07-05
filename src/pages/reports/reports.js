@@ -300,7 +300,21 @@
     show('single-options');
   }
 
+  // Αν κάποιος πατήσει Εκτύπωση/Αποθήκευση δύο φορές γρήγορα (ή και τα δύο
+  // σχεδόν ταυτόχρονα), αυτό το lock κάνει τη δεύτερη κλήση να περιμένει
+  // την ΙΔΙΑ σε εξέλιξη παραγωγή PDF αντί να ξεκινήσει άλλη μία περιττή.
+  let _generatePdfPromise = null;
   async function _generatePdf() {
+    if (_generatePdfPromise) return _generatePdfPromise;
+    _generatePdfPromise = _doGeneratePdf();
+    try {
+      return await _generatePdfPromise;
+    } finally {
+      _generatePdfPromise = null;
+    }
+  }
+
+  async function _doGeneratePdf() {
     const s = state.selectedSample?.sample;
     if (!s) { App.toast('Δεν υπάρχει επιλεγμένο δείγμα', 'warn'); return null; }
 
@@ -1221,6 +1235,15 @@
     return null;
   }
 
+  // Σημασιολογικός έλεγχος (όχι μόνο μορφή) — π.χ. "32/13/2026" περνάει το
+  // regex του _toISOLocal αλλά δεν είναι πραγματική ημερομηνία. Ίδιο μοτίβο
+  // με το isValidDate() του history.js.
+  function _isValidDate(iso) {
+    if (!iso) return false;
+    const d = new Date(iso);
+    return !isNaN(d.getTime()) && d.toISOString().startsWith(iso);
+  }
+
   function validatePeriodicDates() {
     const fromVal = el('per-from')?.value?.trim();
     const toVal   = el('per-to')?.value?.trim();
@@ -1238,6 +1261,14 @@
     if (fromEl) fromEl.style.borderColor = '';
     if (toEl)   toEl.style.borderColor   = '';
 
+    if (fromVal && !_isValidDate(fromISO)) {
+      if (fromEl) fromEl.style.borderColor = 'var(--fail)';
+      valid = false;
+    }
+    if (toVal && !_isValidDate(toISO)) {
+      if (toEl) toEl.style.borderColor = 'var(--fail)';
+      valid = false;
+    }
     if (fromISO && minISO && fromISO < minISO) {
       if (fromEl) fromEl.style.borderColor = 'var(--fail)';
       valid = false;

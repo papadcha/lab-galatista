@@ -183,6 +183,19 @@ app.whenReady().then(() => {
     const ready = await waitForPythonReady();
     if (!ready) console.warn('[Startup] Ο Python backend δεν απάντησε εγκαίρως — συνεχίζουμε ούτως ή άλλως');
 
+    // Αν η προηγούμενη έξοδος από Archive Mode δεν ήταν καθαρή (π.χ. crash),
+    // το config μπορεί να έχει μείνει με archiveDataFolder ενώ το Python
+    // backend (φρέσκια διεργασία, καμία μνήμη archive mode) συνδέεται πάντα
+    // στη ζωντανή βάση — χωρίς αυτό το reconcile, getDataFolder() θα έστελνε
+    // backups/PDF στον ΠΑΛΙΟ αρχειοθετημένο φάκελο ενώ η βάση θα ήταν η ζωντανή.
+    const cfgStartup = loadConfig();
+    if (cfgStartup.archiveDataFolder) {
+      console.warn('[Startup] Βρέθηκε archiveDataFolder από μη ολοκληρωμένη έξοδο από Archive Mode — καθαρισμός.');
+      const cfgClean = loadConfig();
+      delete cfgClean.archiveDataFolder;
+      saveConfig(cfgClean);
+    }
+
     // ── Τοπικό backup ─────────────────────────────────────
     const result = await performBackup();
     if (result.success) {
@@ -674,8 +687,32 @@ async function performCleanStart(options = {}) {
   // 2. Cloud sync πριν διαγραφή (αν υπάρχει remote)
   const cfg = loadConfig();
   if (cfg.cloudRemotePath) {
-    try { await runSplitCloudSync(dataFolder, cfg.cloudRemotePath); }
-    catch(e) { console.warn('[CleanStart] Cloud sync warning:', e.message); }
+    let syncOk = false;
+    try {
+      const syncResult = await runSplitCloudSync(dataFolder, cfg.cloudRemotePath);
+      syncOk = !!syncResult?.ok;
+      if (!syncOk) console.warn('[CleanStart] Cloud sync απέτυχε:', syncResult?.error);
+    } catch(e) {
+      console.warn('[CleanStart] Cloud sync warning:', e.message);
+    }
+    // Το FINAL backup είναι η μόνη μόνιμη καταγραφή της κλειόμενης περιόδου —
+    // αν δεν ανέβηκε στο cloud, ρωτάμε πριν προχωρήσουμε στη διαγραφή, ώστε
+    // να μη μείνει το backup ΜΟΝΟ τοπικά χωρίς να το ξέρει κανείς.
+    if (!syncOk) {
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        buttons: ['Ακύρωση', 'Συνέχεια χωρίς cloud backup'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Αποτυχία Cloud Sync',
+        message: 'Το backup της κλειόμενης περιόδου δεν ανέβηκε στο cloud ' +
+                 '(πρόβλημα σύνδεσης ή διαμόρφωσης). Αν συνεχίσετε, θα υπάρχει ' +
+                 'μόνο τοπικά μέχρι το επόμενο επιτυχημένο sync.',
+      });
+      if (response !== 1) {
+        return { ok: false, error: 'Ακυρώθηκε — αποτυχία cloud sync', canceled: true };
+      }
+    }
   }
 
   // 3. Clean start μέσω Python — διαγραφή δειγμάτων, CE deactivation, επιλογές
@@ -1593,6 +1630,14 @@ async function performBackup(final = false) {
     // με ωμό αντίγραφο αρχείου που μπορεί να είναι stale.
     const vacuumResult = await _pyCallMain('vacuum_into', [tmpDest], 30000);
     if (!vacuumResult?.ok) fs.copyFileSync(dbPath, tmpDest);
+
+    // Επαλήθευση ότι το φρέσκο backup είναι πραγματικά μια έγκυρη, μη
+    // κατεστραμμένη βάση δεδομένων — πριν το εμπιστευτούμε ως backup.
+    const integrity = await _pyCallMain('check_db_integrity', [tmpDest], 30000);
+    if (!integrity?.ok) {
+      fs.unlinkSync(tmpDest);
+      return { success: false, error: 'Το backup απέτυχε τον έλεγχο ακεραιότητας: ' + (integrity?.result || integrity?.error || 'άγνωστο σφάλμα') };
+    }
 
     // Αν το περιεχόμενο είναι ίδιο με το πιο πρόσφατο backup του ίδιου τύπου
     // (final/non-final), δεν κρατάμε διπλότυπο — άσχετα από ημέρα/ώρα.

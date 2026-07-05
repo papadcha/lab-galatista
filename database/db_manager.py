@@ -1,28 +1,3 @@
-"""
-# ============================================================
-# db_manager.py
-# Εργαστήριο Λατομείων Γαλάτιστας
-# ─────────────────────────────────────────────────────────────
-# Έκδοση : 0.99.5
-# Ημ/νία  : 2026-07-02
-# ─────────────────────────────────────────────────────────────
-# Ιστορικό:
-#   0.99.7 — Migration 015: idempotent re-fix 3Α/Ε4 category=ALL_IN για
-#             ΚΑΘΕ υπάρχουσα βάση (το migration_001 δεν έπιανε βάσεις
-#             που "γεννήθηκαν" φρέσκιες πριν το v1.1.18) — CURRENT_SCHEMA_VERSION → 15
-#   0.99.6 — Migration 014: un-bake σύνθετο name στα προϊόντα (fix
-#             διπλού/λείποντος εύρους κόκκου) — CURRENT_SCHEMA_VERSION → 14
-#   0.99.5 — Migration 013: tbl_subperiod_specifications (κοκκομετρία
-#             ανά προϊόν+υποπερίοδο+πρότυπο) — CURRENT_SCHEMA_VERSION → 13
-#   0.99.4 — Migration 012: tbl_subperiod_specs (MB/SE/FL ανά
-#             προϊόν+υποπερίοδο) — CURRENT_SCHEMA_VERSION → 12
-#   0.99.2 — CE period functions: get/create/update + expiry status
-#             subperiod functions: get/create + date lookup
-#   0.99.1 — Migration 009: tbl_ce_periods, tbl_subperiods
-#             CURRENT_SCHEMA_VERSION → 9
-#   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
-# ============================================================
-"""
 import sqlite3
 import os
 from datetime import datetime
@@ -2799,12 +2774,32 @@ def vacuum_into(dest_path: str) -> dict:
     """VACUUM INTO — δημιουργεί συμπιεσμένο αντίγραφο της DB."""
     conn = get_connection()
     try:
-        conn.execute(f"VACUUM INTO '{dest_path}'")
+        # VACUUM INTO δεν υποστηρίζει parameterized filename (?) — μόνο
+        # SQL string literal. Escape τυχόν single quote στο path (π.χ. αν
+        # ο φάκελος δεδομένων περιέχει απόστροφο) διπλασιάζοντάς το, όπως
+        # προβλέπει η σύνταξη SQL string literals.
+        escaped_path = dest_path.replace("'", "''")
+        conn.execute(f"VACUUM INTO '{escaped_path}'")
         return {'ok': True, 'path': dest_path}
     except Exception as e:
         return {'ok': False, 'error': str(e)}
     finally:
         conn.close()
+
+def check_db_integrity(path: str) -> dict:
+    """PRAGMA integrity_check πάνω σε ένα αρχείο βάσης (π.χ. φρέσκο backup),
+    ανεξάρτητα από την ενεργή σύνδεση. Επιστρέφει ok=True μόνο αν η SQLite
+    απαντήσει ακριβώς 'ok'."""
+    try:
+        check_conn = sqlite3.connect(path)
+        try:
+            row = check_conn.execute("PRAGMA integrity_check").fetchone()
+            result = row[0] if row else None
+            return {'ok': result == 'ok', 'result': result}
+        finally:
+            check_conn.close()
+    except Exception as e:
+        return {'ok': False, 'error': str(e)}
 
 def clean_start(vacuum_dest_path: str,
                 keep_technicians: bool = True,
@@ -3110,7 +3105,7 @@ def get_ce_expiry_status() -> dict:
             return {'status': 'ok', 'days_left': None, 'valid_to': None}
 
         from datetime import date
-        valid_to_str = period['valid_to']
+        valid_to_str = (period['valid_to'] or '').strip()
         # Υποστήριξη DD/MM/YYYY και YYYY-MM-DD
         try:
             if '/' in valid_to_str:
@@ -3119,7 +3114,10 @@ def get_ce_expiry_status() -> dict:
             else:
                 expiry = date.fromisoformat(valid_to_str[:10])
         except Exception:
-            return {'status': 'ok', 'days_left': None, 'valid_to': valid_to_str}
+            # Μη έγκυρη/κατεστραμμένη ημερομηνία — ΔΕΝ επιστρέφουμε 'ok' (θα
+            # έκρυβε σιωπηλά πιθανή λήξη πιστοποιητικού CE). Το 'error' κάνει
+            # την κατάσταση ορατή στον χρήστη αντί να την αποκρύπτει.
+            return {'status': 'error', 'days_left': None, 'valid_to': valid_to_str}
 
         days_left = (expiry - date.today()).days
 

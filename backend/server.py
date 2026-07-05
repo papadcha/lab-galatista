@@ -1,16 +1,3 @@
-"""
-# ============================================================
-# server.py
-# Εργαστήριο Λατομείων Γαλάτιστας
-# ─────────────────────────────────────────────────────────────
-# Έκδοση : 0.99.3
-# Ημ/νία  : 2026-06-02
-# ─────────────────────────────────────────────────────────────
-# Ιστορικό:
-#   0.99.2 — CE period routes + dispatcher entries
-#   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
-# ============================================================
-"""
 import sys
 import io
 import json
@@ -93,6 +80,7 @@ from database.db_manager import (
     delete_ce_period,
     clean_start,
     vacuum_into,
+    check_db_integrity,
     switch_db,
     restore_db,
     find_archive_db,
@@ -847,6 +835,7 @@ METHODS = {
         int(args[3]) if len(args)>3 and args[3] else None,
         args[4]),
     'vacuum_into':         lambda args: vacuum_into(args[0]),
+    'check_db_integrity':  lambda args: check_db_integrity(args[0]),
     'clean_start':         lambda args: clean_start(
                                args[0] if args else '',
                                bool(args[1]) if len(args) > 1 else True,

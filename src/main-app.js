@@ -574,6 +574,7 @@ async function updateSidebarCeBadge() {
           warning: `⚠ Λήγει σε ${dl} μέρες`,
           urgent:  `🔴 Λήγει σε ${dl} μέρες`,
           expired: `🔴 Έχει λήξει`,
+          error:   `⚠ Άγνωστη ημερομηνία λήξης`,
         };
         warnEl.style.display = 'block';
         warnEl.className     = 'ce-expiry-warn ' + st;
@@ -599,16 +600,18 @@ function _showCeExpiryToast(status, daysLeft) {
   // Έλεγχος snooze — το main process το ελέγχει επίσης, αλλά ελέγχουμε και εδώ
   if (document.getElementById('ce-expiry-toast')) return; // ήδη εμφανίζεται
 
-  const icons  = { warning: '🟡', urgent: '🔴', expired: '🔴' };
+  const icons  = { warning: '🟡', urgent: '🔴', expired: '🔴', error: '⚠' };
   const titles = {
     warning: 'Υπενθύμιση λήξης CE',
     urgent:  'Επείγουσα υπενθύμιση CE',
     expired: 'Το πιστοποιητικό CE έχει λήξει',
+    error:   'Άγνωστη ημερομηνία λήξης CE',
   };
   const msgs = {
     warning: `Το πιστοποιητικό CE λήγει σε ${daysLeft} μέρες. Φροντίστε για την ανανέωσή του.`,
     urgent:  `Το πιστοποιητικό CE λήγει σε ${daysLeft} μέρες. Απαιτείται άμεση ενέργεια.`,
     expired: 'Το πιστοποιητικό CE έχει λήξει. Ενημερώστε τα στοιχεία στις Ρυθμίσεις.',
+    error:   'Δεν ήταν δυνατός ο έλεγχος της ημερομηνίας λήξης CE (μη έγκυρη τιμή). Ελέγξτε τα στοιχεία περιόδου στις Ρυθμίσεις.',
   };
 
   const toast = document.createElement('div');

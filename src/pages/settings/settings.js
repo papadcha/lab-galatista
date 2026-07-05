@@ -1956,11 +1956,12 @@
     // Expiry badge
     const daysLeft = period._days_left;
     if (period._expiry_status && period._expiry_status !== 'ok') {
-      const colors = { warning: '#f59e0b', urgent: '#ef4444', expired: '#dc2626' };
+      const colors = { warning: '#f59e0b', urgent: '#ef4444', expired: '#dc2626', error: '#f59e0b' };
       const labels = {
         warning: `⚠ Λήγει σε ${daysLeft} μέρες`,
         urgent:  `🔴 Λήγει σε ${daysLeft} μέρες`,
         expired: `🔴 Έχει λήξει`,
+        error:   `⚠ Άγνωστη ημερομηνία λήξης`,
       };
       badgeEl.style.display     = 'inline-block';
       badgeEl.style.background  = colors[period._expiry_status] + '22';
@@ -2839,6 +2840,8 @@
         'ok'
       );
       // Η επανεκκίνηση γίνεται αυτόματα από το main process (2.5s)
+    } else if (result?.canceled) {
+      App.toast('Clean Start ακυρώθηκε', 'warn');
     } else {
       App.toast('Σφάλμα Clean Start: ' + (result?.error || 'άγνωστο'), 'fail');
     }

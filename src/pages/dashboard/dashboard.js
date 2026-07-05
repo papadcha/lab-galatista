@@ -336,15 +336,22 @@ window.Dashboard = (() => {
     }
   }
 
+  let _printInFlight = false;
   async function printSample(id) {
-    App.toast('Δημιουργία PDF…', 'info');
-    const opts = { sampleId: id, tests: ['sieve', 'flakiness', 'se', 'mb'] };
-    const result = await window.pyBridge?.['generate-report-pdf']?.(opts);
-    if (!result?.success) {
-      App.toast('Σφάλμα παραγωγής PDF: ' + (result?.error || ''), 'fail');
-      return;
+    if (_printInFlight) return; // αποτροπή διπλού-κλικ ενόσω παράγεται ήδη PDF
+    _printInFlight = true;
+    try {
+      App.toast('Δημιουργία PDF…', 'info');
+      const opts = { sampleId: id, tests: ['sieve', 'flakiness', 'se', 'mb'] };
+      const result = await window.pyBridge?.['generate-report-pdf']?.(opts);
+      if (!result?.success) {
+        App.toast('Σφάλμα παραγωγής PDF: ' + (result?.error || ''), 'fail');
+        return;
+      }
+      await window.pyBridge?.['open-pdf']?.(result.path);
+    } finally {
+      _printInFlight = false;
     }
-    await window.pyBridge?.['open-pdf']?.(result.path);
   }
 
   // ============================================================
