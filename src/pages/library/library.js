@@ -1,3 +1,7 @@
+// ES module — φορτώνεται με πραγματικό <script type="module" src="...">
+// (βλ. main-app.js: Pages.library.module + navigateTo()).
+import { App } from '../../main-app.js';
+
 (async function () {
   let _sections    = [];
   let _activeSec   = null;
