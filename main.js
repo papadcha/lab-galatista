@@ -1,11 +1,17 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, Menu, net } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import crypto from 'crypto';
-import { spawn, execFile, execFileSync } from 'child_process';
+import { spawn, execFile } from 'child_process';
 import os from 'os';
 import nodemailer from 'nodemailer';
 import { fileURLToPath } from 'url';
+
+import { state } from './modules/state.js';
+import { startPythonBackend, waitForPythonReady, _pyCallMain, callPython } from './modules/python-bridge.js';
+import {
+  loadConfig, saveConfig, getConfigPath, getDataFolder, getBackupPath,
+  getDbPath, getPdfPath, getStatisticsPath, performBackup, _sanitizeFsSegment,
+} from './modules/config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -16,31 +22,12 @@ async function getPuppeteer() {
   return _puppeteer;
 }
 
-let mainWindow;
-let guideWindow = null;
-let pyProcess   = null;
-let _pyReqId    = 0;
-const _pyPending = new Map();  // id → resolve
-let _pythonReady = false;
-let _pyReadyWaiters = [];
-
-// Περιμένει το σήμα "Αναμονή εντολών" από τον Python backend αντί για
-// αυθαίρετο delay· αν δεν έρθει εγκαίρως, προχωράμε ούτως ή άλλως (timeout
-// ίδιο με το splash fallback, main-app.js).
-function waitForPythonReady(timeoutMs = 15000) {
-  if (_pythonReady) return Promise.resolve(true);
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(false), timeoutMs);
-    _pyReadyWaiters.push(() => { clearTimeout(timer); resolve(true); });
-  });
-}
-
 // ============================================================
 // ΔΗΜΙΟΥΡΓΙΑ ΠΑΡΑΘΥΡΟΥ
 // ============================================================
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
+  state.mainWindow = new BrowserWindow({
     width:  1280,
     height: 800,
     minWidth:  1024,
@@ -62,19 +49,19 @@ function createWindow() {
   });
 
   // Φόρτωση κύριας σελίδας
-  mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
+  state.mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 
   // Εμφάνιση όταν είναι έτοιμο (αποφυγή λευκής οθόνης)
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
+  state.mainWindow.once('ready-to-show', () => {
+    state.mainWindow.show();
   });
 
   // Ενημέρωση renderer για toggle icon minimize/restore
-  mainWindow.on('maximize',   () => mainWindow.webContents.send('window-maximized-change', true));
-  mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-maximized-change', false));
+  state.mainWindow.on('maximize',   () => state.mainWindow.webContents.send('window-maximized-change', true));
+  state.mainWindow.on('unmaximize', () => state.mainWindow.webContents.send('window-maximized-change', false));
 
   // Ανάπτυξη: άνοιγμα DevTools (αφαίρεσε αν δεν χρειάζεται)
-  // mainWindow.webContents.openDevTools();
+  // state.mainWindow.webContents.openDevTools();
 
 
 }
@@ -82,94 +69,14 @@ function createWindow() {
 // Custom titlebar — αφαίρεση native frame + default μενού (File/Edit/View)
 Menu.setApplicationMenu(null);
 
-ipcMain.handle('window-minimize', () => mainWindow?.minimize());
+ipcMain.handle('window-minimize', () => state.mainWindow?.minimize());
 ipcMain.handle('window-maximize-toggle', () => {
-  if (!mainWindow) return;
-  if (mainWindow.isMaximized()) mainWindow.unmaximize();
-  else mainWindow.maximize();
+  if (!state.mainWindow) return;
+  if (state.mainWindow.isMaximized()) state.mainWindow.unmaximize();
+  else state.mainWindow.maximize();
 });
-ipcMain.handle('window-close', () => mainWindow?.close());
-ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized() ?? false);
-
-// ============================================================
-// ΕΚΚΙΝΗΣΗ PYTHON BACKEND
-// ============================================================
-
-function startPythonBackend() {
-  let cmd, args, cwd;
-
-  if (app.isPackaged) {
-    // Production: χρησιμοποιεί bundled PyInstaller exe
-    const backendDir = path.join(process.resourcesPath, 'lab-backend');
-    cmd  = path.join(backendDir, 'lab-backend.exe');
-    args = [];
-    cwd  = backendDir;
-  } else {
-    // Development: χρησιμοποιεί system Python
-    const scriptPath = path.join(__dirname, 'backend', 'server.py');
-    cmd  = process.platform === 'win32' ? 'python' : 'python3';
-    args = ['-u', scriptPath];
-    cwd  = __dirname;
-  }
-
-  // Η βάση αποθηκεύεται στο userData (εγγράψιμο και για non-admin users)
-  const labDbPath = path.join(app.getPath('userData'), 'laboratory.db');
-  pyProcess = spawn(cmd, args, {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    cwd,
-    env: { ...process.env, PYTHONIOENCODING: 'utf-8', LAB_DB_PATH: labDbPath },
-  });
-
-  // Κεντρικός stdout listener — routing με ID
-  let _pyBuf = '';
-  pyProcess.stdout.on('data', (data) => {
-    _pyBuf += data.toString();
-    const lines = _pyBuf.split('\n');
-    _pyBuf = lines.pop();  // κρατάμε το ημιτελές
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t.startsWith('{')) {
-        console.log(`[Python] ${t}`);
-        // Ειδοποίηση renderer όταν ο Python είναι έτοιμος
-        if (t.includes('Αναμονή εντολών')) {
-          _pythonReady = true;
-          mainWindow?.webContents.send('python-ready');
-          for (const notify of _pyReadyWaiters.splice(0)) notify();
-        }
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(t);
-        const id = parsed.id;
-        if (id !== undefined && _pyPending.has(id)) {
-          const resolve = _pyPending.get(id);
-          _pyPending.delete(id);
-          // Επιστρέφουμε το result (ή ολόκληρο το parsed αν δεν έχει result)
-          resolve(parsed.result !== undefined ? parsed.result : parsed);
-        } else {
-          console.log(`[Python] ${t}`);
-        }
-      } catch {
-        console.log(`[Python] ${t}`);
-      }
-    }
-  });
-
-  pyProcess.stderr.on('data', (data) => {
-    console.error(`[Python Error] ${data.toString().trim()}`);
-  });
-
-  pyProcess.on('close', (code) => {
-    console.log(`[Python] Έκλεισε με κωδικό: ${code}`);
-    // Απορρίπτουμε όλα τα εκκρεμή requests
-    for (const [id, resolve] of _pyPending) {
-      resolve({ error: 'Python process terminated' });
-    }
-    _pyPending.clear();
-  });
-
-  return pyProcess;
-}
+ipcMain.handle('window-close', () => state.mainWindow?.close());
+ipcMain.handle('window-is-maximized', () => state.mainWindow?.isMaximized() ?? false);
 
 // ============================================================
 // ΕΚΔΗΛΩΣΕΙΣ APP
@@ -180,7 +87,7 @@ app.whenReady().then(() => {
 
   // Εκκίνηση Python backend
   try {
-    startPythonBackend();
+    startPythonBackend(__dirname);
   } catch (e) {
     console.error('Python backend δεν ξεκίνησε:', e.message);
   }
@@ -275,7 +182,7 @@ function isNetworkError(error) {
 }
 
 // Renderer queries this on startup to handle the race where Python was ready before DOM loaded
-ipcMain.handle('python-is-ready', () => _pythonReady);
+ipcMain.handle('python-is-ready', () => state.pythonReady);
 
 ipcMain.handle('cloud-check-rclone', async () => {
   const result = await runRclone(['version'], 5000);
@@ -618,12 +525,12 @@ async function initActivePeriodStart() {
   const id  = 'init-period-' + Date.now();
   const req = JSON.stringify({ method: 'get_active_ce_period', args: [], id }) + '\n';
   const period = await new Promise((resolve) => {
-    if (!pyProcess || pyProcess.killed) { resolve(null); return; }
-    _pyPending.set(id, resolve);
-    try { pyProcess.stdin.write(req); }
-    catch(e) { _pyPending.delete(id); resolve(null); return; }
+    if (!state.pyProcess || state.pyProcess.killed) { resolve(null); return; }
+    state.pyPending.set(id, resolve);
+    try { state.pyProcess.stdin.write(req); }
+    catch(e) { state.pyPending.delete(id); resolve(null); return; }
     setTimeout(() => {
-      if (_pyPending.has(id)) { _pyPending.delete(id); resolve(null); }
+      if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve(null); }
     }, 5000);
   });
 
@@ -669,11 +576,11 @@ async function performCleanStart(options = {}) {
     const vacuumResult = await new Promise((resolve) => {
       const id  = 'vacuum-' + Date.now();
       const req = JSON.stringify({ method: 'vacuum_into', args: [finalPath], id }) + '\n';
-      _pyPending.set(id, resolve);
-      try { pyProcess.stdin.write(req); }
-      catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
+      state.pyPending.set(id, resolve);
+      try { state.pyProcess.stdin.write(req); }
+      catch(e) { state.pyPending.delete(id); resolve({ ok: false, error: e.message }); }
       setTimeout(() => {
-        if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
+        if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
       }, 30000);
     });
     if (!vacuumResult?.ok) fs.copyFileSync(dbPath, finalPath);
@@ -707,7 +614,7 @@ async function performCleanStart(options = {}) {
     // αν δεν ανέβηκε στο cloud, ρωτάμε πριν προχωρήσουμε στη διαγραφή, ώστε
     // να μη μείνει το backup ΜΟΝΟ τοπικά χωρίς να το ξέρει κανείς.
     if (!syncOk) {
-      const { response } = await dialog.showMessageBox(mainWindow, {
+      const { response } = await dialog.showMessageBox(state.mainWindow, {
         type: 'warning',
         buttons: ['Ακύρωση', 'Συνέχεια χωρίς cloud backup'],
         defaultId: 0,
@@ -731,11 +638,11 @@ async function performCleanStart(options = {}) {
       args:   [finalPath, keepTechnicians, keepProducts],
       id
     }) + '\n';
-    _pyPending.set(id, resolve);
-    try { pyProcess.stdin.write(req); }
-    catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
+    state.pyPending.set(id, resolve);
+    try { state.pyProcess.stdin.write(req); }
+    catch(e) { state.pyPending.delete(id); resolve({ ok: false, error: e.message }); }
     setTimeout(() => {
-      if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
+      if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
     }, 30000);
   });
 
@@ -773,23 +680,6 @@ ipcMain.handle('clean-start', async (event, options = {}) => {
 // ARCHIVE MODE
 // ============================================================
 
-let _archiveMode      = false;
-let _archivePeriodId  = null;
-let _archiveDataFolder = null;
-
-async function _pyCallMain(method, args = [], timeoutMs = 15000) {
-  return new Promise((resolve) => {
-    const id  = method + '-' + Date.now();
-    const req = JSON.stringify({ method, args, id }) + '\n';
-    _pyPending.set(id, resolve);
-    try { pyProcess.stdin.write(req); }
-    catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-    setTimeout(() => {
-      if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
-    }, timeoutMs);
-  });
-}
-
 ipcMain.handle('find-archive-db', async (event, dataFolder) => {
   return await _pyCallMain('find_archive_db', [dataFolder]);
 });
@@ -799,9 +689,9 @@ ipcMain.handle('switch-to-archive', async (event, { dataFolder, periodId }) => {
   if (!found?.ok) return found;
   const switched = await _pyCallMain('switch_db', [found.path]);
   if (!switched?.ok) return switched;
-  _archiveMode       = true;
-  _archivePeriodId   = periodId;
-  _archiveDataFolder = dataFolder;
+  state.archiveMode       = true;
+  state.archivePeriodId   = periodId;
+  state.archiveDataFolder = dataFolder;
   // Αποθήκευση στο config για robustness (επιβιώνει αν χαθεί η μνήμη)
   const cfgA = loadConfig();
   saveConfig({ ...cfgA, archiveDataFolder: dataFolder });
@@ -811,9 +701,9 @@ ipcMain.handle('switch-to-archive', async (event, { dataFolder, periodId }) => {
 ipcMain.handle('restore-from-archive', async () => {
   const result = await _pyCallMain('restore_db', []);
   if (!result?.ok) return result;
-  _archiveMode       = false;
-  _archivePeriodId   = null;
-  _archiveDataFolder = null;
+  state.archiveMode       = false;
+  state.archivePeriodId   = null;
+  state.archiveDataFolder = null;
   // Καθαρισμός από config
   const cfgR = loadConfig();
   delete cfgR.archiveDataFolder;
@@ -822,7 +712,7 @@ ipcMain.handle('restore-from-archive', async () => {
 });
 
 ipcMain.handle('is-archive-mode', () => {
-  return { archiveMode: _archiveMode, periodId: _archivePeriodId };
+  return { archiveMode: state.archiveMode, periodId: state.archivePeriodId };
 });
 
 // ============================================================
@@ -846,7 +736,7 @@ ipcMain.handle('check-sample-code-conflict', async (event, code) => {
 });
 
 ipcMain.handle('merge-sample-from-backup', async (event, { backupPath, backupSampleId, overwriteSampleId }) => {
-  if (_archiveMode) {
+  if (state.archiveMode) {
     return { ok: false, error: 'Δεν επιτρέπεται συγχώνευση ενώ βρίσκεστε σε λειτουργία αρχείου — επιστρέψτε πρώτα στην τρέχουσα περίοδο' };
   }
   // Ασφάλεια: πλήρες backup της ζωντανής βάσης πριν από οποιαδήποτε
@@ -872,9 +762,9 @@ ipcMain.handle('switch-to-backup-file', async (event, backupPath) => {
   }
   const switched = await _pyCallMain('switch_db', [backupPath]);
   if (!switched?.ok) return switched;
-  _archiveMode       = true;
-  _archivePeriodId   = null;
-  _archiveDataFolder = backupPath;
+  state.archiveMode       = true;
+  state.archivePeriodId   = null;
+  state.archiveDataFolder = backupPath;
   const cfgA = loadConfig();
   saveConfig({ ...cfgA, archiveDataFolder: backupPath });
   return { ok: true, dbPath: backupPath };
@@ -885,7 +775,7 @@ ipcMain.handle('switch-to-backup-file', async (event, backupPath) => {
 // ============================================================
 
 ipcMain.handle('upload-document', async (event, { sectionName }) => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await dialog.showOpenDialog(state.mainWindow, {
     title:      'Επιλογή εγγράφου',
     properties: ['openFile'],
     filters: [
@@ -943,8 +833,8 @@ ipcMain.handle('generate-pdf-library', async (event, dataFolder) => {
 
 ipcMain.handle('force-quit', async () => {
   await _pyCallMain('restore_db', []);
-  _archiveMode = false;
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+  state.archiveMode = false;
+  if (state.mainWindow && !state.mainWindow.isDestroyed()) state.mainWindow.destroy();
   return { ok: true };
 });
 
@@ -1006,8 +896,8 @@ async function checkForUpdates() {
 
   if (cmp > 0) {
     // Υπάρχει νεότερη, προτεινόμενη έκδοση
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('update-available', {
+    if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+      state.mainWindow.webContents.send('update-available', {
         kind:    'update',
         current: currentVersion,
         latest:  recommended,
@@ -1019,8 +909,8 @@ async function checkForUpdates() {
     // Η τρέχουσα έκδοση είναι πιο πρόσφατη από την προτεινόμενη ΚΑΙ υπάρχει
     // ρητή σημείωση προβλήματος — δεν εμφανίζουμε ποτέ αυτό το banner μόνο
     // επειδή ξεχάστηκε να ενημερωθεί το latestRecommendedVersion.
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('update-available', {
+    if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+      state.mainWindow.webContents.send('update-available', {
         kind:    'rollback',
         current: currentVersion,
         latest:  recommended,
@@ -1145,17 +1035,17 @@ async function checkCeExpiryAndNotify() {
     // Χρησιμοποιεί το Python backend μέσω pyBridge για να πάρει το status
     // Στέλνει request στο Python process που ήδη τρέχει
     const status = await new Promise((resolve) => {
-      if (!pyProcess || pyProcess.killed) { resolve(null); return; }
+      if (!state.pyProcess || state.pyProcess.killed) { resolve(null); return; }
       const id = 'ce-check-' + Date.now();
       const reqLine = JSON.stringify({ method: 'get_ce_expiry_status', args: [], id }) + '\n';
       // Σύντομη καθυστέρηση για να είναι σίγουρα έτοιμο το Python
       setTimeout(() => {
-        if (!pyProcess || pyProcess.killed) { resolve(null); return; }
-        _pyPending.set(id, resolve);
-        try { pyProcess.stdin.write(reqLine); }
-        catch (e) { _pyPending.delete(id); resolve(null); }
+        if (!state.pyProcess || state.pyProcess.killed) { resolve(null); return; }
+        state.pyPending.set(id, resolve);
+        try { state.pyProcess.stdin.write(reqLine); }
+        catch (e) { state.pyPending.delete(id); resolve(null); }
         setTimeout(() => {
-          if (_pyPending.has(id)) { _pyPending.delete(id); resolve(null); }
+          if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve(null); }
         }, 8000);
       }, 1500);
     });
@@ -1166,8 +1056,8 @@ async function checkCeExpiryAndNotify() {
     const snoozedUntil = cfg.ceNotifySnoozedUntil;
     if (snoozedUntil && new Date(snoozedUntil) > new Date()) return;
 
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('ce-expiry-notification', status);
+    if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+      state.mainWindow.webContents.send('ce-expiry-notification', status);
     }
   } catch (e) {
     console.error('[CE] Expiry check error:', e.message);
@@ -1187,8 +1077,8 @@ async function checkDataFolderMismatch() {
     const snoozedUntil = cfg.dataFolderNotifySnoozedUntil;
     if (snoozedUntil && new Date(snoozedUntil) > new Date()) return;
 
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('data-folder-mismatch', {
+    if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+      state.mainWindow.webContents.send('data-folder-mismatch', {
         dbFolder, localFolder,
         existsLocally: fs.existsSync(dbFolder),
       });
@@ -1295,7 +1185,7 @@ ipcMain.handle('ce-get-suggested-folder', async (event, ceNumber, validFrom, val
 });
 
 ipcMain.handle('ce-select-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await dialog.showOpenDialog(state.mainWindow, {
     title:      'Επιλογή Φακέλου Νέας CE Περιόδου',
     properties: ['openDirectory', 'createDirectory'],
   });
@@ -1308,8 +1198,8 @@ ipcMain.handle('ce-select-folder', async () => {
 
 app.on('window-all-closed', () => {
   // Τερματισμός Python
-  if (pyProcess && !pyProcess.killed) {
-    pyProcess.kill();
+  if (state.pyProcess && !state.pyProcess.killed) {
+    state.pyProcess.kill();
   }
   if (process.platform !== 'darwin') {
     app.quit();
@@ -1317,49 +1207,12 @@ app.on('window-all-closed', () => {
 });
 
 // ============================================================
-// IPC — Επικοινωνία Frontend ↔ Backend
-// ============================================================
-
-// Helper για κλήση Python από main process
-function callPython(method, args = [], timeoutMs = 15000) {
-  return new Promise((resolve) => {
-    if (!pyProcess) { resolve({ error: 'Python δεν τρέχει' }); return; }
-    const id      = ++_pyReqId;
-    const request = JSON.stringify({ method, args, id }) + '\n';
-    _pyPending.set(id, resolve);
-    pyProcess.stdin.write(request);
-    setTimeout(() => {
-      if (_pyPending.has(id)) {
-        _pyPending.delete(id);
-        resolve({ error: 'Timeout' });
-      }
-    }, timeoutMs);
-  });
-}
-
-ipcMain.handle('py-call', async (event, method, ...args) => {
-  if (!pyProcess) return { error: 'Python backend δεν τρέχει' };
-  return new Promise((resolve) => {
-    const id      = ++_pyReqId;
-    const request = JSON.stringify({ method, args, id }) + '\n';
-    _pyPending.set(id, (result) => resolve(result));
-    pyProcess.stdin.write(request);
-    setTimeout(() => {
-      if (_pyPending.has(id)) {
-        _pyPending.delete(id);
-        resolve({ error: 'Timeout — το Python δεν απάντησε' });
-      }
-    }, 10000);
-  });
-});
-
-// ============================================================
 // IPC — Guide Window
 // ============================================================
 
 ipcMain.handle('open-guide', async (event, testType) => {
-  if (guideWindow && !guideWindow.isDestroyed()) {
-    guideWindow.focus();
+  if (state.guideWindow && !state.guideWindow.isDestroyed()) {
+    state.guideWindow.focus();
     return;
   }
 
@@ -1373,7 +1226,7 @@ ipcMain.handle('open-guide', async (event, testType) => {
   const guideFile = guideFiles[testType];
   if (!guideFile) return;
 
-  guideWindow = new BrowserWindow({
+  state.guideWindow = new BrowserWindow({
     width:  900,
     height: 800,
     minWidth: 500,
@@ -1387,24 +1240,24 @@ ipcMain.handle('open-guide', async (event, testType) => {
     },
   });
 
-  guideWindow.loadFile(path.join(__dirname, guideFile));
-  guideWindow.setMenuBarVisibility(false);
+  state.guideWindow.loadFile(path.join(__dirname, guideFile));
+  state.guideWindow.setMenuBarVisibility(false);
 
-  guideWindow.once('ready-to-show', () => {
-    guideWindow.show();
+  state.guideWindow.once('ready-to-show', () => {
+    state.guideWindow.show();
   });
 
-  guideWindow.on('closed', () => {
-    guideWindow = null;
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('guide-closed', testType);
+  state.guideWindow.on('closed', () => {
+    state.guideWindow = null;
+    if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+      state.mainWindow.webContents.send('guide-closed', testType);
     }
   });
 });
 
 ipcMain.handle('close-guide', async () => {
-  if (guideWindow && !guideWindow.isDestroyed()) {
-    guideWindow.close();
+  if (state.guideWindow && !state.guideWindow.isDestroyed()) {
+    state.guideWindow.close();
   }
 });
 
@@ -1440,7 +1293,7 @@ ipcMain.handle('generate-report-pdf', async (event, opts = {}) => {
       logoSrc = `data:image/png;base64,${logoData.toString('base64')}`;
     } catch {}
 
-    const reportHTML = await mainWindow.webContents.executeJavaScript(`
+    const reportHTML = await state.mainWindow.webContents.executeJavaScript(`
       (function() {
         const el = document.getElementById('report-print-container');
         return el ? el.outerHTML : null;
@@ -1505,7 +1358,7 @@ ipcMain.handle('generate-report-pdf', async (event, opts = {}) => {
 
 ipcMain.handle('print-to-pdf', async (event, options = {}) => {
   try {
-    const pdfData = await mainWindow.webContents.printToPDF({
+    const pdfData = await state.mainWindow.webContents.printToPDF({
       marginsType:        0,
       pageSize:           options.pageSize || 'A4',
       printBackground:    true,
@@ -1545,7 +1398,7 @@ ipcMain.handle('save-pdf', async (event, pdfPath, suggestedName, productFolder, 
       return { success: true, path: autoPath, auto: true };
     }
     // Αλλιώς → dialog
-    const result = await dialog.showSaveDialog(mainWindow, {
+    const result = await dialog.showSaveDialog(state.mainWindow, {
       defaultPath: suggestedName || 'report.pdf',
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
     });
@@ -1564,7 +1417,7 @@ ipcMain.handle('save-statistics', async (event, pdfPath, suggestedName) => {
       fs.copyFileSync(pdfPath, dest);
       return { success: true, path: dest };
     }
-    const result = await dialog.showSaveDialog(mainWindow, {
+    const result = await dialog.showSaveDialog(state.mainWindow, {
       defaultPath: suggestedName || 'statistics.pdf',
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
     });
@@ -1641,328 +1494,5 @@ ipcMain.handle('test-smtp', async (event, smtpConfig) => {
   } catch (e) {
     return { success: false, error: e.message };
   }
-});
-
-// ============================================================
-// CONFIG — Φάκελος δεδομένων + Backup
-// ============================================================
-
-let _configPath = null;
-function getConfigPath() {
-  if (!_configPath) _configPath = path.join(app.getPath('userData'), 'lab-config.json');
-  return _configPath;
-}
-
-function loadConfig() {
-  const configPath = getConfigPath();
-  try {
-    if (fs.existsSync(configPath)) {
-      return JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    }
-  } catch(e) {
-    console.error('[Config] Σφάλμα ανάγνωσης, το αρχείο πιθανώς είναι κατεστραμμένο:', e.message);
-    try {
-      const corruptedPath = `${configPath}.corrupted-${Date.now()}`;
-      fs.copyFileSync(configPath, corruptedPath);
-      console.error('[Config] Αντίγραφο του κατεστραμμένου αρχείου αποθηκεύτηκε:', corruptedPath);
-    } catch(e2) {}
-  }
-  return {};
-}
-
-function saveConfig(cfg) {
-  try {
-    const configPath = getConfigPath();
-    fs.mkdirSync(path.dirname(configPath), { recursive: true });
-    fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8');
-    console.log('[Config] Αποθηκεύτηκε:', configPath, cfg);
-    return true;
-  } catch(e) {
-    console.error('[Config] Σφάλμα αποθήκευσης:', e.message);
-    return false;
-  }
-}
-
-// Βοηθητικές για δομή φακέλου
-function getDataFolder() {
-  const cfg = loadConfig();
-  // Archive mode: χρησιμοποιεί τον φάκελο της αρχειοθετημένης περιόδου
-  if (_archiveMode && _archiveDataFolder) return _archiveDataFolder;
-  if (cfg.archiveDataFolder)              return cfg.archiveDataFolder;
-  return cfg.dataFolder || null;
-}
-
-// Καθαρισμός segment πριν μπει σε path.join — π.χ. ο κωδικός δείγματος
-// περιέχει πάντα "/" από το εύρος κόκκου (π.χ. "ΑΜΜ0/4"), που το Windows/Node
-// το διαβάζει σαν directory separator αν περάσει ακαθάριστο σε filename.
-function _sanitizeFsSegment(s) {
-  return String(s).replace(/[/\\?%*:|"<>]/g, '-').trim();
-}
-
-function getPdfPath(productFolder, fileName, subperiodFolder = null) {
-  // productFolder: πχ "ΑΜΜ0-4" ή "3Α0-31.5"
-  // subperiodFolder: πχ "UP1" αν pdf_subfolder=true, αλλιώς null
-  const base = getDataFolder();
-  if (!base) return null;
-  const safe = _sanitizeFsSegment(productFolder || 'ΑΛΛΟ');
-  const dir  = subperiodFolder
-    ? path.join(base, 'pdf', subperiodFolder, safe)
-    : path.join(base, 'pdf', safe);
-  fs.mkdirSync(dir, { recursive: true });
-  return path.join(dir, _sanitizeFsSegment(fileName));
-}
-
-function getStatisticsPath(fileName) {
-  const base = getDataFolder();
-  if (!base) return null;
-  const dir = path.join(base, 'statistics');
-  fs.mkdirSync(dir, { recursive: true });
-  return path.join(dir, _sanitizeFsSegment(fileName));
-}
-
-function getBackupPath() {
-  const base = getDataFolder();
-  if (!base) return null;
-  const year = new Date().getFullYear().toString();
-  const dir  = path.join(base, 'backup', year);
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-// Εύρεση βάσης δεδομένων
-function getDbPath() {
-  // Ίδιος υπολογισμός με το LAB_DB_PATH που δίνεται στο Python backend
-  // (startPythonBackend) — έτσι backup/restore αγγίζουν πάντα το ΙΔΙΟ
-  // αρχείο που διαβάζει/γράφει η ζωντανή εφαρμογή. Παλιότερα εδώ υπήρχε
-  // λίστα από candidate paths δίπλα στο __dirname (πριν το v1.0.4, όταν η
-  // βάση ζούσε δίπλα στην εφαρμογή) — σε dev mode ένα stale τέτοιο αρχείο
-  // μπορούσε να "κερδίσει" έναντι του πραγματικού userData path.
-  const dbPath = path.join(app.getPath('userData'), 'laboratory.db');
-  if (fs.existsSync(dbPath)) {
-    console.log('[Backup] Βρέθηκε DB:', dbPath);
-    return dbPath;
-  }
-  console.error('[Backup] Δεν βρέθηκε βάση δεδομένων στο:', dbPath);
-  return null;
-}
-
-// Backup βάσης
-function getPeriodStartStamp() {
-  // Διαβάζει την ημερομηνία έναρξης της ενεργής υποπεριόδου από config
-  // (αποθηκεύεται κατά τη δημιουργία υποπεριόδου)
-  const cfg = loadConfig();
-  const d = cfg.activePeriodStart;
-  if (!d) return '00000000';
-  // Μετατροπή DD/MM/YYYY ή YYYY-MM-DD → YYYYMMDD
-  if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.replace(/-/g, '').substring(0, 8);
-  if (/^\d{2}\/\d{2}\/\d{4}/.test(d)) {
-    const [day, mon, yr] = d.split('/');
-    return `${yr}${mon}${day}`;
-  }
-  return '00000000';
-}
-
-function _fileHash(filePath) {
-  return new Promise((resolve) => {
-    try {
-      const hash   = crypto.createHash('sha256');
-      const stream = fs.createReadStream(filePath);
-      stream.on('data',  (chunk) => hash.update(chunk));
-      stream.on('end',   () => resolve(hash.digest('hex')));
-      stream.on('error', () => resolve(null));
-    } catch(e) {
-      resolve(null);
-    }
-  });
-}
-
-function _latestBackupFile(backupDir, final) {
-  try {
-    const files = fs.readdirSync(backupDir)
-      .filter(f => f.endsWith('.db') && f.includes('_FINAL') === final)
-      .map(f => ({ path: path.join(backupDir, f), mtime: fs.statSync(path.join(backupDir, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
-    return files[0]?.path || null;
-  } catch(e) {
-    return null;
-  }
-}
-
-async function performBackup(final = false) {
-  const dbPath    = getDbPath();
-  const backupDir = getBackupPath();
-  if (!dbPath || !backupDir) return { success: false, reason: 'no_folder' };
-
-  const dest    = path.join(backupDir, _buildBackupName(final));
-  const tmpDest = dest + '.tmp';
-
-  try {
-    // VACUUM INTO παίρνει συνεπές snapshot της τρέχουσας λογικής κατάστασης
-    // της DB (μαζί με commits που βρίσκονται ακόμα στο -wal), σε αντίθεση
-    // με ωμό αντίγραφο αρχείου που μπορεί να είναι stale.
-    const vacuumResult = await _pyCallMain('vacuum_into', [tmpDest], 30000);
-    if (!vacuumResult?.ok) fs.copyFileSync(dbPath, tmpDest);
-
-    // Επαλήθευση ότι το φρέσκο backup είναι πραγματικά μια έγκυρη, μη
-    // κατεστραμμένη βάση δεδομένων — πριν το εμπιστευτούμε ως backup.
-    const integrity = await _pyCallMain('check_db_integrity', [tmpDest], 30000);
-    if (!integrity?.ok) {
-      fs.unlinkSync(tmpDest);
-      return { success: false, error: 'Το backup απέτυχε τον έλεγχο ακεραιότητας: ' + (integrity?.result || integrity?.error || 'άγνωστο σφάλμα') };
-    }
-
-    // Αν το περιεχόμενο είναι ίδιο με το πιο πρόσφατο backup του ίδιου τύπου
-    // (final/non-final), δεν κρατάμε διπλότυπο — άσχετα από ημέρα/ώρα.
-    const latest = _latestBackupFile(backupDir, final);
-    if (latest && (await _fileHash(latest)) === (await _fileHash(tmpDest))) {
-      fs.unlinkSync(tmpDest);
-      return { success: true, path: latest, skipped: true };
-    }
-
-    fs.renameSync(tmpDest, dest);
-    if (!final) _pruneBackups(backupDir, 7);
-    return { success: true, path: dest };
-  } catch(e) {
-    try { fs.unlinkSync(tmpDest); } catch(e2) {}
-    return { success: false, error: e.message };
-  }
-}
-
-function _buildBackupName(final = false) {
-  const now        = new Date();
-  const todayStamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-  const periodStamp = getPeriodStartStamp();
-  if (final) return `lab_${periodStamp}_${todayStamp}_FINAL.db`;
-  const timeStamp = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
-  return `lab_${periodStamp}_${todayStamp}_${timeStamp}.db`;
-}
-
-function _pruneBackups(backupDir, keep = 7) {
-  try {
-    const files = fs.readdirSync(backupDir)
-      .filter(f => f.endsWith('.db') && !f.includes('_FINAL'))
-      .map(f => ({ name: f, mtime: fs.statSync(path.join(backupDir, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime); // νεότερα πρώτα
-    for (const f of files.slice(keep)) {
-      fs.unlinkSync(path.join(backupDir, f.name));
-    }
-  } catch(e) {
-    console.warn('[Backup] Prune warning:', e.message);
-  }
-}
-
-// IPC: Get/Set config
-ipcMain.handle('get-config', async () => {
-  return loadConfig();
-});
-
-ipcMain.handle('set-config', async (event, updates) => {
-  const cfg = { ...loadConfig(), ...updates };
-  return { success: saveConfig(cfg) };
-});
-
-// IPC: Επιλογή φακέλου δεδομένων
-ipcMain.handle('select-data-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    title:      'Επιλογή Φακέλου Δεδομένων',
-    properties: ['openDirectory', 'createDirectory'],
-  });
-  if (result.canceled) return { success: false, canceled: true };
-  const folder = result.filePaths[0];
-  // Δημιουργία δομής
-  fs.mkdirSync(path.join(folder, 'pdf'),    { recursive: true });
-  fs.mkdirSync(path.join(folder, 'backup'), { recursive: true });
-  // Αποθήκευση
-  const cfg = { ...loadConfig(), dataFolder: folder };
-  saveConfig(cfg);
-  return { success: true, folder };
-});
-
-// IPC: Χειροκίνητο backup
-ipcMain.handle('backup-database', async () => {
-  return performBackup();
-});
-
-// IPC: FINAL backup (αλλαγή υποπεριόδου)
-ipcMain.handle('backup-database-final', async () => {
-  return performBackup(true);
-});
-
-// IPC: Λίστα τελευταίων 5 backup αρχείων
-ipcMain.handle('list-backups', async () => {
-  const dataFolder = getDataFolder();
-  if (!dataFolder) return { ok: false, files: [] };
-  const backupRoot = path.join(dataFolder, 'backup');
-  if (!fs.existsSync(backupRoot)) return { ok: true, files: [] };
-
-  const files = [];
-  async function scanDir(dir) {
-    try {
-      for (const name of await fs.promises.readdir(dir)) {
-        const full = path.join(dir, name);
-        const stat = await fs.promises.stat(full);
-        if (stat.isDirectory()) { await scanDir(full); }
-        else if (name.endsWith('.db')) {
-          files.push({ name, path: full, size: stat.size, mtime: stat.mtimeMs });
-        }
-      }
-    } catch(e) {}
-  }
-  await scanDir(backupRoot);
-  files.sort((a, b) => b.mtime - a.mtime);
-  return { ok: true, files: files.slice(0, 5) };
-});
-
-// IPC: Επιλογή αρχείου backup μέσω dialog
-ipcMain.handle('select-backup-file', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    title:   'Επιλογή αρχείου backup',
-    properties: ['openFile'],
-    filters: [{ name: 'Βάση Δεδομένων', extensions: ['db'] }],
-  });
-  if (result.canceled || !result.filePaths.length) return { ok: false, canceled: true };
-  const fp   = result.filePaths[0];
-  const stat = fs.statSync(fp);
-  return { ok: true, path: fp, name: path.basename(fp), size: stat.size };
-});
-
-// IPC: Επαναφορά βάσης από backup
-ipcMain.handle('restore-backup', async (event, backupPath) => {
-  try {
-    const dbPath = getDbPath();
-    if (!dbPath)                      return { ok: false, error: 'Δεν βρέθηκε βάση δεδομένων' };
-    if (!fs.existsSync(backupPath))   return { ok: false, error: 'Το αρχείο backup δεν βρέθηκε' };
-
-    // 1. Auto-backup της τρέχουσας βάσης πριν αντικατασταθεί
-    const dataFolder = getDataFolder();
-    if (dataFolder) {
-      const backupDir = path.join(dataFolder, 'backup');
-      fs.mkdirSync(backupDir, { recursive: true });
-      const now = new Date();
-      const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
-      fs.copyFileSync(dbPath, path.join(backupDir, `lab_pre_restore_${stamp}.db`));
-    }
-
-    // 2. Διαγραφή WAL/SHM για καθαρή επαναφορά
-    for (const ext of ['-wal', '-shm']) {
-      try { fs.unlinkSync(dbPath + ext); } catch(e) {}
-    }
-
-    // 3. Αντικατάσταση με το επιλεγμένο backup
-    fs.copyFileSync(backupPath, dbPath);
-
-    // 4. Επανεκκίνηση
-    setTimeout(() => { app.relaunch(); app.exit(0); }, 1500);
-    return { ok: true };
-  } catch(e) {
-    return { ok: false, error: e.message };
-  }
-});
-
-// IPC: Get data folder
-ipcMain.handle('get-data-folder', async () => {
-  const folder = getDataFolder();
-  console.log('[Config] get-data-folder:', folder, 'configPath:', getConfigPath());
-  return { folder };
 });
 
