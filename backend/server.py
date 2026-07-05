@@ -638,7 +638,50 @@ def get_test_registry_meta() -> dict:
 # DISPATCHER — Δρομολόγηση κλήσεων
 # ============================================================
 
+# Μέθοδοι που επιτρέπεται να καλέσει το renderer (μέσω pyBridge.call /
+# window.pyBridge.<method>) — ελέγχεται από το main process
+# (modules/python-bridge.js) πριν προωθηθεί οποιοδήποτε 'py-call' αίτημα
+# εδώ. Οτιδήποτε στο METHODS παρακάτω αλλά ΟΧΙ εδώ (π.χ. vacuum_into,
+# clean_start, switch_db, restore_db, find_archive_db) καλείται ΜΟΝΟ από
+# το main process (μέσω _pyCallMain), ποτέ απευθείας από το renderer —
+# defense-in-depth ώστε ένα μελλοντικό XSS να μην έχει πρόσβαση σε
+# ευαίσθητες λειτουργίες (διαγραφή δεδομένων, αλλαγή ενεργής βάσης κλπ).
+RENDERER_METHODS = frozenset({
+    'add_product', 'add_source', 'add_technician',
+    'copy_previous_subperiod_specs',
+    'create_ce_period', 'create_doc_section', 'create_document',
+    'create_sample_with_plan_and_rename', 'create_subperiod',
+    'delete_ce_period', 'delete_doc_section', 'delete_document',
+    'delete_product', 'delete_sample', 'delete_source', 'delete_subperiod',
+    'delete_technician',
+    'generate_sample_code',
+    'get_active_ce_period', 'get_all_ce_periods', 'get_all_products',
+    'get_all_sieves', 'get_all_sources', 'get_all_technicians',
+    'get_dashboard_samples', 'get_dashboard_stats', 'get_doc_sections',
+    'get_documents', 'get_documents_for_standards_check',
+    'get_effective_specifications', 'get_full_report', 'get_guide_enabled',
+    'get_init_status', 'get_lab_info', 'get_material_types',
+    'get_product_sieves', 'get_product_sieves_full', 'get_products',
+    'get_required_tests', 'get_samples_count', 'get_smtp_config',
+    'get_sources', 'get_specifications', 'get_subperiod_by_id',
+    'get_subperiod_specifications', 'get_subperiod_specs',
+    'get_technicians', 'get_test_history', 'get_test_registry_meta',
+    'promote_run_to_official',
+    'save_flakiness', 'save_lab_info', 'save_methylene_blue',
+    'save_sand_equivalent', 'save_sieve_analysis', 'save_smtp_config',
+    'save_specifications', 'save_subperiod_specifications',
+    'search_samples',
+    'set_guide_enabled', 'set_product_sieves', 'set_required_tests',
+    'set_subperiod_specs', 'suggest_initial_volume',
+    'toggle_product', 'toggle_source', 'toggle_technician',
+    'update_ce_period', 'update_ce_period_folder', 'update_doc_section',
+    'update_document', 'update_product', 'update_rejected_reason',
+    'update_sample', 'update_source', 'update_subperiod',
+})
+
 METHODS = {
+    'list_renderer_methods': lambda args: sorted(RENDERER_METHODS),
+
     # --- ΥΠΑΡΧΟΥΣΕΣ (συμβατές με παλιό frontend) ---
 
     'get_products':          lambda args: get_products(),

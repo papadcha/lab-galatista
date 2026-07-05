@@ -62,6 +62,7 @@ export function startPythonBackend(appRootDir) {
           state.pythonReady = true;
           state.mainWindow?.webContents.send('python-ready');
           for (const notify of state.pyReadyWaiters.splice(0)) notify();
+          _loadRendererMethods(); // προ-φόρτωση whitelist, βλ. py-call handler
         }
         continue;
       }
@@ -132,7 +133,32 @@ export function callPython(method, args = [], timeoutMs = 15000) {
 // ready before DOM loaded
 ipcMain.handle('python-is-ready', () => state.pythonReady);
 
+// Whitelist των μεθόδων που επιτρέπεται να καλέσει το renderer μέσω
+// 'py-call' — auto-derived από το ίδιο το Python (backend/server.py's
+// RENDERER_METHODS), όχι hand-maintained αντίγραφο εδώ που θα μπορούσε να
+// ξεμείνει πίσω. Defense-in-depth: το window.pyBridge.call() είναι
+// εκτεθειμένο στο main world (contextBridge) και δέχεται οποιοδήποτε
+// method string — χωρίς αυτόν τον έλεγχο, ένα μελλοντικό XSS θα μπορούσε
+// να καλέσει ΟΠΟΙΑΔΗΠΟΤΕ μέθοδο της Python (π.χ. vacuum_into, clean_start,
+// switch_db, restore_db), όχι μόνο όσες πραγματικά χρησιμοποιεί το UI.
+let _rendererMethodsPromise = null;
+function _loadRendererMethods() {
+  if (!_rendererMethodsPromise) {
+    _rendererMethodsPromise = callPython('list_renderer_methods', []).then((result) => {
+      if (Array.isArray(result)) return new Set(result);
+      console.error('[py-call] Αποτυχία φόρτωσης renderer methods whitelist:', result);
+      return new Set(); // fail-closed — τίποτα δεν επιτρέπεται αν η φόρτωση αποτύχει
+    });
+  }
+  return _rendererMethodsPromise;
+}
+
 ipcMain.handle('py-call', async (event, method, ...args) => {
+  const allowed = await _loadRendererMethods();
+  if (!allowed.has(method)) {
+    console.error(`[py-call] Μπλοκαρίστηκε μη επιτρεπόμενη μέθοδος: ${method}`);
+    return { error: `Μη επιτρεπόμενη μέθοδος: ${method}` };
+  }
   if (!state.pyProcess) return { error: 'Python backend δεν τρέχει' };
   return new Promise((resolve) => {
     const id      = ++state.pyReqId;
