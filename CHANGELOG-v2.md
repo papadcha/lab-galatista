@@ -10,6 +10,62 @@
 
 ---
 
+## Φάση 3 (ολοκλήρωση) — και οι 7 σελίδες σε ESM (2026-07-05)
+
+Ολοκληρώθηκε η μετατροπή του `src/` σε ESM: dashboard.js, samples.js,
+history.js, library.js, tests.js, reports.js, settings.js μετατράπηκαν
+ένα-ένα, με το ίδιο πρότυπο που καθιέρωσε το main-app.js/dashboard.js
+(βλ. προηγούμενη ενότητα «Φάση 3 (ξεκίνημα)»):
+
+- `Pages.<page>.module = true` στο main-app.js.
+- Κάθε σελίδα πήρε **μία μόνο γραμμή** — `import {...} from
+  '../../main-app.js';` — καμία άλλη αλλαγή λογικής.
+- Το main-app.js's `export {...}` μεγάλωσε σταδιακά όσο κάθε νέα σελίδα
+  χρειαζόταν κι άλλο σύμβολο: `_esc` (tests.js), `_formatCeDate`
+  (reports.js), και τέλος `navigateTo`/`_toIsoDate`/
+  `_updateSidebarArchiveBanner` (settings.js) — σύνολο 9 exports πλέον
+  (`App`, `pyCall`, `pyCallStrict`, `AppState`, `navigateTo`, `_esc`,
+  `_formatCeDate`, `_toIsoDate`, `_updateSidebarArchiveBanner`).
+
+**Bugs που εντοπίστηκαν κατά τον έλεγχο πριν τη μετατροπή** (θα έμεναν
+σιωπηλά χωρίς την προσεκτική εξαγωγή bare references ανά αρχείο):
+- `_esc`/`_toIsoDate`/`_formatCeDate`: καλούνταν bare **χωρίς guard** σε
+  library.js/settings.js/reports.js/tests.js — θα έσπαγαν με
+  ReferenceError.
+- `navigateTo`/`_updateSidebarArchiveBanner`: καλούνταν bare **ΜΕ guard**
+  (`typeof X === 'function'`) μέσα στο settings.js's
+  `_doOpenBackupInArchiveMode()` (ροή «άνοιγμα backup σε Archive Mode»)
+  — χωρίς την έκθεσή τους θα απέτυχαν **σιωπηλά**: το backend switch θα
+  πετύχαινε, αλλά το sidebar banner δεν θα ενημερωνόταν και δεν θα
+  γινόταν πλοήγηση στο dashboard.
+
+Επαληθεύτηκε ζωντανά με `playwright-core`'s `_electron`, ξεχωριστά ανά
+σελίδα: re-init σε επαναλαμβανόμενη πλοήγηση, και πραγματικά flows —
+πλήρης wizard καταχώρησης δείγματος (samples.js, με πραγματική
+αποθήκευση+καθαρισμό), αναζήτηση/άνοιγμα/διαγραφή (history.js),
+sections/documents CRUD (library.js), φόρμα κοκκομετρίας +
+υπολογισμοί EN 933-1 (tests.js), αναζήτηση/επιλογή δείγματος + tabs
+(reports.js), edit CE period modal + archive-from-backup banner/nav
+(settings.js). 0 console errors παντού.
+
+Σημείωση: εντοπίστηκε προϋπάρχουσα αστάθεια στο Playwright/Electron
+GPU process σε αυτό το automation setup (crash τυχαίο σε ορισμένα
+σενάρια, ειδικά όταν γίνεται mutate ενός contextBridge-exposed
+αντικειμένου από το main world) — επιβεβαιώθηκε ότι δεν σχετίζεται με
+τον κώδικα της εφαρμογής (αναπαράχθηκε και σε προ-αλλαγής κώδικα).
+
+**Αρχεία:**
+- `src/main-app.js`
+- `src/pages/dashboard/dashboard.js`
+- `src/pages/samples/samples.js`
+- `src/pages/history/history.js`
+- `src/pages/library/library.js`
+- `src/pages/tests/tests.js`
+- `src/pages/reports/reports.js`
+- `src/pages/settings/settings.js`
+
+---
+
 ## Φάση 3 (ξεκίνημα) — main-app.js σε ESM (2026-07-05)
 
 Πρώτο βήμα της μετατροπής του `src/` (renderer) σε ESM. Μόνο το

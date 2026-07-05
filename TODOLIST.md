@@ -1,6 +1,6 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-07-05 (main-app.js ESM ολοκληρώθηκε)
+Τελευταία ενημέρωση: 2026-07-05 (src/ πλήρως σε ESM — 7/7 σελίδες)
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί).
 Τρέχουσα έκδοση: v1.1.32
@@ -32,21 +32,34 @@
       (το main-app.js είχε ήδη ενιαίο `AppState`, δεν χρειάστηκε αλλαγή
       εκεί).
 
-- [x] main-app.js → ESM (Φάση 3, βλ. CHANGELOG-v2.md) — ολοκληρώθηκε
-      2026-07-05. `index.html`: `<script src="main-app.js">` →
-      `<script type="module" src="...">`. main-app.js: ρητή έκθεση στο
-      `window` κάθε top-level function/const που τα page scripts/inline
-      `onclick` καλούν bare (πλέον απαραίτητο — τα modules δεν μοιράζονται
-      global scope όπως τα classic scripts). Επαληθεύτηκε ζωντανά με
-      playwright-core `_electron`: πλοήγηση σε όλες τις σελίδες + άνοιγμα
-      modal, 0 console errors.
-      Τα 7 page αρχεία (dashboard.js, samples.js, tests.js, history.js,
-      reports.js, library.js, settings.js) **δεν έχουν μετατραπεί ακόμα**
-      — παραμένουν classic scripts, φορτώνονται με το ίδιο
-      script-reinjection τέχνασμα. Πλήρης μετατροπή θα άγγιζε ~470 bare
-      references σε ~9500 γραμμές μιας ζωντανής εφαρμογής καθημερινής
-      χρήσης — αποφασίστηκε σταδιακή προσέγγιση, μία σελίδα τη φορά, όποτε
-      χρειαστεί/ζητηθεί.
+- [x] `src/` (renderer) → ESM — ΠΛΗΡΩΣ ΟΛΟΚΛΗΡΩΘΗΚΕ 2026-07-05 (Φάση 3,
+      βλ. CHANGELOG-v2.md). Μετατράπηκαν όλα:
+      - `index.html`: `<script src="main-app.js">` →
+        `<script type="module" src="...">`.
+      - `main-app.js`: ρητή έκθεση στο `window` κάθε top-level
+        function/const που τα pages/inline `onclick` καλούν bare, ΚΑΙ
+        πραγματικά `export` για ό,τι τα converted pages εισάγουν ρητά
+        (`App`, `pyCall`, `pyCallStrict`, `AppState`, `navigateTo`,
+        `_esc`, `_formatCeDate`, `_toIsoDate`,
+        `_updateSidebarArchiveBanner`).
+      - `Pages.X.module = true` + `navigateTo()` φορτώνει module-σελίδες
+        με πραγματικό `<script type="module" src="...?v=timestamp">`
+        (cache-busting — απαραίτητο, ο browser κάνει cache τα modules
+        ανά URL, χωρίς αυτό δεν θα ξανάτρεχαν σε επόμενη πλοήγηση).
+      - Και οι 7 σελίδες: dashboard.js, samples.js, history.js,
+        library.js, tests.js, reports.js, settings.js — καθεμία πήρε
+        μόνο μία γραμμή `import {...} from '../../main-app.js';`, καμία
+        άλλη αλλαγή λογικής.
+      - Εντοπίστηκαν και διορθώθηκαν 2 πραγματικά bugs που θα έμεναν
+        σιωπηλά αν δεν γινόταν αυτή η προσεκτική εξαγωγή: `_esc`/
+        `_toIsoDate`/`_formatCeDate` καλούνταν bare χωρίς guard σε
+        library/settings/reports/tests (θα έσπαγαν με ReferenceError)·
+        `navigateTo`/`_updateSidebarArchiveBanner` καλούνταν bare ΜΕ
+        guard στο settings.js (θα απέτυχαν σιωπηλά — το backend switch
+        θα πετύχαινε αλλά το UI δεν θα ενημερωνόταν).
+      - Επαληθεύτηκε ζωντανά με playwright-core `_electron` σε κάθε
+        σελίδα ξεχωριστά (re-init σε επαναπλοήγηση, πραγματικά modals/
+        forms/υπολογισμοί/CRUD flows), 0 console errors παντού.
 
 - [ ] Αναβάθμιση Electron 28→latest, puppeteer 21→latest (pinned λόγω
       puppeteer 22+ ESM-only — τώρα που το main process είναι ESM αυτό
