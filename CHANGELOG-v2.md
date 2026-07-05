@@ -10,6 +10,51 @@
 
 ---
 
+## Φάση 2 (ολοκλήρωση) — modularization: update-check.js, ce-period.js, pdf-generation.js, email.js, document-library.js (2026-07-05)
+
+main.js άδειασε από όλη την υπόλοιπη domain λογική — έμεινε μόνο το entry
+point (createWindow, app lifecycle, window IPC, init-active-period-start,
+guide window).
+
+- **`modules/update-check.js`** (νέο) — σύγκριση εκδόσεων, fetch
+  allowed-versions.json, `checkForUpdates`, `open-update-url`,
+  `get-allowed-versions`, `report-version-issue` (GitHub issue μέσω token),
+  `get-app-version`, `get-version-history`.
+- **`modules/ce-period.js`** (νέο) — `checkCeExpiryAndNotify`,
+  `checkDataFolderMismatch`, snooze handlers (`data-folder-notify-snooze`,
+  `ce-notify-snooze`, `ce-notify-clear-snooze`), `ce-get-suggested-folder`,
+  `ce-select-folder`. Το `app.on('window-all-closed', ...)` που βρισκόταν
+  ανάμεσα σε αυτή την ενότητα έμεινε στο main.js (app lifecycle, όχι CE
+  domain λογική).
+- **`modules/pdf-generation.js`** (νέο) — `generate-report-pdf`
+  (reportlab μέσω Python, με Puppeteer fallback + `getPuppeteer`),
+  `print-to-pdf`, `generate-periodic-pdf`, `save-pdf`, `save-statistics`,
+  `open-pdf`, `print-pdf`.
+- **`modules/email.js`** (νέο) — `send-email`, `test-smtp` (nodemailer).
+- **`modules/document-library.js`** (νέο) — `upload-document`,
+  `open-document`, `delete-document-cloud`, `generate-pdf-library`,
+  `force-quit`.
+- **`main.js`**: αφαιρέθηκαν οι 5 παραπάνω ενότητες, προστέθηκαν τα
+  αντίστοιχα side-effect imports, καθαρίστηκαν όλα τα πλέον αχρησιμοποίητα
+  imports (`dialog`, `shell`, `fs`, `os`, `nodemailer`, `net`,
+  `_pyCallMain`, `runRclone`, `getConfigPath`, `getBackupPath`, `getDbPath`,
+  `getPdfPath`, `getStatisticsPath`, `_sanitizeFsSegment`, `callPython`).
+  1074 → 237 γραμμές.
+
+Επαληθεύτηκε: `node --check` σε όλα τα αλλαγμένα/νέα αρχεία, live εκκίνηση
+Electron app — Python backend, backup, cloud sync όλα ολοκληρώθηκαν χωρίς
+σφάλματα.
+
+**Αρχεία:**
+- `modules/update-check.js` (νέο)
+- `modules/ce-period.js` (νέο)
+- `modules/pdf-generation.js` (νέο)
+- `modules/email.js` (νέο)
+- `modules/document-library.js` (νέο)
+- `main.js`
+
+---
+
 ## Φάση 2 (συνέχεια) — modularization: archive-mode.js, clean-start.js (2026-07-05)
 
 - **`modules/archive-mode.js`** (νέο) — `find-archive-db`, `switch-to-archive`,
