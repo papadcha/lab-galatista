@@ -615,12 +615,12 @@ async function initActivePeriodStart() {
   const req = JSON.stringify({ method: 'get_active_ce_period', args: [], id }) + '\n';
   const period = await new Promise((resolve) => {
     if (!pyProcess || pyProcess.killed) { resolve(null); return; }
-    _pyPending.set(id, resolve);
-    try { pyProcess.stdin.write(req); }
-    catch(e) { _pyPending.delete(id); resolve(null); return; }
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (_pyPending.has(id)) { _pyPending.delete(id); resolve(null); }
     }, 5000);
+    _pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    try { pyProcess.stdin.write(req); }
+    catch(e) { _pyPending.delete(id); clearTimeout(timer); resolve(null); return; }
   });
 
   const validFrom = period?.active_subperiod?.valid_from || period?.valid_from;
@@ -665,12 +665,12 @@ async function performCleanStart(options = {}) {
     const vacuumResult = await new Promise((resolve) => {
       const id  = 'vacuum-' + Date.now();
       const req = JSON.stringify({ method: 'vacuum_into', args: [finalPath], id }) + '\n';
-      _pyPending.set(id, resolve);
-      try { pyProcess.stdin.write(req); }
-      catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
       }, 30000);
+      _pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+      try { pyProcess.stdin.write(req); }
+      catch(e) { _pyPending.delete(id); clearTimeout(timer); resolve({ ok: false, error: e.message }); }
     });
     if (!vacuumResult?.ok) fs.copyFileSync(dbPath, finalPath);
   } catch(e) {
@@ -727,12 +727,12 @@ async function performCleanStart(options = {}) {
       args:   [finalPath, keepTechnicians, keepProducts],
       id
     }) + '\n';
-    _pyPending.set(id, resolve);
-    try { pyProcess.stdin.write(req); }
-    catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
     }, 30000);
+    _pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    try { pyProcess.stdin.write(req); }
+    catch(e) { _pyPending.delete(id); clearTimeout(timer); resolve({ ok: false, error: e.message }); }
   });
 
   if (!cleanResult?.ok) return cleanResult;
@@ -777,12 +777,12 @@ async function _pyCallMain(method, args = [], timeoutMs = 15000) {
   return new Promise((resolve) => {
     const id  = method + '-' + Date.now();
     const req = JSON.stringify({ method, args, id }) + '\n';
-    _pyPending.set(id, resolve);
-    try { pyProcess.stdin.write(req); }
-    catch(e) { _pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (_pyPending.has(id)) { _pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
     }, timeoutMs);
+    _pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    try { pyProcess.stdin.write(req); }
+    catch(e) { _pyPending.delete(id); clearTimeout(timer); resolve({ ok: false, error: e.message }); }
   });
 }
 
@@ -1150,12 +1150,12 @@ async function checkCeExpiryAndNotify() {
       // Σύντομη καθυστέρηση για να είναι σίγουρα έτοιμο το Python
       setTimeout(() => {
         if (!pyProcess || pyProcess.killed) { resolve(null); return; }
-        _pyPending.set(id, resolve);
-        try { pyProcess.stdin.write(reqLine); }
-        catch (e) { _pyPending.delete(id); resolve(null); }
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           if (_pyPending.has(id)) { _pyPending.delete(id); resolve(null); }
         }, 8000);
+        _pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+        try { pyProcess.stdin.write(reqLine); }
+        catch (e) { _pyPending.delete(id); clearTimeout(timer); resolve(null); }
       }, 1500);
     });
 
@@ -1369,14 +1369,14 @@ function callPython(method, args = [], timeoutMs = 15000) {
     if (!pyProcess) { resolve({ error: 'Python δεν τρέχει' }); return; }
     const id      = ++_pyReqId;
     const request = JSON.stringify({ method, args, id }) + '\n';
-    _pyPending.set(id, resolve);
-    pyProcess.stdin.write(request);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (_pyPending.has(id)) {
         _pyPending.delete(id);
         resolve({ error: 'Timeout' });
       }
     }, timeoutMs);
+    _pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    pyProcess.stdin.write(request);
   });
 }
 
@@ -1385,14 +1385,14 @@ ipcMain.handle('py-call', async (event, method, ...args) => {
   return new Promise((resolve) => {
     const id      = ++_pyReqId;
     const request = JSON.stringify({ method, args, id }) + '\n';
-    _pyPending.set(id, (result) => resolve(result));
-    pyProcess.stdin.write(request);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (_pyPending.has(id)) {
         _pyPending.delete(id);
         resolve({ error: 'Timeout — το Python δεν απάντησε' });
       }
     }, 10000);
+    _pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    pyProcess.stdin.write(request);
   });
 });
 
