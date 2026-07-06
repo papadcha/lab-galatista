@@ -970,7 +970,7 @@ import {
 
   // ─── Αποθήκευση ───
 
-  async function saveSieves() {
+  async function saveSieves(force = false) {
     if (!state.selectedProductId) return;
 
     if (state.selectedSieves.length === 0) {
@@ -982,7 +982,7 @@ import {
     const product = state.products.find(x => x.id === state.selectedProductId);
 
     try {
-      await pyCallStrict('set_product_sieves', state.selectedProductId, sorted);
+      await pyCallStrict('set_product_sieves', state.selectedProductId, sorted, force);
       App.toast(
         `Κόσκινα "${product?.name || ''}" αποθηκεύτηκαν (${sorted.length} κόσκινα)`,
         'ok'
@@ -992,6 +992,16 @@ import {
       if (product) product.sieves = sorted;
       renderProducts();
     } catch(e) {
+      if (!force && /μη-μηδενικές τιμές/.test(e.message)) {
+        const proceed = confirm(
+          `${e.message}\n\n` +
+          'Οι υπάρχουσες κοκκομετρίες/αναφορές ΔΕΝ επηρεάζονται — ' +
+          'το κόσκινο απλά δεν θα προτείνεται πλέον σε νέα δείγματα αυτού του είδους.\n\n' +
+          'Να γίνει εξαναγκασμένη αφαίρεση;'
+        );
+        if (proceed) { await saveSieves(true); return; }
+        return;
+      }
       App.toast(e.message, 'fail');
     }
   }

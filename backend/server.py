@@ -874,7 +874,7 @@ METHODS = {
                                   args[6] if len(args) > 6 else None),
     'toggle_product':         lambda args: toggle_product(int(args[0]), int(args[1])),
     'get_product_sieves_full':lambda args: get_product_sieves_full(args[0]),
-    'set_product_sieves':     lambda args: set_product_sieves(args[0], args[1]),
+    'set_product_sieves':     lambda args: set_product_sieves(args[0], args[1], bool(args[2]) if len(args) > 2 else False),
     'delete_product':         lambda args: delete_product(int(args[0])),
 
     # --- CE Periods & Subperiods ---
@@ -972,6 +972,7 @@ METHODS = {
 
 def handle_request(line: str) -> dict:
     """Επεξεργασία αίτησης JSON."""
+    req_id = None
     try:
         req    = json.loads(line.strip())
         method = req.get('method')
@@ -993,10 +994,14 @@ def handle_request(line: str) -> dict:
         # Σφάλματα επικύρωσης (κατηγορία, blocked removal κλπ) — αναμενόμενα,
         # δεν χρειάζονται πλήρες traceback στο log.
         logging.warning('Validation error: %s — αίτημα: %s', e, line[:200])
-        return {'error': str(e)}
+        resp = {'error': str(e)}
+        if req_id is not None: resp['id'] = req_id
+        return resp
     except Exception as e:
         logging.exception('Μη αναμενόμενο σφάλμα κατά την επεξεργασία αιτήματος: %s', line[:200])
-        return {'error': str(e)}
+        resp = {'error': str(e)}
+        if req_id is not None: resp['id'] = req_id
+        return resp
 
 
 # ============================================================
