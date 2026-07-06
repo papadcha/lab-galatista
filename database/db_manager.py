@@ -2584,12 +2584,16 @@ def get_product_sieves_full(product_id: int) -> list:
     return results
 
 
-def set_product_sieves(product_id: int, sieves: list) -> bool:
+def set_product_sieves(product_id: int, sieves: list, force: bool = False) -> bool:
     """
     Αντικαθιστά ΟΛΑ τα κόσκινα ενός προϊόντος.
     sieves: λίστα από float (mm), πχ [31.5, 16, 8, 4, 2, 0.063]
-    Ελέγχει ότι κανένα κόσκινο δεν χρησιμοποιείται σε ήδη αποθηκευμένες
-    κοκκομετρίες (αν αφαιρεθεί κόσκινο που χρησιμοποιείται → error).
+    Για κάθε αφαιρούμενο κόσκινο που έχει καταγεγραμμένες τιμές σε
+    αποθηκευμένες κοκκομετρίες: αν ΟΛΕΣ οι τιμές είναι 0 (ποτέ δεν
+    συγκράτησε υλικό), η αφαίρεση εφαρμόζεται άμεσα. Αν υπάρχει έστω
+    μία μη-μηδενική τιμή, μπλοκάρεται εκτός αν force=True (ο χρήστης
+    το επιβεβαίωσε ρητά) — οι ιστορικές τιμές δεν χάνονται σε καμία
+    περίπτωση, μένουν στο tbl_sieve_results ό,τι κι αν γίνει εδώ.
     """
     conn = get_connection()
     try:
@@ -2605,25 +2609,27 @@ def set_product_sieves(product_id: int, sieves: list) -> bool:
         removed = existing - new_set
 
         # Έλεγχος αν τα αφαιρούμενα κόσκινα χρησιμοποιούνται σε δοκιμές
-        if removed:
-            used = []
+        if removed and not force:
+            blocked = []
             for sieve_mm in removed:
-                count = conn.execute(
-                    """SELECT COUNT(*) FROM tbl_sieve_results sr
-                         JOIN tbl_sieve_analysis sa
-                              ON sr.sieve_analysis_id = sa.id
-                        WHERE sa.sample_id IN
-                              (SELECT id FROM tbl_samples WHERE product_id=?)
-                          AND sr.sieve_mm = ?""",
-                    (product_id, sieve_mm)
-                ).fetchone()[0]
-                if count > 0:
-                    used.append(sieve_mm)
-            if used:
-                used_str = ', '.join(str(s) for s in sorted(used, reverse=True))
+                weights = [
+                    row[0] for row in conn.execute(
+                        """SELECT sr.weight_retained FROM tbl_sieve_results sr
+                             JOIN tbl_sieve_analysis sa
+                                  ON sr.sieve_analysis_id = sa.id
+                            WHERE sa.sample_id IN
+                                  (SELECT id FROM tbl_samples WHERE product_id=?)
+                              AND sr.sieve_mm = ?""",
+                        (product_id, sieve_mm)
+                    ).fetchall()
+                ]
+                if weights and any((w or 0) != 0 for w in weights):
+                    blocked.append(sieve_mm)
+            if blocked:
+                blocked_str = ', '.join(str(s) for s in sorted(blocked, reverse=True))
                 raise ValueError(
-                    f"Δεν μπορεί να αφαιρεθεί το κόσκινο {used_str} mm: "
-                    "χρησιμοποιείται σε αποθηκευμένες κοκκομετρίες."
+                    f"Δεν μπορεί να αφαιρεθεί το κόσκινο {blocked_str} mm: "
+                    "έχει μη-μηδενικές τιμές σε αποθηκευμένες κοκκομετρίες."
                 )
 
         # Αντικατάσταση
