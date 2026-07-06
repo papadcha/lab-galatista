@@ -22,38 +22,26 @@
 
 ## ESM REDESIGN (εκκρεμότητα μεσαίου μεγέθους) — v2.0.0
 
-- [ ] CommonJS → ESM, αναβάθμιση Electron 28→latest, puppeteer
-      21→latest (pinned λόγω puppeteer 22+ ESM-only). Ξεκίνα από τη
-      μετατροπή main.js, preload.js, src/ σε ESM πρώτα.
-      **Branch**: `v2-esm-redesign` (δημιουργήθηκε 2026-07-05 από
-      master) — το master παίρνει bug fixes/features κανονικά (v1.x),
-      περνάνε περιοδικά με merge στο `v2-esm-redesign`· το αντίθετο ΟΧΙ
-      μέχρι να ολοκληρωθεί, οπότε γίνεται merge πίσω + tag v2.0.0.
+**Status (2026-07-06): ΠΛΗΡΩΣ ΟΛΟΚΛΗΡΩΘΗΚΕ στο branch `v2-esm-redesign`
+(worktree `C:/lab-galatista-v2`) — Φάσεις 1-5, βλ. CHANGELOG-v2.md εκεί
+για λεπτομέρειες ανά commit. Το master παίρνει bug fixes/features
+κανονικά (v1.x)· περνάνε περιοδικά με merge στο `v2-esm-redesign` — το
+αντίθετο ΟΧΙ. Επόμενο βήμα: merge `v2-esm-redesign` → `master` + tag
+`v2.0.0`, όποτε αποφασιστεί το release.**
 
-- [ ] Modularization του main.js (προτάθηκε από code review, 2026-07-06)
-      — σήμερα ακολουθεί γραμμική λογική σε ένα μεγάλο αρχείο. Διαχωρισμός
-      σε ξεχωριστά αρχεία ανά ευθύνη (π.χ. ui.js/api.js/utils.js, ή ανά
-      domain: cloud-sync.js, archive-mode.js, retention.js κλπ) — φυσικό
-      επακόλουθο της μετατροπής σε ESM (import/export ενεργοποιεί το
-      σπάσιμο σε αρχεία που σήμερα το CommonJS δεν το επιβάλλει).
-
-- [ ] State management (προτάθηκε από code review, 2026-07-06) — η
-      κατάσταση της εφαρμογής (main.js: `_archiveMode`, `_archivePeriodId`,
-      `_archiveDataFolder`, `_pyPending`, κλπ· main-app.js: `AppState`)
-      είναι σήμερα διάσπαρτες global μεταβλητές. Πρόταση: ενιαίο state
-      object/store ανά process (main.js side, main-app.js side) αντί για
-      πολλαπλές ανεξάρτητες globals — μαζί με το modularization παραπάνω.
-
-- [ ] Κατάργηση του generic `pyBridge.call`/`py-call` dispatcher
-      (preload.js/main.js) — προτάθηκε από code review (Gemini #4,
-      2026-07-05). Σήμερα 64 διαφορετικές Python μεθόδους περνάνε από
-      αυτόν τον γενικό δίαυλο χωρίς whitelist· ένα μελλοντικό XSS θα
-      είχε πρόσβαση σε όλες (π.χ. vacuum_into, clean_start). Χαμηλό
-      πρακτικό ρίσκο σήμερα (τοπική desktop εφαρμογή, 2 γνωστοί
-      χρήστες, καμία γνωστή unescaped injection βρέθηκε παρά την
-      εκτενή επιθεώρηση), αλλά σωστό defense-in-depth. Μεγάλη αλλαγή
-      (64+ ρητά endpoints) — μαζί με το ήδη προγραμματισμένο "py-call
-      whitelist auto-derived from Python".
+- [x] CommonJS → ESM (main.js, preload.js → preload.cjs, `src/`),
+      αναβάθμιση Electron 28→43, αφαίρεση puppeteer εντελώς (fallback
+      code που δεν έτρεχε ποτέ packaged, αντικαταστάθηκε από
+      `printToPDF()`).
+- [x] Modularization του main.js (1968 → 237 γραμμές, 9 νέα modules/
+      αρχεία ανά domain).
+- [x] State management ενοποιήθηκε σε `modules/state.js`.
+- [x] py-call whitelist auto-derived από Python (`RENDERER_METHODS`
+      frozenset, 76 μέθοδοι) — αντί να καταργηθεί ο generic dispatcher
+      (θα χρειαζόταν 76+ νέα ρητά endpoints), το main process φορτώνει
+      μία λίστα επιτρεπόμενων μεθόδων από το ίδιο το Python και
+      μπλοκάρει οτιδήποτε άλλο πριν καν φτάσει εκεί — verified live ότι
+      ευαίσθητες μέθοδοι (vacuum_into, clean_start) μπλοκάρονται.
 
 ## ΜΕΤΑ ΤΑ 2 ΜΕΓΑΛΑ UPDATE (ESM redesign v2.0.0 + i18n) — 2026-07-06
 
@@ -130,7 +118,19 @@ i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται α
       σχεδόν κάθε σελίδα του UI και το PDF generator. Ξεχωριστό
       προγραμματισμένο effort, όχι μαζί με κανονικά version bumps.
 
+- [ ] Γρήγορη πρόσβαση σε έγγραφα CE από το sidebar (προτάθηκε
+      2026-07-06) — κλικ στο CE badge κάτω-αριστερά να ανοίγει απευθείας
+      το PDF του πιστοποιητικού CE, αντί να χρειάζεται πλοήγηση μέσα από
+      τη Βιβλιοθήκη. Πάνω από αυτό, ίσως 2 ακόμα κουμπιά γρήγορης
+      πρόσβασης: "Ταυτότητες Υλικών" και "CE marks επίσημα εργαστηριακά".
+      Η Βιβλιοθήκη Εγγράφων σήμερα δεν έχει κατηγορίες/tags — πριν την
+      υλοποίηση χρειάζεται να αποφασιστεί πώς αναγνωρίζεται ΠΟΙΟ
+      ανεβασμένο έγγραφο αντιστοιχεί σε καθεμία από τις 3 συντομεύσεις.
+
 - [ ] Δομημένο logging (π.χ. `electron-log`) — προτάθηκε 2026-07-04
+      **(ΣΗΜΕΙΩΣΗ: ήδη υλοποιημένο στο v2-esm-redesign, `modules/logger.js`
+      — το master ακόμα δεν το έχει, το v2's TODOLIST.md ξέχασε να το
+      σημειώσει done)**
       (code review). Σήμερα σκόρπια `console.log`/`console.error` σε
       όλο το main.js, χωρίς μόνιμο αρχείο καταγραφής — αν κάτι πάει
       στραβά στη μηχανή του χειριστή, δεν υπάρχει ιστορικό σφαλμάτων να
