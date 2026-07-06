@@ -1463,10 +1463,16 @@ import {
       .map(s => s.sieve_mm);
     const allSieves = [...new Set([...state.sieves, ...specSieves])].sort((a,b) => b - a);
 
+    // Στρογγυλοποίηση σε 2 δεκαδικά πριν την αποστολή στο backend — άμυνα
+    // κατά τυχόν floating-point ατέλειας (π.χ. αν η τιμή προέκυπτε ποτέ από
+    // υπολογισμό αντί για απευθείας πληκτρολόγηση) πριν τη σύγκριση με τα
+    // αποτελέσματα δοκιμών στο backend (_check_value).
+    const _round2 = v => (v === null || Number.isNaN(v)) ? null : Math.round(v * 100) / 100;
+
     const specs = allSieves.map(sieve => ({
       sieve_mm:    sieve,
-      lower_limit: parseFloat(el(`spec-lo-${String(sieve).replace('.','_')}`)?.value) || null,
-      upper_limit: parseFloat(el(`spec-hi-${String(sieve).replace('.','_')}`)?.value) || null,
+      lower_limit: _round2(parseFloat(el(`spec-lo-${String(sieve).replace('.','_')}`)?.value)) ?? null,
+      upper_limit: _round2(parseFloat(el(`spec-hi-${String(sieve).replace('.','_')}`)?.value)) ?? null,
     }));
 
     try {

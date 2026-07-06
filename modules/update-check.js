@@ -93,8 +93,12 @@ export async function checkForUpdates() {
 }
 
 ipcMain.handle('open-update-url', async (event, url) => {
-  await shell.openExternal(url);
-  return { ok: true };
+  try {
+    await shell.openExternal(url);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 });
 
 ipcMain.handle('get-allowed-versions', async () => {

@@ -305,6 +305,10 @@ ipcMain.handle('cloud-sync-notify-snooze', async (event, days = 7) => {
 });
 
 ipcMain.handle('open-external-link', async (event, url) => {
-  await shell.openExternal(url);
-  return { ok: true };
+  try {
+    await shell.openExternal(url);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 });
