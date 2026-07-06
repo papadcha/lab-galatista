@@ -75,6 +75,7 @@ from database.db_manager import (
     create_ce_period,
     create_subperiod,
     update_ce_period_folder,
+    update_active_ce_period_folder,
     update_ce_period,
     delete_subperiod,
     delete_ce_period,
