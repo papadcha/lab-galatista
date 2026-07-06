@@ -12,6 +12,7 @@ import { reconcileArchiveMode } from './modules/archive-mode.js'; // side-effect
 import { reconcileCleanStart } from './modules/clean-start.js'; // side-effect: ipcMain.handle('clean-start', ...)
 import { checkForUpdates } from './modules/update-check.js'; // side-effect: ipcMain.handle('open-update-url'/'get-allowed-versions'/'report-version-issue'/'get-app-version'/'get-version-history', ...)
 import { checkCeExpiryAndNotify, checkDataFolderMismatch } from './modules/ce-period.js'; // side-effect: ipcMain.handle('data-folder-notify-snooze'/'ce-notify-*'/'ce-get-suggested-folder'/'ce-select-folder', ...)
+import { checkPanDoublecountFix } from './modules/pan-fix.js'; // side-effect: ipcMain.handle('pan-fix-notice-dismiss', ...)
 import './modules/pdf-generation.js'; // side-effect: ipcMain.handle('generate-report-pdf'/'print-to-pdf'/'generate-periodic-pdf'/'save-pdf'/'save-statistics'/'open-pdf'/'print-pdf', ...)
 import './modules/email.js'; // side-effect: ipcMain.handle('send-email'/'test-smtp', ...)
 import './modules/document-library.js'; // side-effect: ipcMain.handle('upload-document'/'open-document'/'delete-document-cloud'/'generate-pdf-library'/'force-quit', ...)
@@ -125,6 +126,9 @@ app.whenReady().then(() => {
 
     // ── Έλεγχος φακέλου δεδομένων vs ενεργή CE period ─────
     await checkDataFolderMismatch();
+
+    // ── Έλεγχος παλαιών κοκκομετριών με διπλομετρημένο βάρος τυφλού ─
+    await checkPanDoublecountFix();
 
     // ── Έλεγχος νέας έκδοσης ──────────────────────────────
     checkForUpdates().catch(e => console.log('[Update] Σφάλμα:', e.message));
