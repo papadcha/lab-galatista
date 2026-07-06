@@ -717,6 +717,48 @@ function _showDataFolderMismatchToast(info) {
   document.body.appendChild(toast);
 }
 
+// Listener για αποτυχία του αυτόματου cloud sync στο startup — χωρίς αυτό ο
+// χειριστής θα το έβλεπε μόνο αν άνοιγε ο ίδιος τις Ρυθμίσεις (παθητικό
+// cloudLastSyncStatus εκεί), καμία ενεργή προειδοποίηση σήμερα.
+if (window.pyBridge?.['on-cloud-sync-failed']) {
+  window.pyBridge['on-cloud-sync-failed']((info) => {
+    _showCloudSyncFailToast(info);
+  });
+}
+
+function _dismissCloudSyncToast() {
+  document.getElementById('cloud-sync-toast')?.remove();
+}
+
+async function _snoozeCloudSyncToast() {
+  _dismissCloudSyncToast();
+  await window.pyBridge?.['cloud-sync-notify-snooze']?.(7);
+}
+
+function _showCloudSyncFailToast(info) {
+  if (document.getElementById('cloud-sync-toast')) return;
+
+  const toast = document.createElement('div');
+  toast.id = 'cloud-sync-toast';
+  toast.className = 'ce-toast';
+  toast.innerHTML = `
+    <div class="ce-toast-icon">🔴</div>
+    <div class="ce-toast-body">
+      <div class="ce-toast-title">Το αυτόματο cloud sync απέτυχε</div>
+      <div class="ce-toast-msg">Το τελευταίο backup δεν ανέβηκε στο cloud: ${_esc(info?.error || 'άγνωστο σφάλμα')}</div>
+      <div class="ce-toast-actions">
+        <button class="btn-secondary btn-sm" onclick="_snoozeCloudSyncToast()">
+          Το γνωρίζω (7 μέρες)
+        </button>
+        <button class="btn-primary btn-sm" onclick="navigateTo('settings');_dismissCloudSyncToast()">
+          Ρυθμίσεις →
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(toast);
+}
+
 // Listener για νέα έκδοση
 if (window.pyBridge?.['on-update-available']) {
   window.pyBridge['on-update-available']((info) => {

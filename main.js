@@ -1270,8 +1270,29 @@ async function performStartupCloudSync(remotePath) {
   } else {
     saveConfig({ ...loadConfig(), cloudLastSync: now, cloudLastSyncStatus: 'fail' });
     console.error('[Cloud] Startup sync σφάλμα:', result.error);
+    _notifyCloudSyncFailure(result.error);
   }
 }
+
+// Το background startup sync αποτυγχάνει σιωπηλά χωρίς αυτό — ο χειριστής
+// θα το έβλεπε μόνο αν άνοιγε ο ίδιος τις Ρυθμίσεις (cloudLastSyncStatus
+// εκεί), χωρίς καμία ενεργή προειδοποίηση. Ίδιο pattern με το
+// ce-expiry-notification/data-folder-mismatch παρακάτω.
+function _notifyCloudSyncFailure(error) {
+  const cfg = loadConfig();
+  const snoozedUntil = cfg.cloudSyncNotifySnoozedUntil;
+  if (snoozedUntil && new Date(snoozedUntil) > new Date()) return;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('cloud-sync-failed', { error });
+  }
+}
+
+ipcMain.handle('cloud-sync-notify-snooze', async (event, days = 7) => {
+  const until = new Date();
+  until.setDate(until.getDate() + (days || 7));
+  saveConfig({ ...loadConfig(), cloudSyncNotifySnoozedUntil: until.toISOString() });
+  return { ok: true };
+});
 
 // ============================================================
 // CE PERIOD IPC HANDLERS
