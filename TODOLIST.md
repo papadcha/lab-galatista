@@ -187,12 +187,14 @@ i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται α
       συντομεύσεις (π.χ. νέο πεδίο κατηγορίας/tag στο tbl_documents, ή
       match βάσει τίτλου).
 
-- [ ] Δομημένο logging (π.χ. `electron-log`) — προτάθηκε 2026-07-04
-      (code review). Σήμερα σκόρπια `console.log`/`console.error` σε
-      όλο το main.js, χωρίς μόνιμο αρχείο καταγραφής — αν κάτι πάει
-      στραβά στη μηχανή του χειριστή, δεν υπάρχει ιστορικό σφαλμάτων να
-      ελεγχθεί εκ των υστέρων. Νέα εξάρτηση + αγγίζει όλο το αρχείο,
-      χρειάζεται ρητή απόφαση πριν την υλοποίηση.
+- [x] Δομημένο logging — προτάθηκε 2026-07-04 (code review), υλοποιήθηκε
+      στο crash-recovery hardening batch (`a744cc1`). Νέο
+      `modules/logger.js` (`initLogger()`): rotating `main.log` (5MB
+      όριο, 1 παλιό αντίγραφο `.old`) + `process.on('uncaughtException'
+      /'unhandledRejection')` handlers ώστε να καταγράφονται σφάλματα
+      που θα έσκαγαν σιωπηλά. Ξεχωριστό `python.log`
+      (RotatingFileHandler, backend/server.py) για το Python side. Δεν
+      χρειάστηκε νέα εξάρτηση (`electron-log`) — απλό fs-based rotation.
 
 ## ΜΕΓΑΛΕΣ / ΑΝΑΒΛΗΘΗΚΑΝ
 
