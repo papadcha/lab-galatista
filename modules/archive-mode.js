@@ -15,6 +15,22 @@ import { state } from './state.js';
 import { _pyCallMain } from './python-bridge.js';
 import { loadConfig, saveConfig, performBackup } from './config.js';
 
+// Καλείται στο startup (main.js), πριν το αυτόματο backup. Αν η προηγούμενη
+// έξοδος από Archive Mode δεν ήταν καθαρή (π.χ. crash πριν προλάβει να
+// τρέξει το restore-from-archive), το config μπορεί να έχει μείνει με
+// archiveDataFolder ενώ το Python backend (φρέσκια διεργασία, καμία μνήμη
+// archive mode) συνδέεται πάντα στη ζωντανή βάση — χωρίς αυτό το reconcile,
+// getDataFolder() θα έστελνε backups/PDF στον ΠΑΛΙΟ αρχειοθετημένο φάκελο
+// ενώ η βάση θα ήταν η ζωντανή.
+export function reconcileArchiveMode() {
+  const cfg = loadConfig();
+  if (!cfg.archiveDataFolder) return;
+  console.warn('[Startup] Βρέθηκε archiveDataFolder από μη ολοκληρωμένη έξοδο από Archive Mode — καθαρισμός.');
+  const cfgClean = loadConfig();
+  delete cfgClean.archiveDataFolder;
+  saveConfig(cfgClean);
+}
+
 ipcMain.handle('find-archive-db', async (event, dataFolder) => {
   return await _pyCallMain('find_archive_db', [dataFolder]);
 });

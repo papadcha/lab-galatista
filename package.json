@@ -6,6 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "npx electron .",
+    "test:crash-recovery": "electron scripts/test-crash-recovery.js",
     "build:backend": "pyinstaller --clean --noconfirm lab-backend.spec",
     "build:installer": "electron-builder --win --x64",
     "dist": "npm run build:backend && npm run build:installer"

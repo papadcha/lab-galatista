@@ -41,10 +41,13 @@ export function startPythonBackend(appRootDir) {
 
   // Η βάση αποθηκεύεται στο userData (εγγράψιμο και για non-admin users)
   const labDbPath = path.join(app.getPath('userData'), 'laboratory.db');
+  // Ίδιος φάκελος logs/ με το Electron-side main.log (modules/logger.js) —
+  // ένα σημείο για τον χειριστή να ψάξει και τα δύο post-mortem.
+  const labLogDir = path.join(app.getPath('userData'), 'logs');
   state.pyProcess = spawn(cmd, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
     cwd,
-    env: { ...process.env, PYTHONIOENCODING: 'utf-8', LAB_DB_PATH: labDbPath },
+    env: { ...process.env, PYTHONIOENCODING: 'utf-8', LAB_DB_PATH: labDbPath, LAB_LOG_DIR: labLogDir },
   });
 
   // Κεντρικός stdout listener — routing με ID

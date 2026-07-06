@@ -2,18 +2,26 @@ import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { initLogger } from './modules/logger.js';
 import { state } from './modules/state.js';
 import { startPythonBackend, waitForPythonReady } from './modules/python-bridge.js';
 import { loadConfig, saveConfig, performBackup } from './modules/config.js';
 import { performStartupCloudSync } from './modules/cloud-sync.js';
 import './modules/retention.js'; // side-effect: ipcMain.handle('retention-*', ...)
-import './modules/archive-mode.js'; // side-effect: ipcMain.handle('*-archive*', 'inspect-backup-samples', ...)
-import './modules/clean-start.js'; // side-effect: ipcMain.handle('clean-start', ...)
+import { reconcileArchiveMode } from './modules/archive-mode.js'; // side-effect: ipcMain.handle('*-archive*', 'inspect-backup-samples', ...)
+import { reconcileCleanStart } from './modules/clean-start.js'; // side-effect: ipcMain.handle('clean-start', ...)
 import { checkForUpdates } from './modules/update-check.js'; // side-effect: ipcMain.handle('open-update-url'/'get-allowed-versions'/'report-version-issue'/'get-app-version'/'get-version-history', ...)
 import { checkCeExpiryAndNotify, checkDataFolderMismatch } from './modules/ce-period.js'; // side-effect: ipcMain.handle('data-folder-notify-snooze'/'ce-notify-*'/'ce-get-suggested-folder'/'ce-select-folder', ...)
 import './modules/pdf-generation.js'; // side-effect: ipcMain.handle('generate-report-pdf'/'print-to-pdf'/'generate-periodic-pdf'/'save-pdf'/'save-statistics'/'open-pdf'/'print-pdf', ...)
 import './modules/email.js'; // side-effect: ipcMain.handle('send-email'/'test-smtp', ...)
 import './modules/document-library.js'; // side-effect: ipcMain.handle('upload-document'/'open-document'/'delete-document-cloud'/'generate-pdf-library'/'force-quit', ...)
+
+// Το ESM module graph φορτώνεται ολόκληρο πριν τρέξει οποιοδήποτε top-level
+// statement εδώ, οπότε η θέση αυτής της κλήσης δεν προλαβαίνει logging ΜΕΣΑ
+// στη φόρτωση των παραπάνω modules — δεν πειράζει, αφού αυτά μόνο κάνουν
+// ipcMain.handle() registration στο evaluation τους, καμία πραγματική
+// κλήση console.log δεν συμβαίνει πριν αυτά τα handlers κληθούν αργότερα.
+initLogger();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -95,18 +103,13 @@ app.whenReady().then(() => {
     const ready = await waitForPythonReady();
     if (!ready) console.warn('[Startup] Ο Python backend δεν απάντησε εγκαίρως — συνεχίζουμε ούτως ή άλλως');
 
-    // Αν η προηγούμενη έξοδος από Archive Mode δεν ήταν καθαρή (π.χ. crash),
-    // το config μπορεί να έχει μείνει με archiveDataFolder ενώ το Python
-    // backend (φρέσκια διεργασία, καμία μνήμη archive mode) συνδέεται πάντα
-    // στη ζωντανή βάση — χωρίς αυτό το reconcile, getDataFolder() θα έστελνε
-    // backups/PDF στον ΠΑΛΙΟ αρχειοθετημένο φάκελο ενώ η βάση θα ήταν η ζωντανή.
-    const cfgStartup = loadConfig();
-    if (cfgStartup.archiveDataFolder) {
-      console.warn('[Startup] Βρέθηκε archiveDataFolder από μη ολοκληρωμένη έξοδο από Archive Mode — καθαρισμός.');
-      const cfgClean = loadConfig();
-      delete cfgClean.archiveDataFolder;
-      saveConfig(cfgClean);
-    }
+    // Αν η προηγούμενη έξοδος από Archive Mode δεν ήταν καθαρή (π.χ. crash) —
+    // βλ. modules/archive-mode.js.
+    reconcileArchiveMode();
+
+    // Αντίστοιχος έλεγχος για μη ολοκληρωμένο Clean Start (crash μεταξύ
+    // Python commit και config reset) — βλ. modules/clean-start.js.
+    await reconcileCleanStart();
 
     // ── Τοπικό backup ─────────────────────────────────────
     const result = await performBackup();

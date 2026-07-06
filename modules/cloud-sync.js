@@ -11,6 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { app } from 'electron';
+import { state } from './state.js';
 import { loadConfig, saveConfig, getDataFolder } from './config.js';
 import { _pyCallMain } from './python-bridge.js';
 import { _maybeRunAutoRetention } from './retention.js';
@@ -279,8 +280,29 @@ export async function performStartupCloudSync(remotePath) {
   } else {
     saveConfig({ ...loadConfig(), cloudLastSync: now, cloudLastSyncStatus: 'fail' });
     console.error('[Cloud] Startup sync σφάλμα:', result.error);
+    _notifyCloudSyncFailure(result.error);
   }
 }
+
+// Το background startup sync αποτυγχάνει σιωπηλά χωρίς αυτό — ο χειριστής
+// θα το έβλεπε μόνο αν άνοιγε ο ίδιος τις Ρυθμίσεις (cloudLastSyncStatus
+// εκεί), χωρίς καμία ενεργή προειδοποίηση. Ίδιο pattern με το
+// ce-expiry-notification/data-folder-mismatch (main-app.js).
+function _notifyCloudSyncFailure(error) {
+  const cfg = loadConfig();
+  const snoozedUntil = cfg.cloudSyncNotifySnoozedUntil;
+  if (snoozedUntil && new Date(snoozedUntil) > new Date()) return;
+  if (state.mainWindow && !state.mainWindow.isDestroyed()) {
+    state.mainWindow.webContents.send('cloud-sync-failed', { error });
+  }
+}
+
+ipcMain.handle('cloud-sync-notify-snooze', async (event, days = 7) => {
+  const until = new Date();
+  until.setDate(until.getDate() + (days || 7));
+  saveConfig({ ...loadConfig(), cloudSyncNotifySnoozedUntil: until.toISOString() });
+  return { ok: true };
+});
 
 ipcMain.handle('open-external-link', async (event, url) => {
   await shell.openExternal(url);

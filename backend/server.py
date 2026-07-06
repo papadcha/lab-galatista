@@ -2,6 +2,8 @@ import sys
 import io
 import json
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 
 # Ορισμός UTF-8 για stdin/stdout/stderr — κρίσιμο για PyInstaller on Windows
 # (το PYTHONIOENCODING env var δεν είναι αρκετό για bundled exe)
@@ -17,6 +19,25 @@ if hasattr(sys.stderr, 'buffer'):
 # Προσθήκη του root φακέλου στο path
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+
+# Ανεξάρτητο rotating log file — δεν εξαρτάται από το αν ο Node προλαβαίνει
+# να προωθήσει/αποθηκεύσει το stdout (modules/logger.js, main.js side).
+# LAB_LOG_DIR έρχεται από modules/python-bridge.js's spawn env· αν λείπει
+# (π.χ. τρέξιμο του server.py έξω από το Electron app), απλά δεν γράφεται
+# αρχείο — τα logging.* calls απλά δεν πάνε πουθενά, χωρίς σφάλμα.
+_log_dir = os.environ.get('LAB_LOG_DIR')
+if _log_dir:
+    try:
+        os.makedirs(_log_dir, exist_ok=True)
+        _handler = RotatingFileHandler(
+            os.path.join(_log_dir, 'python.log'),
+            maxBytes=5 * 1024 * 1024, backupCount=3, encoding='utf-8'
+        )
+        _handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logging.getLogger().addHandler(_handler)
+        logging.getLogger().setLevel(logging.INFO)
+    except Exception:
+        pass
 
 from database.db_manager import (
     get_all_products,
@@ -75,6 +96,7 @@ from database.db_manager import (
     create_ce_period,
     create_subperiod,
     update_ce_period_folder,
+    update_active_ce_period_folder,
     update_ce_period,
     delete_subperiod,
     delete_ce_period,
@@ -968,9 +990,12 @@ def handle_request(line: str) -> dict:
         return resp
 
     except ValueError as e:
-        # Σφάλματα επικύρωσης (κατηγορία, blocked removal κλπ).
+        # Σφάλματα επικύρωσης (κατηγορία, blocked removal κλπ) — αναμενόμενα,
+        # δεν χρειάζονται πλήρες traceback στο log.
+        logging.warning('Validation error: %s — αίτημα: %s', e, line[:200])
         return {'error': str(e)}
     except Exception as e:
+        logging.exception('Μη αναμενόμενο σφάλμα κατά την επεξεργασία αιτήματος: %s', line[:200])
         return {'error': str(e)}
 
 
@@ -2002,17 +2027,29 @@ if __name__ == '__main__':
     try:
         initialize_database()
         print('[Python] Έτοιμο — Βάση δεδομένων αρχικοποιήθηκε', flush=True)
+        logging.info('Βάση δεδομένων αρχικοποιήθηκε')
     except Exception as e:
         print(f'[Python] Σφάλμα αρχικοποίησης: {e}', flush=True)
+        logging.exception('Σφάλμα αρχικοποίησης')
         sys.exit(1)
 
     print('[Python] Αναμονή εντολών...', flush=True)
+    logging.info('Αναμονή εντολών...')
 
-    for line in sys.stdin:
-        line = line.strip()
-        if not line:
-            continue
+    # handle_request() ήδη πιάνει τα δικά της exceptions — αυτό το εξωτερικό
+    # try/except είναι άμυνα-σε-βάθος για οτιδήποτε ξεφύγει από αυτό (π.χ.
+    # σφάλμα στο ίδιο το print/json.dumps), ώστε ένα πραγματικό crash του
+    # κύριου loop να καταγραφεί με πλήρες traceback πριν πεθάνει η διεργασία,
+    # αντί να αφήσει μόνο ένα σιωπηλό exit code στον Node.
+    try:
+        for line in sys.stdin:
+            line = line.strip()
+            if not line:
+                continue
 
-        response = handle_request(line)
-        print(json.dumps(response, ensure_ascii=False), flush=True)
+            response = handle_request(line)
+            print(json.dumps(response, ensure_ascii=False), flush=True)
+    except Exception:
+        logging.exception('Μη αναμενόμενο σφάλμα στο κύριο loop — τερματισμός')
+        raise
 

@@ -354,10 +354,18 @@ def import_document_library(items: list) -> dict:
         conn.close()
 
 def switch_db(archive_path: str) -> dict:
-    """Εναλλαγή σε archive DB (global switch)."""
+    """Εναλλαγή σε archive DB (global switch). Κοινό σημείο για Archive Mode
+    (find_archive_db) και επιλεκτική επαναφορά δείγματος (switch-to-backup-file)
+    — έλεγχος ακεραιότητας εδώ πριν το global switch, ώστε ένα κατεστραμμένο
+    backup (π.χ. διακοπτόμενο cloud download) να απορρίπτεται ρητά αντί να
+    γίνεται αποδεκτό σιωπηλά και να σπάει αργότερα σε τυχαία query."""
     global DB_PATH
     if not os.path.exists(archive_path):
         return {'ok': False, 'error': 'Το αρχείο δεν βρέθηκε: ' + archive_path}
+    integrity = check_db_integrity(archive_path)
+    if not integrity.get('ok'):
+        return {'ok': False, 'error': 'Το αρχείο backup είναι κατεστραμμένο: ' +
+                str(integrity.get('result') or integrity.get('error') or 'άγνωστο σφάλμα')}
     DB_PATH = archive_path
     return {'ok': True, 'path': archive_path}
 
@@ -1438,14 +1446,15 @@ def _insert_sieve_results(conn, analysis_id, weight_dry, sieve_results):
     total_weight = total_weight + pan_weight  # = w_washed
     cumulative_retained = 0
     # Ταξινόμηση: μεγάλα → μικρά, εξαιρώ pan (sieve_mm=0)
-    # EN 933-1 §8.1:
-    # Παρονομαστής = M₁ = weight_dry για όλα τα κόσκινα
-    # Passing%(0.063mm) = ((M₁ - M₂) + P) / M₁ × 100
-    #   M₂ = cum_retained ΕΩΣ και ΣΤΟ 0.063mm
-    #   P  = βάρος τυφλού (pan)
+    # EN 933-1 §8.1: Passing%(κόσκινο) = (M₁ - M₂) / M₁ × 100, όπου
+    # M₁ = weight_dry, M₂ = cum_retained έως και στο συγκεκριμένο κόσκινο.
+    # Ίδιος τύπος ΓΙΑ ΟΛΑ τα κόσκινα, ΧΩΡΙΣ εξαίρεση για το μικρότερο: το
+    # (M₁ - M₂) στο μικρότερο κόσκινο ήδη ισούται ορθά με (απώλεια_πλύσης +
+    # βάρος_τυφλού), αφού M₂ = w_washed - pan_weight εξ ορισμού (μαζικό
+    # ισοζύγιο). Ένας παλιότερος "ειδικός τύπος" εδώ πρόσθετε το pan_weight
+    # ΞΑΝΑ πάνω σε αυτό, διπλομετρώντας το και φουσκώνοντας το %διερχόμενο
+    # του μικρότερου κοσκίνου κατά pan_weight/M₁×100 ποσοστιαίες μονάδες.
     M1       = weight_dry or 0
-    pan_w    = sum(p.get('weight_retained', 0) for p in pan_data)
-    min_sieve = min((r['sieve_mm'] for r in regular_sieves_data), default=0)
 
     regular_sieves = sorted(
         regular_sieves_data,
@@ -1454,13 +1463,7 @@ def _insert_sieve_results(conn, analysis_id, weight_dry, sieve_results):
 
     for r in regular_sieves:
         cumulative_retained += r.get('weight_retained', 0)
-
-        if r['sieve_mm'] == min_sieve:
-            # Μικρότερο κόσκινο (0.063mm): ειδικός τύπος
-            passing = ((M1 - cumulative_retained) + pan_w) / M1 * 100 if M1 > 0 else 0
-        else:
-            passing = (M1 - cumulative_retained) / M1 * 100 if M1 > 0 else 0
-
+        passing = (M1 - cumulative_retained) / M1 * 100 if M1 > 0 else 0
         passing = max(0, min(100, round(passing, 1)))
         conn.execute("""
             INSERT INTO tbl_sieve_results
