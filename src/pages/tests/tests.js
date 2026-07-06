@@ -1212,15 +1212,6 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
       await saveFn(asNewRun, reason);
       App.toast(`${App.testLabel(tt)} αποθηκεύτηκε ✓`, 'ok');
       await reloadAfterSave(tt);
-
-      // Αν αυτό το δείγμα ήταν στη λίστα "Διόρθωση Παλαιών Κοκκομετριών"
-      // (βλ. main-app.js _showPanFixModal), η κοκκομετρία μόλις ξανα-
-      // υπολογίστηκε με τον σωστό τύπο — προτείνουμε νέο PDF ώστε το
-      // αρχείο στο δίσκο να ταιριάζει με τη διορθωμένη τιμή.
-      if (tt === 'sieve' && window._panFixPendingIds?.has(state.sampleId)) {
-        window._panFixPendingIds.delete(state.sampleId);
-        _offerPanFixPdf(state.sampleId);
-      }
     } catch (e) {
       App.toast('Σφάλμα: ' + e.message, 'fail');
       // Re-enable αν αποτύχει
@@ -1231,33 +1222,6 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     } finally {
       state._saving = false;
     }
-  }
-
-  // Χρησιμοποιεί showModal (όχι App.confirm) γιατί το App.confirm περνάει
-  // το onConfirm μέσω .toString() — το sampleId ως closure θα χανόταν σε
-  // αυτό το round-trip. Το sampleId περνάει ρητά μέσα στο action string.
-  function _offerPanFixPdf(sampleId) {
-    App.showModal(
-      'Νέο PDF Πιστοποιητικού',
-      '<p style="color:var(--text-muted);margin:8px 0;">Η κοκκομετρία διορθώθηκε. ' +
-      'Να δημιουργηθεί τώρα νέο PDF με τη σωστή τιμή;</p>',
-      [
-        { label: 'Όχι τώρα', action: 'App.closeModal()', secondary: true },
-        { label: 'Δημιουργία PDF', action: `App.closeModal();TestsPage._generatePanFixPdf(${sampleId})` },
-      ]
-    );
-  }
-
-  async function _generatePanFixPdf(sampleId) {
-    App.toast('Δημιουργία PDF…', 'info');
-    const result = await window.pyBridge?.['generate-report-pdf']?.({
-      sampleId, tests: ['sieve', 'flakiness', 'se', 'mb'],
-    });
-    if (!result?.success) {
-      App.toast('Σφάλμα παραγωγής PDF: ' + (result?.error || ''), 'fail');
-      return;
-    }
-    await window.pyBridge?.['open-pdf']?.(result.path);
   }
 
   async function reloadAfterSave(tt) {
@@ -1556,7 +1520,6 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     // Edit
     editInfo, _saveInfo, _addTechnicianInline, _doAddTechnicianInline,
     editPlan, _savePlan,
-    _generatePanFixPdf,
   };
 
   // ============================================================

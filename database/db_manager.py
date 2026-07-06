@@ -1481,69 +1481,6 @@ def _insert_sieve_results(conn, analysis_id, weight_dry, sieve_results):
         """, (analysis_id, 0, p.get('weight_retained', 0), 0.0))
 
 
-def get_pan_doublecount_affected_samples() -> list:
-    """
-    Εντοπίζει επίσημες κοκκομετρίες (is_official=1) όπου η ήδη αποθηκευμένη
-    τιμή %διερχόμενου στο μικρότερο κόσκινο δεν ταιριάζει με τον διορθωμένο
-    τύπο του _insert_sieve_results() (βλ. σχόλιο εκεί) — δηλαδή
-    αποθηκεύτηκε πριν το fix, με το βάρος τυφλού να προσμετράται διπλά.
-
-    Καμία νέα στήλη/flag δεν χρειάζεται: μόλις μια κοκκομετρία ξανα-
-    αποθηκευτεί με τον σωστό τύπο, η αποθηκευμένη τιμή θα ταιριάζει πλέον
-    με την επανυπολογισμένη — αυτόματα εξαφανίζεται από τη λίστα στον
-    επόμενο έλεγχο.
-    """
-    conn = get_connection()
-    try:
-        analyses = conn.execute("""
-            SELECT sa.id AS analysis_id, sa.sample_id, sa.weight_dry,
-                   s.code AS sample_code, s.date AS sample_date,
-                   p.name AS product_name
-              FROM tbl_sieve_analysis sa
-              JOIN tbl_samples  s ON s.id = sa.sample_id
-              JOIN tbl_products p ON p.id = s.product_id
-             WHERE sa.is_official = 1
-        """).fetchall()
-
-        affected = []
-        for a in analyses:
-            rows = conn.execute("""
-                SELECT sieve_mm, weight_retained, passing_percent
-                  FROM tbl_sieve_results
-                 WHERE sieve_analysis_id = ?
-                 ORDER BY sieve_mm DESC
-            """, (a['analysis_id'],)).fetchall()
-
-            pan     = next((r for r in rows if r['sieve_mm'] == 0), None)
-            regular = [r for r in rows if r['sieve_mm'] > 0]
-            if not pan or not regular or (pan['weight_retained'] or 0) == 0:
-                continue
-
-            M1 = a['weight_dry'] or 0
-            if M1 <= 0:
-                continue
-
-            cumulative = sum(r['weight_retained'] or 0 for r in regular)
-            correct_passing = max(0, min(100, round((M1 - cumulative) / M1 * 100, 1)))
-            finest = regular[-1]  # ήδη ταξινομημένα φθίνοντα → τελευταίο = μικρότερο
-            stored_passing = finest['passing_percent']
-
-            if stored_passing is None or abs(stored_passing - correct_passing) > 0.05:
-                affected.append({
-                    'sample_id':      a['sample_id'],
-                    'analysis_id':    a['analysis_id'],
-                    'sample_code':    a['sample_code'],
-                    'sample_date':    a['sample_date'],
-                    'product_name':   a['product_name'],
-                    'sieve_mm':       finest['sieve_mm'],
-                    'stored_passing': stored_passing,
-                    'correct_passing': correct_passing,
-                })
-        return affected
-    finally:
-        conn.close()
-
-
 def get_sieve_analysis(sample_id: int, run_id: Optional[int] = None) -> Optional[dict]:
     """
     Επιστρέφει κοκκομετρία δείγματος.
