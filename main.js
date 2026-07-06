@@ -211,6 +211,9 @@ app.whenReady().then(() => {
     // ── Έλεγχος φακέλου δεδομένων vs ενεργή CE period ─────
     await checkDataFolderMismatch();
 
+    // ── Έλεγχος παλαιών κοκκομετριών με διπλομετρημένο βάρος τυφλού ─
+    await checkPanDoublecountFix();
+
     // ── Έλεγχος νέας έκδοσης ──────────────────────────────
     checkForUpdates().catch(e => console.log('[Update] Σφάλμα:', e.message));
 
@@ -1193,6 +1196,29 @@ async function checkDataFolderMismatch() {
     console.error('[DataFolder] Mismatch check error:', e.message);
   }
 }
+
+async function checkPanDoublecountFix() {
+  try {
+    const cfg = loadConfig();
+    if (cfg.hidePanFixNotice) return;
+
+    const affected = await _pyCallMain('get_pan_doublecount_affected_samples', []);
+    if (!affected || affected.length === 0) return;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('pan-fix-needed', affected);
+    }
+  } catch (e) {
+    console.error('[PanFix] Έλεγχος επηρεαζόμενων κοκκομετριών απέτυχε:', e.message);
+  }
+}
+
+ipcMain.handle('pan-fix-notice-dismiss', async () => {
+  const cfg = loadConfig();
+  cfg.hidePanFixNotice = true;
+  saveConfig(cfg);
+  return { ok: true };
+});
 
 ipcMain.handle('data-folder-notify-snooze', async (event, days = 7) => {
   const until = new Date();

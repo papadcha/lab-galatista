@@ -174,6 +174,8 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'data-folder-notify-snooze': (days)            => ipcRenderer.invoke('data-folder-notify-snooze', days),
   'on-cloud-sync-failed':    (cb)                => ipcRenderer.on('cloud-sync-failed', (_e, info) => cb(info)),
   'cloud-sync-notify-snooze': (days)             => ipcRenderer.invoke('cloud-sync-notify-snooze', days),
+  'on-pan-fix-needed':       (cb)                => ipcRenderer.on('pan-fix-needed', (_e, items) => cb(items)),
+  'pan-fix-notice-dismiss':  ()                  => ipcRenderer.invoke('pan-fix-notice-dismiss'),
   'on-python-ready':         (cb)                => ipcRenderer.once('python-ready', () => cb()),
   'is-python-ready':         ()                  => ipcRenderer.invoke('python-is-ready'),
   'on-update-available':     (cb)                => ipcRenderer.once('update-available', (_e, info) => cb(info)),

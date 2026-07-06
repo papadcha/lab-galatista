@@ -43,6 +43,7 @@ from database.db_manager import (
     get_product_sieves,
     save_sieve_analysis,
     get_sieve_analysis,
+    get_pan_doublecount_affected_samples,
     save_methylene_blue,
     get_last_mb_volume,
     save_sand_equivalent,
@@ -685,6 +686,8 @@ METHODS = {
         args[0],
         run_id=args[1] if len(args) > 1 else None,
     ),
+
+    'get_pan_doublecount_affected_samples': lambda args: get_pan_doublecount_affected_samples(),
 
     'save_methylene_blue': lambda args: save_methylene_blue(
         sample_id=args[0], date=args[1],

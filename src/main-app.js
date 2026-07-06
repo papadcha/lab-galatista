@@ -759,6 +759,75 @@ function _showCloudSyncFailToast(info) {
   document.body.appendChild(toast);
 }
 
+// Listener για παλιές κοκκομετρίες με διπλομετρημένο βάρος τυφλού (fix
+// b174af5 — δεν έγινε retroactive recalculation, ο χειριστής επιλέγει
+// ποιες να ελέγξει/ξανα-αποθηκεύσει)
+if (window.pyBridge?.['on-pan-fix-needed']) {
+  window.pyBridge['on-pan-fix-needed']((items) => {
+    _showPanFixModal(items);
+  });
+}
+
+function _showPanFixModal(items) {
+  if (!items || items.length === 0) return;
+  window._panFixPendingIds = new Set(items.map(it => it.sample_id));
+
+  const rows = items.map(it => `
+    <tr>
+      <td>${App.formatCode(it.sample_code)}</td>
+      <td>${_esc(it.product_name || '')}</td>
+      <td>${App.formatDate(it.sample_date)}</td>
+      <td>${it.sieve_mm} mm</td>
+      <td style="color:var(--fail);">${it.stored_passing}%</td>
+      <td style="color:var(--ok);">${it.correct_passing}%</td>
+      <td><button class="btn-secondary btn-sm" onclick="_openPanFixSample(${it.sample_id})">Άνοιγμα</button></td>
+    </tr>
+  `).join('');
+
+  App.showModal(
+    '⚠ Διόρθωση Παλαιών Κοκκομετριών',
+    `<div style="font-size:13px;">
+      <p style="color:var(--text-muted);margin-bottom:10px;">
+        Ένα παλιό σφάλμα υπολόγιζε λανθασμένα το %διερχόμενο στο μικρότερο
+        κόσκινο (προσμετρούσε διπλά το βάρος τυφλού). Οι παρακάτω επίσημες
+        κοκκομετρίες επηρεάζονται — ανοίξτε κάθε μία, ελέγξτε τα στοιχεία
+        και πατήστε Αποθήκευση για να διορθωθεί αυτόματα με τον σωστό τύπο.
+      </p>
+      <div style="max-height:280px;overflow-y:auto;">
+        <table class="data-table">
+          <thead><tr>
+            <th>Δείγμα</th><th>Προϊόν</th><th>Ημ/νία</th><th>Κόσκινο</th>
+            <th>Παλιά τιμή</th><th>Σωστή τιμή</th><th></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--text-muted);">
+        <input type="checkbox" id="pan-fix-hide-checkbox">
+        Να μην εμφανιστεί ξανά αυτό το μήνυμα
+      </label>
+    </div>`,
+    [
+      { label: 'Κλείσιμο', action: '_closePanFixModal()', secondary: true },
+    ]
+  );
+}
+
+function _openPanFixSample(sampleId) {
+  App.closeModal();
+  window._currentSampleId = sampleId;
+  window._fromHistory     = true;
+  App.go('tests');
+}
+
+async function _closePanFixModal() {
+  const cb = document.getElementById('pan-fix-hide-checkbox');
+  if (cb?.checked) {
+    await window.pyBridge?.['pan-fix-notice-dismiss']?.();
+  }
+  App.closeModal();
+}
+
 // Listener για νέα έκδοση
 if (window.pyBridge?.['on-update-available']) {
   window.pyBridge['on-update-available']((info) => {
