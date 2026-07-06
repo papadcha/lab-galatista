@@ -1145,7 +1145,7 @@ def search_samples(product_id: Optional[int] = None,
     """
     query = """
         SELECT s.id, s.code, s.date, s.batch, s.location, s.comments,
-               s.product_id,
+               s.product_id, s.source_id,
                p.name AS product_name, p.d_min, p.d_max, p.category,
                p.code AS product_code,
                t.name AS technician_name,
