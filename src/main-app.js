@@ -18,6 +18,8 @@
  */
 'use strict';
 
+import { initI18n, t, applyI18n } from './i18n/i18n.js';
+
 // ============================================================
 // GLOBAL STATE — Κοινά δεδομένα για όλες τις σελίδες
 // ============================================================
@@ -1320,10 +1322,15 @@ Object.assign(window, {
   _showWizardStep, _wizardStep1, _wizardStep2, _wizardStep3, _wizardActions,
   _wizardNext, _wizardBack, _wizardFinish, updateSuggestedWizardFolder, _wizardSelectFolder,
   _toIsoDate, _esc, hideSplash, initTitlebar,
+  t, applyI18n,
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+
+  // i18n: εφαρμόζεται πρώτο, ανεξάρτητο από τον Python backend (μόνο
+  // στατικό markup — sidebar/titlebar/splash σήμερα, βλ. src/i18n/i18n.js).
+  await initI18n('el');
 
   // Περιμένω τον Python backend να είναι έτοιμος ΠΡΙΝ κάνω οποιαδήποτε
   // κλήση δεδομένων παρακάτω (get_products κλπ) — αλλιώς σε αργή εκκίνηση

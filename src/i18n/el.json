@@ -1,0 +1,19 @@
+{
+  "app.title": "Εργαστήριο Λατομείων Γαλάτιστας",
+
+  "nav.dashboard": "Αρχική",
+  "nav.samples": "Καταχώρηση",
+  "nav.history": "Ιστορικό",
+  "nav.reports": "Εκθέσεις",
+  "nav.library": "Βιβλιοθήκη",
+  "nav.settings": "Ρυθμίσεις",
+
+  "titlebar.minimize": "Ελαχιστοποίηση",
+  "titlebar.maximize": "Μεγιστοποίηση",
+  "titlebar.close": "Κλείσιμο",
+
+  "splash.starting": "Εκκίνηση συστήματος…",
+
+  "archive.mode": "🗄 ARCHIVE MODE",
+  "archive.return": "↩ Επιστροφή στην τρέχουσα"
+}
