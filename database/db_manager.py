@@ -354,10 +354,18 @@ def import_document_library(items: list) -> dict:
         conn.close()
 
 def switch_db(archive_path: str) -> dict:
-    """Εναλλαγή σε archive DB (global switch)."""
+    """Εναλλαγή σε archive DB (global switch). Κοινό σημείο για Archive Mode
+    (find_archive_db) και επιλεκτική επαναφορά δείγματος (switch-to-backup-file)
+    — έλεγχος ακεραιότητας εδώ πριν το global switch, ώστε ένα κατεστραμμένο
+    backup (π.χ. διακοπτόμενο cloud download) να απορρίπτεται ρητά αντί να
+    γίνεται αποδεκτό σιωπηλά και να σπάει αργότερα σε τυχαία query."""
     global DB_PATH
     if not os.path.exists(archive_path):
         return {'ok': False, 'error': 'Το αρχείο δεν βρέθηκε: ' + archive_path}
+    integrity = check_db_integrity(archive_path)
+    if not integrity.get('ok'):
+        return {'ok': False, 'error': 'Το αρχείο backup είναι κατεστραμμένο: ' +
+                str(integrity.get('result') or integrity.get('error') or 'άγνωστο σφάλμα')}
     DB_PATH = archive_path
     return {'ok': True, 'path': archive_path}
 
