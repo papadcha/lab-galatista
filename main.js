@@ -155,12 +155,12 @@ async function initActivePeriodStart() {
   const req = JSON.stringify({ method: 'get_active_ce_period', args: [], id }) + '\n';
   const period = await new Promise((resolve) => {
     if (!state.pyProcess || state.pyProcess.killed) { resolve(null); return; }
-    state.pyPending.set(id, resolve);
-    try { state.pyProcess.stdin.write(req); }
-    catch(e) { state.pyPending.delete(id); resolve(null); return; }
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve(null); }
     }, 5000);
+    state.pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    try { state.pyProcess.stdin.write(req); }
+    catch(e) { state.pyPending.delete(id); clearTimeout(timer); resolve(null); return; }
   });
 
   const validFrom = period?.active_subperiod?.valid_from || period?.valid_from;

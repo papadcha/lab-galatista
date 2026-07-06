@@ -103,12 +103,12 @@ export async function _pyCallMain(method, args = [], timeoutMs = 15000) {
   return new Promise((resolve) => {
     const id  = method + '-' + Date.now();
     const req = JSON.stringify({ method, args, id }) + '\n';
-    state.pyPending.set(id, resolve);
-    try { state.pyProcess.stdin.write(req); }
-    catch(e) { state.pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
     }, timeoutMs);
+    state.pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    try { state.pyProcess.stdin.write(req); }
+    catch(e) { state.pyPending.delete(id); clearTimeout(timer); resolve({ ok: false, error: e.message }); }
   });
 }
 
@@ -118,14 +118,14 @@ export function callPython(method, args = [], timeoutMs = 15000) {
     if (!state.pyProcess) { resolve({ error: 'Python δεν τρέχει' }); return; }
     const id      = ++state.pyReqId;
     const request = JSON.stringify({ method, args, id }) + '\n';
-    state.pyPending.set(id, resolve);
-    state.pyProcess.stdin.write(request);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (state.pyPending.has(id)) {
         state.pyPending.delete(id);
         resolve({ error: 'Timeout' });
       }
     }, timeoutMs);
+    state.pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    state.pyProcess.stdin.write(request);
   });
 }
 
@@ -163,13 +163,13 @@ ipcMain.handle('py-call', async (event, method, ...args) => {
   return new Promise((resolve) => {
     const id      = ++state.pyReqId;
     const request = JSON.stringify({ method, args, id }) + '\n';
-    state.pyPending.set(id, (result) => resolve(result));
-    state.pyProcess.stdin.write(request);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (state.pyPending.has(id)) {
         state.pyPending.delete(id);
         resolve({ error: 'Timeout — το Python δεν απάντησε' });
       }
     }, 10000);
+    state.pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    state.pyProcess.stdin.write(request);
   });
 });

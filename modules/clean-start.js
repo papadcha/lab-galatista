@@ -42,12 +42,12 @@ async function performCleanStart(options = {}) {
     const vacuumResult = await new Promise((resolve) => {
       const id  = 'vacuum-' + Date.now();
       const req = JSON.stringify({ method: 'vacuum_into', args: [finalPath], id }) + '\n';
-      state.pyPending.set(id, resolve);
-      try { state.pyProcess.stdin.write(req); }
-      catch(e) { state.pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
       }, 30000);
+      state.pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+      try { state.pyProcess.stdin.write(req); }
+      catch(e) { state.pyPending.delete(id); clearTimeout(timer); resolve({ ok: false, error: e.message }); }
     });
     if (!vacuumResult?.ok) fs.copyFileSync(dbPath, finalPath);
   } catch(e) {
@@ -104,12 +104,12 @@ async function performCleanStart(options = {}) {
       args:   [finalPath, keepTechnicians, keepProducts],
       id
     }) + '\n';
-    state.pyPending.set(id, resolve);
-    try { state.pyProcess.stdin.write(req); }
-    catch(e) { state.pyPending.delete(id); resolve({ ok: false, error: e.message }); }
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve({ ok: false, error: 'timeout' }); }
     }, 30000);
+    state.pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+    try { state.pyProcess.stdin.write(req); }
+    catch(e) { state.pyPending.delete(id); clearTimeout(timer); resolve({ ok: false, error: e.message }); }
   });
 
   if (!cleanResult?.ok) return cleanResult;

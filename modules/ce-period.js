@@ -24,12 +24,12 @@ export async function checkCeExpiryAndNotify() {
       // Σύντομη καθυστέρηση για να είναι σίγουρα έτοιμο το Python
       setTimeout(() => {
         if (!state.pyProcess || state.pyProcess.killed) { resolve(null); return; }
-        state.pyPending.set(id, resolve);
-        try { state.pyProcess.stdin.write(reqLine); }
-        catch (e) { state.pyPending.delete(id); resolve(null); }
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           if (state.pyPending.has(id)) { state.pyPending.delete(id); resolve(null); }
         }, 8000);
+        state.pyPending.set(id, (result) => { clearTimeout(timer); resolve(result); });
+        try { state.pyProcess.stdin.write(reqLine); }
+        catch (e) { state.pyPending.delete(id); clearTimeout(timer); resolve(null); }
       }, 1500);
     });
 
