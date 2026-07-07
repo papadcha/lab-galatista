@@ -121,6 +121,7 @@ async function navigateTo(pageId) {
   try {
     const html = await loadFile(Pages[pageId].html);
     document.getElementById('page-container').innerHTML = html;
+    applyI18n(document.getElementById('page-container'));
   } catch(e) {
     document.getElementById('page-container').innerHTML =
       `<div class="page-error">Σφάλμα φόρτωσης: ${pageId} — ${e.message}</div>`;

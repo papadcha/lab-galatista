@@ -170,11 +170,23 @@ i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται α
       `src/i18n/i18n.js` (`initI18n`/`t`/`applyI18n`) + πρώτο resource
       αρχείο `src/i18n/el.json`. Βήμα 1 μεταφέρθηκε: το στατικό markup
       του index.html (sidebar nav, titlebar, splash, archive banner) —
-      verified live. **Εκκρεμεί ακόμα:** τα strings μέσα στα 7 page
-      scripts (dashboard.js, samples.js, history.js, reports.js,
-      library.js, settings.js, tests.js) + το PDF generation στο
-      backend/server.py — μεγάλο σε εύρος, θα μεταναστεύσει σταδιακά
-      σελίδα-σελίδα σε επόμενα passes.
+      verified live.
+      **Βήμα 2 (2026-07-07):** dashboard.js/dashboard.html πλήρως
+      μεταφρασμένα (στατικό markup με `data-i18n`, δυναμικά strings με
+      `t()` — νέα namespaces `common.*` για επαναχρησιμοποιήσιμα κουμπιά
+      (Κλείσιμο/Ακύρωση/Διαγραφή/Επεξεργασία/PDF/Φόρτωση) και
+      `dashboard.*` για ό,τι είναι page-specific). Προστέθηκε γενικό hook
+      `applyI18n()` στο `navigateTo()` (main-app.js) μετά την ένεση του
+      HTML κάθε σελίδας — θα ωφελήσει αυτόματα όλες τις επόμενες σελίδες
+      χωρίς επιπλέον καλωδίωση ανά σελίδα. Verified live (Playwright
+      `_electron`, isolated `--user-data-dir`): δείγμα χωρίς
+      πραγματικά δεδομένα, οπότε το modal δοκιμάστηκε ξεχωριστά
+      καλώντας `Dashboard._buildSampleView()` με mock δεδομένα — καμία
+      κονσόλα σφάλματος, όλες οι μεταφρασμένες ετικέτες σωστές.
+      **Εκκρεμεί ακόμα:** τα strings μέσα στα υπόλοιπα 6 page scripts
+      (samples.js, history.js, reports.js, library.js, settings.js,
+      tests.js) + το PDF generation στο backend/server.py — θα
+      μεταναστεύσει σταδιακά σελίδα-σελίδα σε επόμενα passes.
 
 - [ ] Γρήγορη πρόσβαση σε έγγραφα CE από το sidebar (προτάθηκε
       2026-07-06) — κλικ στο CE badge κάτω-αριστερά (`#sidebar-ce-number`,
