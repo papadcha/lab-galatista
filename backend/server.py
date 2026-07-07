@@ -39,6 +39,7 @@ if _log_dir:
     except Exception:
         pass
 
+from i18n import t
 from database.db_manager import (
     get_all_products,
     add_product,
@@ -1053,7 +1054,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         if has_se or has_mb:
             page_list.append('se-mb')
         if not page_list:
-            return {'success': False, 'error': 'Δεν υπάρχουν δεδομένα'}
+            return {'success': False, 'error': t('pdf.common.no_data', 'Δεν υπάρχουν δεδομένα')}
 
         total_pages = len(page_list)
 
@@ -1220,13 +1221,13 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
             cf, ct = lab.get('ce_valid_from',''), lab.get('ce_valid_to','')
             if cf and ct:
                 c.setFont(F,7.5); c.setFillColor(colors.HexColor('#444'))
-                c.drawRightString(cx, top_y-14*mm, f'Ισχύς: {fmt_date(cf)} — {fmt_date(ct)}')
+                c.drawRightString(cx, top_y-14*mm, t('pdf.common.validity', 'Ισχύς: {from_} — {to}').format(from_=fmt_date(cf), to=fmt_date(ct)))
             c.setStrokeColor(BLUE_DARK); c.setLineWidth(1.2)
             c.line(ML, top_y - LOGO_H, W-ML, top_y - LOGO_H)
             c.setFont(F,7.5); c.setFillColor(colors.HexColor('#555'))
-            c.drawString(ML, 9*mm, f'Ημερομηνία έκδοσης: {fmt_date(date.today().isoformat())}')
-            c.drawCentredString(W/2, 9*mm, 'Το παρόν δελτίο αφορά αποκλειστικά το ανωτέρω δείγμα.')
-            c.drawRightString(W-ML, 9*mm, f'Σελίδα {pnum} από {total_pages}')
+            c.drawString(ML, 9*mm, t('pdf.common.issue_date', 'Ημερομηνία έκδοσης: {date}').format(date=fmt_date(date.today().isoformat())))
+            c.drawCentredString(W/2, 9*mm, t('pdf.common.disclaimer', 'Το παρόν δελτίο αφορά αποκλειστικά το ανωτέρω δείγμα.'))
+            c.drawRightString(W-ML, 9*mm, t('pdf.common.page_of', 'Σελίδα {page} από {total}').format(page=pnum, total=total_pages))
 
         # ── BaseDocTemplate με δύο PageTemplates ─────────────
         pf = Frame(ML, MB, A4[0]-2*ML, A4[1]-MT-MB, id='portrait')
@@ -1260,20 +1261,20 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                 sample.get('product_name', ''), sample.get('d_min', 0), sample.get('d_max', 0)
             ))
             rows = [
-                [Paragraph('<b>Κωδικός Δείγματος</b>', ST_SMALL),
+                [Paragraph(f'<b>{t("pdf.meta.sample_code", "Κωδικός Δείγματος")}</b>', ST_SMALL),
                  Paragraph(f'<b>{esc(sample.get("code"))}</b>', ST_BODY),
-                 Paragraph('<b>Ημ/νία Δειγματοληψίας</b>', ST_SMALL),
+                 Paragraph(f'<b>{t("pdf.meta.sampling_date", "Ημ/νία Δειγματοληψίας")}</b>', ST_SMALL),
                  Paragraph(fmt_date(sample.get('date','')), ST_BODY)],
-                [Paragraph('<b>Προϊόν</b>', ST_SMALL),
+                [Paragraph(f'<b>{t("pdf.meta.product", "Προϊόν")}</b>', ST_SMALL),
                  Paragraph(ps, ST_BODY),
-                 Paragraph('<b>Τεχνικός</b>', ST_SMALL),
+                 Paragraph(f'<b>{t("pdf.meta.technician", "Τεχνικός")}</b>', ST_SMALL),
                  Paragraph(esc(sample.get('technician_name')), ST_BODY)],
             ]
             if sample.get('location'):
-                rows.append([Paragraph('<b>Σημείο</b>', ST_SMALL),
+                rows.append([Paragraph(f'<b>{t("pdf.meta.location", "Σημείο")}</b>', ST_SMALL),
                               Paragraph(esc(sample.get('location')), ST_BODY),'',''])
-            t = Table(rows, colWidths=[35*mm, W/2-35*mm, 35*mm, W/2-35*mm])
-            t.setStyle(TableStyle([
+            tbl = Table(rows, colWidths=[35*mm, W/2-35*mm, 35*mm, W/2-35*mm])
+            tbl.setStyle(TableStyle([
                 ('GRID',(0,0),(-1,-1),0.5,colors.HexColor('#ccc')),
                 ('BACKGROUND',(0,0),(0,-1),BLUE_LIGHT),
                 ('BACKGROUND',(2,0),(2,-1),BLUE_LIGHT),
@@ -1283,7 +1284,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                 ('BOTTOMPADDING',(0,0),(-1,-1),2*mm),
                 ('SPAN',(1,2),(3,2)),
             ]))
-            return t
+            return tbl
 
         def base_tbl_style():
             return [
@@ -1299,10 +1300,10 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         def spec_chk_tbl(checks, val_key, unit='', W=None):
             if not checks: return None
             if W is None: W = W_p
-            rows = [[Paragraph('<b>Προδιαγραφή</b>',ST_SMALL),
-                     Paragraph('<b>Τύπος</b>',ST_SMALL),
-                     Paragraph('<b>Τιμή</b>',ST_SMALL),
-                     Paragraph('<b>Απαίτηση</b>',ST_SMALL)]]
+            rows = [[Paragraph(f'<b>{t("pdf.spec.name", "Προδιαγραφή")}</b>',ST_SMALL),
+                     Paragraph(f'<b>{t("pdf.spec.type", "Τύπος")}</b>',ST_SMALL),
+                     Paragraph(f'<b>{t("pdf.spec.value", "Τιμή")}</b>',ST_SMALL),
+                     Paragraph(f'<b>{t("pdf.spec.requirement", "Απαίτηση")}</b>',ST_SMALL)]]
             for c in checks:
                 st  = c.get('status','')
                 val = c.get(val_key)
@@ -1320,9 +1321,9 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                     Paragraph(f'<b>{lim}</b>', lim_style),
                 ])
             if len(rows) <= 1: return None
-            t = Table(rows, colWidths=[W*.32, W*.18, W*.18, W*.32], repeatRows=1)
-            t.setStyle(TableStyle(base_tbl_style()))
-            return t
+            tbl = Table(rows, colWidths=[W*.32, W*.18, W*.18, W*.32], repeatRows=1)
+            tbl.setStyle(TableStyle(base_tbl_style()))
+            return tbl
 
         # ── Story ─────────────────────────────────────────────
         story = []
@@ -1340,13 +1341,13 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
             base_w     = [18*mm, 30*mm, 28*mm]
             sp_w       = (W_p-sum(base_w))/max(n_sp,1) if n_sp else 0
 
-            story += [Paragraph('ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ', ST_TITLE),
+            story += [Paragraph(t('pdf.common.title', 'ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ'), ST_TITLE),
                       meta_tbl(), Spacer(1,4*mm),
-                      Paragraph('Κοκκομετρική Ανάλυση — EN 933-1', ST_SECTION)]
+                      Paragraph(t('pdf.sieve.section_title', 'Κοκκομετρική Ανάλυση — EN 933-1'), ST_SECTION)]
 
-            hdr = ([Paragraph('<b>Κόσκινο\n(mm)</b>',ST_SMALL),
-                    Paragraph('<b>Βάρος Συγκρ.\n(g)</b>',ST_SMALL),
-                    Paragraph('<b>Διερχόμενο\n(%)</b>',ST_SMALL)] +
+            hdr = ([Paragraph(f'<b>{t("pdf.sieve.col_sieve", "Κόσκινο")}\n(mm)</b>',ST_SMALL),
+                    Paragraph(f'<b>{t("pdf.sieve.col_weight_retained", "Βάρος Συγκρ.")}\n(g)</b>',ST_SMALL),
+                    Paragraph(f'<b>{t("pdf.sieve.col_passing", "Διερχόμενο")}\n(%)</b>',ST_SMALL)] +
                    [Paragraph(f'<b>{n}</b>',ST_SMALL) for n in spec_names])
             rows = [hdr]; bg = []
             for i, r in enumerate(results):
@@ -1378,16 +1379,16 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                     Paragraph(f'<b>{pct:.1f}%</b>' if pct is not None else '—', ST_BODY),
                 ] + sp_cells)
             if pan:
-                rows.append([Paragraph('<b>Τυφλό</b>',ST_BODY),
+                rows.append([Paragraph(f'<b>{t("pdf.sieve.pan", "Τυφλό")}</b>',ST_BODY),
                               Paragraph(f'{pan.get("weight_retained",0):.1f}' if pan.get("weight_retained") is not None else '—',ST_SMALL),
                               Paragraph('<b>0.0%</b>',ST_BODY)] + [Paragraph('—',ST_SMALL)]*n_sp)
             tbl = Table(rows, colWidths=base_w+[sp_w]*n_sp, repeatRows=1)
             tbl.setStyle(TableStyle(base_tbl_style()+[('ALIGN',(1,1),(-1,-1),'CENTER')]))
             story.append(tbl)
             parts = []
-            if analysis.get('weight_initial') is not None: parts.append(f'Βάρος αρχικό: <b>{analysis["weight_initial"]:.1f}g</b>')
-            if analysis.get('weight_dry')     is not None: parts.append(f'Βάρος ξηρού: <b>{analysis["weight_dry"]:.1f}g</b>')
-            if analysis.get('wash_loss_pct')  is not None: parts.append(f'Απώλεια πλύσης: <b>{analysis["wash_loss_pct"]:.2f}%</b>')
+            if analysis.get('weight_initial') is not None: parts.append(f'{t("pdf.sieve.weight_initial", "Βάρος αρχικό")}: <b>{analysis["weight_initial"]:.1f}g</b>')
+            if analysis.get('weight_dry')     is not None: parts.append(f'{t("pdf.sieve.weight_dry", "Βάρος ξηρού")}: <b>{analysis["weight_dry"]:.1f}g</b>')
+            if analysis.get('wash_loss_pct')  is not None: parts.append(f'{t("pdf.sieve.wash_loss", "Απώλεια πλύσης")}: <b>{analysis["wash_loss_pct"]:.2f}%</b>')
             if parts: story += [Spacer(1,2*mm), Paragraph('  |  '.join(parts),ST_SMALL)]
             # Αν ακολουθεί γράφημα, η επόμενη σελίδα είναι landscape
             if 'sieve-chart' in page_list:
@@ -1397,7 +1398,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         # ══ ΣΕΛΙΔΑ 2: Γράφημα (landscape) ════════════════════
         if 'sieve-chart' in page_list:
 
-            story.append(Paragraph('Κοκκομετρική Ανάλυση — EN 933-1 — Διάγραμμα', ST_SECTION))
+            story.append(Paragraph(t('pdf.sieve.chart_section_title', 'Κοκκομετρική Ανάλυση — EN 933-1 — Διάγραμμα'), ST_SECTION))
             sa       = t_data['sieve_analysis']
             all_res  = sa.get('data',{}).get('results',[])
             pts      = sorted([r for r in all_res if r.get('sieve_mm',0)>0],
@@ -1457,19 +1458,19 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                                         fillColor=BLUE_MID,strokeColor=WHITE,strokeWidth=1))
             # Ετικέτα y-άξονα (κατακόρυφη) αριστερά του άξονα
             from reportlab.graphics.shapes import Group
-            ylab = String(0, 0, 'Διερχόμενο (%)', fontSize=8, fillColor=colors.HexColor('#444'), fontName=F)
+            ylab = String(0, 0, t('pdf.sieve.chart_y_label', 'Διερχόμενο (%)'), fontSize=8, fillColor=colors.HexColor('#444'), fontName=F)
             g = Group(ylab)
             g.transform = (0, 1, -1, 0, Y_TITLE_W*0.45, X_LABEL_PAD + DH/2 - 20)
             drawing.add(g)
             # Ετικέτα x-άξονα
-            drawing.add(String(Y_TITLE_W + DW/2, X_LABEL_PAD - 12*mm, 'Άνοιγμα βροχίδας (mm)',
+            drawing.add(String(Y_TITLE_W + DW/2, X_LABEL_PAD - 12*mm, t('pdf.sieve.chart_x_label', 'Άνοιγμα βροχίδας (mm)'),
                                fontSize=8, fillColor=colors.HexColor('#444'), fontName=F,
                                textAnchor='middle'))
             story += [drawing, Spacer(1,2*mm)]
             if spec_names:
                 leg_items = []
                 # "Αποτέλεσμα" label + circle marker
-                leg_items.append((BLUE_MID, 'Αποτέλεσμα', False))
+                leg_items.append((BLUE_MID, t('pdf.sieve.chart_legend_result', 'Αποτέλεσμα'), False))
                 for si, sn in enumerate(spec_names[:4]):
                     leg_items.append((sp_colors[si%4], sn, True))
                 leg_d = Drawing(W_l, 8)
@@ -1491,15 +1492,15 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         # ══ ΣΕΛΙΔΑ 3: Πλακοειδή ══════════════════════════════
         if 'flakiness' in page_list:
             fl = t_data['flakiness']
-            story += [Paragraph('ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ',ST_TITLE),
+            story += [Paragraph(t('pdf.common.title', 'ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ'),ST_TITLE),
                       meta_tbl(), Spacer(1,4*mm),
-                      Paragraph('Δείκτης Πλακοειδών — EN 933-3',ST_SECTION)]
+                      Paragraph(t('pdf.flakiness.section_title', 'Δείκτης Πλακοειδών — EN 933-3'),ST_SECTION)]
             fracs    = fl.get('fractions',[])
             fi_index = fl.get('fi_index')
-            fr_hdr=[Paragraph('<b>Κλάση Rᵢ (mm)</b>',ST_SMALL),
-                    Paragraph('<b>Βάρος κλάσματος (g)</b>',ST_SMALL),
-                    Paragraph('<b>Πλακοειδή mᵢ (g)</b>',ST_SMALL),
-                    Paragraph('<b>Πλακοειδή (%)</b>',ST_SMALL)]
+            fr_hdr=[Paragraph(f'<b>{t("pdf.flakiness.col_class", "Κλάση Rᵢ (mm)")}</b>',ST_SMALL),
+                    Paragraph(f'<b>{t("pdf.flakiness.col_fraction_weight", "Βάρος κλάσματος (g)")}</b>',ST_SMALL),
+                    Paragraph(f'<b>{t("pdf.flakiness.col_flaky_weight", "Πλακοειδή mᵢ (g)")}</b>',ST_SMALL),
+                    Paragraph(f'<b>{t("pdf.flakiness.col_flaky_pct", "Πλακοειδή (%)")}</b>',ST_SMALL)]
             fr_rows=[fr_hdr]
             for fr in fracs:
                 sv  = fr.get('sieve_mm')
@@ -1512,7 +1513,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                     Paragraph(f'{wp:.1f}' if wp is not None else '—', ST_SMALL),
                     Paragraph(f'{fi_fr:.1f}%' if fi_fr is not None else '—', ST_SMALL),
                 ])
-            fr_rows.append([Paragraph('<b>Δείκτης FI</b>',ST_SMALL),'','',
+            fr_rows.append([Paragraph(f'<b>{t("pdf.flakiness.fi_label", "Δείκτης FI")}</b>',ST_SMALL),'','',
                              Paragraph(f'<b>{int(round(fi_index))}%</b>' if fi_index is not None else '—',ST_BODY)])
             ft=Table(fr_rows,colWidths=[W_p/4]*4,repeatRows=1)
             ft.setStyle(TableStyle(base_tbl_style()+[
@@ -1527,14 +1528,14 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
 
         # ══ ΣΕΛΙΔΑ 4: SE + MB ════════════════════════════════
         if 'se-mb' in page_list:
-            story += [Paragraph('ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ',ST_TITLE),
+            story += [Paragraph(t('pdf.common.title', 'ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ'),ST_TITLE),
                       meta_tbl(), Spacer(1,4*mm)]
             if has_se:
                 se = t_data['sand_equivalent']
-                story.append(Paragraph('Ισοδύναμο Άμμου — EN 933-8',ST_SECTION))
+                story.append(Paragraph(t('pdf.se.section_title', 'Ισοδύναμο Άμμου — EN 933-8'),ST_SECTION))
                 meas    = se.get('measurements',[])
                 se_fin  = se.get('se_final')
-                mhdr    = [Paragraph('<b>Μέτρηση</b>',ST_SMALL),
+                mhdr    = [Paragraph(f'<b>{t("pdf.se.col_measurement", "Μέτρηση")}</b>',ST_SMALL),
                            Paragraph('<b>h1 (mm)</b>',ST_SMALL),
                            Paragraph('<b>h2 (mm)</b>',ST_SMALL),
                            Paragraph('<b>SE (%)</b>',ST_SMALL)]
@@ -1549,7 +1550,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                         Paragraph(f'{h2:.1f}' if h2 is not None else '—',ST_SMALL),
                         Paragraph(f'{sv:.1f}%' if sv is not None else '—',ST_SMALL),
                     ])
-                mrows.append([Paragraph('<b>Μέσος SE</b>',ST_SMALL),'','',
+                mrows.append([Paragraph(f'<b>{t("pdf.se.average_label", "Μέσος SE")}</b>',ST_SMALL),'','',
                                Paragraph(f'<b>{int(round(se_fin))}%</b>' if se_fin is not None else '—',ST_BODY)])
                 mt=Table(mrows,colWidths=[W_p*0.25]*4,repeatRows=1)
                 mt.setStyle(TableStyle(base_tbl_style()+[
@@ -1562,14 +1563,14 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
                 story.append(Spacer(1,5*mm))
             if has_mb:
                 mb = t_data['methylene_blue']
-                story.append(Paragraph('Μπλε Μεθυλενίου — EN 933-9',ST_SECTION))
+                story.append(Paragraph(t('pdf.mb.section_title', 'Μπλε Μεθυλενίου — EN 933-9'),ST_SECTION))
                 half=W_p/2
                 mb_rows=[
-                    [Paragraph('<b>Βάρος δείγματος</b>',ST_SMALL),
+                    [Paragraph(f'<b>{t("pdf.mb.weight_sample", "Βάρος δείγματος")}</b>',ST_SMALL),
                      Paragraph(f'{mb.get("weight_sample",0):.1f}g',ST_BODY),
-                     Paragraph('<b>Όγκος MB τελικός</b>',ST_SMALL),
+                     Paragraph(f'<b>{t("pdf.mb.volume_final", "Όγκος MB τελικός")}</b>',ST_SMALL),
                      Paragraph(f'{mb.get("volume_final",0):.1f}ml',ST_BODY)],
-                    [Paragraph('<b>MB Τιμή</b>',ST_SMALL),
+                    [Paragraph(f'<b>{t("pdf.mb.value_label", "MB Τιμή")}</b>',ST_SMALL),
                      Paragraph(''),
                      Paragraph(''),
                      Paragraph(f'<b>{mb.get("mb_value",0):.2f} g/kg</b>',ST_BODY)],
@@ -1667,7 +1668,7 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
         if source_id:
             samples = [s for s in samples if s.get('source_id') == source_id]
         if not samples:
-            return {'success': False, 'error': 'Δεν βρέθηκαν δείγματα'}
+            return {'success': False, 'error': t('pdf.periodic.no_samples', 'Δεν βρέθηκαν δείγματα')}
 
         reports = [_get_full_report_with_specs(s['id']) for s in samples[:100]]
         reports = [r for r in reports if r]
@@ -1767,20 +1768,20 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
             cf, ct = lab.get('ce_valid_from',''), lab.get('ce_valid_to','')
             if cf and ct:
                 c.setFont(F,7.5); c.setFillColor(colors.HexColor('#444'))
-                c.drawRightString(cx, top_y-14*mm, f'Ισχύς: {fmt_date(cf)} — {fmt_date(ct)}')
+                c.drawRightString(cx, top_y-14*mm, t('pdf.common.validity', 'Ισχύς: {from_} — {to}').format(from_=fmt_date(cf), to=fmt_date(ct)))
             c.setStrokeColor(BLUE_DARK); c.setLineWidth(1.2)
             c.line(ML, top_y - 19*mm, W-ML, top_y - 19*mm)
             # Footer
             c.setFont(F,7.5); c.setFillColor(colors.HexColor('#555'))
             # Έκθεση πάνω από γραμμή (δεξιά)
             if sub_report:
-                c.drawRightString(W-ML, 15*mm, f'Έκθεση: {sub_report}')
+                c.drawRightString(W-ML, 15*mm, t('pdf.periodic.report_label', 'Έκθεση: {report}').format(report=sub_report))
             # Γραμμή διαχωρισμού
             c.setStrokeColor(colors.HexColor('#ccc')); c.setLineWidth(0.5)
             c.line(ML, 13*mm, W-ML, 13*mm)
             # Ημερομηνία + σελίδα κάτω από γραμμή
-            c.drawString(ML, 8*mm, f'Ημερομηνία έκδοσης: {fmt_date(dt_date.today().isoformat())}')
-            c.drawRightString(W-ML, 8*mm, f'Σελίδα {pnum} από {total}')
+            c.drawString(ML, 8*mm, t('pdf.common.issue_date', 'Ημερομηνία έκδοσης: {date}').format(date=fmt_date(dt_date.today().isoformat())))
+            c.drawRightString(W-ML, 8*mm, t('pdf.common.page_of', 'Σελίδα {page} από {total}').format(page=pnum, total=total))
 
         class PeriodicCanvas(rl_canvas.Canvas):
             _total = 1
@@ -1864,7 +1865,7 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
         ST_RIGHT = sty('R', fontSize=9, textColor=colors.HexColor('#444'),
                         leading=12, alignment=2)  # 2=RIGHT
         title_data = [[
-            Paragraph(f'Στατιστική Αναφορά για την περίοδο από {fmt_date(from_date)} ως {fmt_date(to_date)}', ST_TITLE),
+            Paragraph(t('pdf.periodic.title', 'Στατιστική Αναφορά για την περίοδο από {from_} ως {to}').format(from_=fmt_date(from_date), to=fmt_date(to_date)), ST_TITLE),
             Paragraph(f'{prod_name}', sty('PN', fontSize=13, textColor=BLUE_DARK,
                                            fontName=FB, leading=16, alignment=2))
         ]]
@@ -1880,9 +1881,9 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
 
         # ── Γραμμή 2: σύνολο δειγμάτων δεξιά ────────────────
         story.append(Spacer(1, 1*mm))
-        n_str = f'Σύνολο δειγμάτων: {len(samples)}'
+        n_str = t('pdf.periodic.total_samples', 'Σύνολο δειγμάτων: {n}').format(n=len(samples))
         if samples_with_tests != len(samples):
-            n_str += f'  |  Δείγματα με δοκιμές: {samples_with_tests}'
+            n_str += '  |  ' + t('pdf.periodic.samples_with_tests', 'Δείγματα με δοκιμές: {n}').format(n=samples_with_tests)
         story.append(Paragraph(n_str, sty('NS', fontSize=9,
                                            textColor=colors.HexColor('#444'),
                                            leading=12, alignment=2)))
@@ -1891,7 +1892,7 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
         story.append(Spacer(1, 3*mm))
         ST_SECTION_HDR = sty('SH', fontSize=11, textColor=BLUE_DARK,
                                fontName=FB, leading=14, alignment=1, spaceAfter=2*mm)
-        story.append(Paragraph('Εργαστηριακές Δοκιμές Αδρανών', ST_SECTION_HDR))
+        story.append(Paragraph(t('pdf.periodic.section_title', 'Εργαστηριακές Δοκιμές Αδρανών'), ST_SECTION_HDR))
         story.append(Spacer(1, 6*mm))
 
         # ── Πίνακας MB / SE / FI ─────────────────────────────
@@ -1900,15 +1901,15 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
             d_color = RED if (d != '—' and float(d) > 0) else colors.HexColor('#166534')
             rows = [
                 [Paragraph(f'<b>{label}</b> ({unit})', ParagraphStyle('h', fontName=FB, fontSize=9, textColor=BLUE_DARK))],
-                [f'Πλήθος: {len(vals) or "—"}'],
-                [f'Μ.Ο.: {fmt(mo, dec)}'],
-                [f'Μέγιστη: {fmt(mx_v, dec)}'],
-                [f'Δηλωμένη: {fmt(ext, dec)}'],
-                [f'Απόκλιση: {d}'],
+                [t('pdf.periodic.stat_count', 'Πλήθος: {n}').format(n=len(vals) or '—')],
+                [t('pdf.periodic.stat_avg', 'Μ.Ο.: {v}').format(v=fmt(mo, dec))],
+                [t('pdf.periodic.stat_max', 'Μέγιστη: {v}').format(v=fmt(mx_v, dec))],
+                [t('pdf.periodic.stat_declared', 'Δηλωμένη: {v}').format(v=fmt(ext, dec))],
+                [t('pdf.periodic.stat_deviation', 'Απόκλιση: {v}').format(v=d)],
             ]
             col_w = (LW - 2*ML - 2*3*mm) / 3
-            t = Table(rows, colWidths=[col_w])
-            t.setStyle(TableStyle([
+            tbl = Table(rows, colWidths=[col_w])
+            tbl.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), BLUE_LIGHT),
                 ('BACKGROUND', (0,1), (-1,-1), WHITE),
                 ('ROWBACKGROUNDS', (0,2), (-1,-1), [WHITE, GRAY_ROW]),
@@ -1923,7 +1924,7 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
                 ('INNERGRID', (0,0), (-1,-1), 0.3, colors.HexColor('#ddd')),
                 ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ]))
-            return t
+            return tbl
 
         col_w = (LW - 2*ML - 20*mm) / 3
         avail_w = LW - 2*ML
@@ -1969,14 +1970,14 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
             decl = [ext_sieve.get(mm_k) for mm_k in sieve_mm_list]
 
             col_w_s = (LW - 2*ML) / (len(sieve_mm_list) + 1)
-            header_row = ['Κόσκινο (mm)'] + [str(m) for m in sieve_mm_list]
-            mo_row     = ['Μ.Ο. (%)']     + [fmt(v,1) for v in avgs]
-            max_row    = ['Μέγιστη (%)']  + [fmt(v,1) for v in maxs]
-            decl_row   = ['Δηλωμένη (%)'] + [fmt(v,1) for v in decl]
+            header_row = [t('pdf.periodic.sieve_col_sieve', 'Κόσκινο (mm)')] + [str(m) for m in sieve_mm_list]
+            mo_row     = [t('pdf.periodic.sieve_col_avg', 'Μ.Ο. (%)')]     + [fmt(v,1) for v in avgs]
+            max_row    = [t('pdf.periodic.sieve_col_max', 'Μέγιστη (%)')]  + [fmt(v,1) for v in maxs]
+            decl_row   = [t('pdf.periodic.sieve_col_declared', 'Δηλωμένη (%)')] + [fmt(v,1) for v in decl]
 
-            title_row = [Paragraph('Κοκκομετρία', sty('KH3', fontSize=10,
+            title_row = [Paragraph(t('pdf.periodic.sieve_title', 'Κοκκομετρία'), sty('KH3', fontSize=10,
                            textColor=BLUE_DARK, fontName=FB, leading=13))] +                          ['' for _ in sieve_mm_list]
-            count_row  = [Paragraph(f'Πλήθος: {sieve_count}', ST_LABEL)] +                          ['' for _ in sieve_mm_list]
+            count_row  = [Paragraph(t('pdf.periodic.stat_count', 'Πλήθος: {n}').format(n=sieve_count), ST_LABEL)] +                          ['' for _ in sieve_mm_list]
             s_data = [title_row, count_row, header_row, mo_row, max_row, decl_row]
             s_col_widths = [col_w_s * 1.4] + [col_w_s * 0.95] * len(sieve_mm_list)
             s_table = Table(s_data, colWidths=s_col_widths)
