@@ -969,5 +969,24 @@
   "pdf.periodic.sieve_col_avg": "Μ.Ο. (%)",
   "pdf.periodic.sieve_col_max": "Μέγιστη (%)",
   "pdf.periodic.sieve_col_declared": "Δηλωμένη (%)",
-  "pdf.periodic.sieve_title": "Κοκκομετρία"
+  "pdf.periodic.sieve_title": "Κοκκομετρία",
+
+  "pdf.preview.sampling_date": "Ημερομηνία Δειγματοληψίας",
+  "pdf.preview.location": "Σημείο Δειγματοληψίας",
+  "pdf.preview.batch": "Παρτίδα",
+  "pdf.preview.external_report_label": "Έκθεση εξωτ. εργαστηρίου: {report}",
+  "pdf.preview.sieve_col_sieve": "Κόσκινο (mm)",
+  "pdf.preview.sieve_col_weight_retained": "Βάρος Συγκρ. (g)",
+  "pdf.preview.sieve_col_passing": "Διερχόμενο (%)",
+  "pdf.preview.pan": "Τυφλό (Pan)",
+  "pdf.preview.mb_weight_sample": "Βάρος Δείγματος M1",
+  "pdf.preview.mb_volume_final": "Τελικός Όγκος V1",
+  "pdf.preview.se_average": "SE (Μέσος Όρος)",
+  "pdf.preview.flakiness_col_class": "Κόσκινο Rᵢ (mm)",
+  "pdf.preview.flakiness_col_fraction_weight": "Βάρος Κλάσματος (g)",
+  "pdf.preview.flakiness_col_flaky_weight": "Πλακοειδή mᵢ (g)",
+  "pdf.preview.flakiness_col_flaky_pct": "Πλακοειδή (%)",
+  "pdf.preview.total": "Σύνολο",
+  "pdf.preview.flakiness_section_title": "Δείκτης Πλακοειδούς — EN 933-3",
+  "pdf.preview.flakiness_fi_label": "FI (Δείκτης Πλακοειδούς)"
 }

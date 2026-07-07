@@ -478,7 +478,7 @@ import { t } from '../../i18n/i18n.js';
 
   async function buildReportHTML({ sample, tests, specs, showChart, showStats }) {
     const s   = sample.sample;
-    const t   = sample.tests || {};
+    const td  = sample.tests || {};
     const lab     = await pyCall('get_lab_info') || {};
     // Η προεπισκόπηση ακολουθεί την ίδια γραμματοσειρά με το πραγματικό PDF (reportlab)
     document.documentElement.style.setProperty('--print-font', lab.pdf_font || 'IBMPlexSans');
@@ -491,11 +491,11 @@ import { t } from '../../i18n/i18n.js';
 
     // Υπολογισμός συνολικού αριθμού σελίδων δυναμικά
     const pages = [];
-    if (tests.includes('sieve') && t.sieve_analysis?.data) pages.push('sieve-table');
-    if (tests.includes('sieve') && t.sieve_analysis?.data && showChart)  pages.push('sieve-chart');
-    if (tests.includes('flakiness') && t.flakiness)        pages.push('flakiness');
-    const hasSeOrMb = (tests.includes('se') && t.sand_equivalent) ||
-                      (tests.includes('mb') && t.methylene_blue);
+    if (tests.includes('sieve') && td.sieve_analysis?.data) pages.push('sieve-table');
+    if (tests.includes('sieve') && td.sieve_analysis?.data && showChart)  pages.push('sieve-chart');
+    if (tests.includes('flakiness') && td.flakiness)        pages.push('flakiness');
+    const hasSeOrMb = (tests.includes('se') && td.sand_equivalent) ||
+                      (tests.includes('mb') && td.methylene_blue);
     if (hasSeOrMb) pages.push('se-mb');
     const totalPages = pages.length;
 
@@ -513,7 +513,7 @@ import { t } from '../../i18n/i18n.js';
           <div class="print-header-ce">
             <span class="print-header-ce-number">${esc(lab.ce_number || '')}</span>
             ${esc(lab.ce_body || '')}<br>
-            Ισχύς: ${esc(lab.ce_valid_from || '')} — ${esc(lab.ce_valid_to || '')}
+            ${t('pdf.common.validity', 'Ισχύς: {from_} — {to}').replace('{from_}', esc(lab.ce_valid_from || '')).replace('{to}', esc(lab.ce_valid_to || ''))}
           </div>
         </div>`;
     }
@@ -521,26 +521,26 @@ import { t } from '../../i18n/i18n.js';
     // ── Στοιχεία δείγματος ─────────────────────────────────
     function sampleMetaHTML() {
       return `
-        <div class="print-doc-title">ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ</div>
+        <div class="print-doc-title">${t('pdf.common.title', 'ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ')}</div>
         <table class="print-meta-table">
           <tr>
-            <td class="meta-label">Κωδικός Δείγματος</td>
+            <td class="meta-label">${t('pdf.meta.sample_code', 'Κωδικός Δείγματος')}</td>
             <td class="meta-value"><strong>${esc(s.code)}</strong></td>
-            <td class="meta-label">Ημερομηνία Δειγματοληψίας</td>
+            <td class="meta-label">${t('pdf.preview.sampling_date', 'Ημερομηνία Δειγματοληψίας')}</td>
             <td class="meta-value">${App.formatDate(s.date)}</td>
           </tr>
           <tr>
-            <td class="meta-label">Προϊόν</td>
+            <td class="meta-label">${t('pdf.meta.product', 'Προϊόν')}</td>
             <td class="meta-value">${App.formatProduct(s)}</td>
-            <td class="meta-label">Τεχνικός</td>
+            <td class="meta-label">${t('pdf.meta.technician', 'Τεχνικός')}</td>
             <td class="meta-value">${esc(s.technician_name || '—')}</td>
           </tr>
           ${s.location ? `<tr>
-            <td class="meta-label">Σημείο Δειγματοληψίας</td>
+            <td class="meta-label">${t('pdf.preview.location', 'Σημείο Δειγματοληψίας')}</td>
             <td class="meta-value" colspan="3">${esc(s.location)}</td>
           </tr>` : ''}
           ${s.batch ? `<tr>
-            <td class="meta-label">Παρτίδα</td>
+            <td class="meta-label">${t('pdf.preview.batch', 'Παρτίδα')}</td>
             <td class="meta-value" colspan="3">${esc(s.batch)}</td>
           </tr>` : ''}
         </table>`;
@@ -549,15 +549,15 @@ import { t } from '../../i18n/i18n.js';
     // ── Footer με αρίθμηση ─────────────────────────────────
     function footerHTML(pageNum) {
       const reportLine = labReportNumber
-        ? `<div class="print-footer-report">Έκθεση εξωτ. εργαστηρίου: ${esc(labReportNumber)}</div>`
+        ? `<div class="print-footer-report">${t('pdf.preview.external_report_label', 'Έκθεση εξωτ. εργαστηρίου: {report}').replace('{report}', esc(labReportNumber))}</div>`
         : '';
       return `
         <div class="print-footer-wrap">
           ${reportLine}
           <div class="print-footer">
-            <div>Ημερομηνία έκδοσης: ${new Date().toLocaleDateString('el-GR')}</div>
-            <div>Το παρόν δελτίο αφορά αποκλειστικά το ανωτέρω δείγμα.</div>
-            <div class="print-page-number">Σελίδα ${pageNum} από ${totalPages}</div>
+            <div>${t('pdf.common.issue_date', 'Ημερομηνία έκδοσης: {date}').replace('{date}', new Date().toLocaleDateString('el-GR'))}</div>
+            <div>${t('pdf.common.disclaimer', 'Το παρόν δελτίο αφορά αποκλειστικά το ανωτέρω δείγμα.')}</div>
+            <div class="print-page-number">${t('pdf.common.page_of', 'Σελίδα {page} από {total}').replace('{page}', pageNum).replace('{total}', totalPages)}</div>
           </div>
         </div>`;
     }
@@ -566,39 +566,39 @@ import { t } from '../../i18n/i18n.js';
     let pageNum = 0;
 
     // ── Σελίδα 1: Πίνακας κόσκινων (portrait) ─────────────
-    if (tests.includes('sieve') && t.sieve_analysis?.data) {
+    if (tests.includes('sieve') && td.sieve_analysis?.data) {
       pageNum++;
       html += `
         <div class="print-page print-page--portrait" data-page="sieve-table">
           ${headerHTML()}
           ${sampleMetaHTML()}
-          ${buildSieveTableOnly(t.sieve_analysis.data, specs)}
+          ${buildSieveTableOnly(td.sieve_analysis.data, specs)}
           ${footerHTML(pageNum)}
         </div>`;
     }
 
     // ── Σελίδα 2: Διάγραμμα (landscape) ───────────────────
-    if (tests.includes('sieve') && t.sieve_analysis?.data && showChart) {
+    if (tests.includes('sieve') && td.sieve_analysis?.data && showChart) {
       pageNum++;
       html += `
         <div class="print-page print-page--landscape" data-page="sieve-chart">
           ${headerHTML(true)}
-          <div class="print-section-title">Κοκκομετρική Ανάλυση — EN 933-1 — Διάγραμμα</div>
+          <div class="print-section-title">${t('pdf.sieve.chart_section_title', 'Κοκκομετρική Ανάλυση — EN 933-1 — Διάγραμμα')}</div>
           <div class="print-chart-container">
-            ${buildSieveChart(t.sieve_analysis.data.results?.filter(r => r.sieve_mm > 0) || [], specs)}
+            ${buildSieveChart(td.sieve_analysis.data.results?.filter(r => r.sieve_mm > 0) || [], specs)}
           </div>
           ${footerHTML(pageNum)}
         </div>`;
     }
 
     // ── Σελίδα 3: Πλακοειδή (portrait) ────────────────────
-    if (tests.includes('flakiness') && t.flakiness) {
+    if (tests.includes('flakiness') && td.flakiness) {
       pageNum++;
       html += `
         <div class="print-page print-page--portrait" data-page="flakiness">
           ${headerHTML()}
           ${sampleMetaHTML()}
-          ${buildFlakinessSection(t.flakiness)}
+          ${buildFlakinessSection(td.flakiness)}
           ${footerHTML(pageNum)}
         </div>`;
     }
@@ -610,8 +610,8 @@ import { t } from '../../i18n/i18n.js';
         <div class="print-page print-page--portrait" data-page="se-mb">
           ${headerHTML()}
           ${sampleMetaHTML()}
-          ${tests.includes('se') && t.sand_equivalent ? buildSESection(t.sand_equivalent) : ''}
-          ${tests.includes('mb') && t.methylene_blue  ? buildMBSection(t.methylene_blue)  : ''}
+          ${tests.includes('se') && td.sand_equivalent ? buildSESection(td.sand_equivalent) : ''}
+          ${tests.includes('mb') && td.methylene_blue  ? buildMBSection(td.methylene_blue)  : ''}
           ${footerHTML(pageNum)}
         </div>`;
     }
@@ -630,13 +630,13 @@ import { t } from '../../i18n/i18n.js';
     const specNames = [...new Set(specs.map(s => s.spec_name))];
 
     let html = `
-      <div class="print-section-title">Κοκκομετρική Ανάλυση — EN 933-1</div>
+      <div class="print-section-title">${t('pdf.sieve.section_title', 'Κοκκομετρική Ανάλυση — EN 933-1')}</div>
       <table class="print-data-table">
         <thead>
           <tr>
-            <th>Κόσκινο (mm)</th>
-            <th>Βάρος Συγκρ. (g)</th>
-            <th>Διερχόμενο (%)</th>
+            <th>${t('pdf.preview.sieve_col_sieve', 'Κόσκινο (mm)')}</th>
+            <th>${t('pdf.preview.sieve_col_weight_retained', 'Βάρος Συγκρ. (g)')}</th>
+            <th>${t('pdf.preview.sieve_col_passing', 'Διερχόμενο (%)')}</th>
             ${specNames.map(n => `<th>${esc(n)}</th>`).join('')}
           </tr>
         </thead>
@@ -669,7 +669,7 @@ import { t } from '../../i18n/i18n.js';
       html += `
         <tfoot>
           <tr class="row-total">
-            <td><strong>Τυφλό (Pan)</strong></td>
+            <td><strong>${t('pdf.preview.pan', 'Τυφλό (Pan)')}</strong></td>
             <td>${panResult.weight_retained?.toFixed(1) || '—'}</td>
             <td><strong>0.0%</strong></td>
             ${specNames.map(() => '<td>—</td>').join('')}
@@ -679,9 +679,9 @@ import { t } from '../../i18n/i18n.js';
 
     html += `</table>
       <div style="font-size:10px;color:#555;margin-top:4px;display:flex;gap:20px;">
-        <span>Βάρος αρχικό: <strong>${analysis.weight_initial?.toFixed(1) || '—'}g</strong></span>
-        <span>Βάρος ξηρού: <strong>${analysis.weight_dry?.toFixed(1) || '—'}g</strong></span>
-        <span>Απώλεια πλύσης: <strong>${analysis.wash_loss_pct?.toFixed(2) || '—'}%</strong></span>
+        <span>${t('pdf.sieve.weight_initial', 'Βάρος αρχικό')}: <strong>${analysis.weight_initial?.toFixed(1) || '—'}g</strong></span>
+        <span>${t('pdf.sieve.weight_dry', 'Βάρος ξηρού')}: <strong>${analysis.weight_dry?.toFixed(1) || '—'}g</strong></span>
+        <span>${t('pdf.sieve.wash_loss', 'Απώλεια πλύσης')}: <strong>${analysis.wash_loss_pct?.toFixed(2) || '—'}%</strong></span>
       </div>`;
 
     return html;
@@ -834,17 +834,17 @@ import { t } from '../../i18n/i18n.js';
 
     return `
       <div class="report-section">
-        <div class="report-section-title">Μπλε Μεθυλενίου — EN 933-9</div>
+        <div class="report-section-title">${t('pdf.mb.section_title', 'Μπλε Μεθυλενίου — EN 933-9')}</div>
         <table class="report-data-table">
           <tbody>
             <tr>
-              <td class="meta-label">Βάρος Δείγματος M1</td>
+              <td class="meta-label">${t('pdf.preview.mb_weight_sample', 'Βάρος Δείγματος M1')}</td>
               <td>${data.weight_sample || '—'}g</td>
-              <td class="meta-label">Τελικός Όγκος V1</td>
+              <td class="meta-label">${t('pdf.preview.mb_volume_final', 'Τελικός Όγκος V1')}</td>
               <td>${data.volume_final || '—'}ml</td>
             </tr>
             <tr class="report-row-total">
-              <td colspan="3"><strong>MB Τιμή</strong></td>
+              <td colspan="3"><strong>${t('pdf.mb.value_label', 'MB Τιμή')}</strong></td>
               <td><strong class="result-big ${mbClass}">${mbStr} g/kg</strong></td>
             </tr>
             ${buildLimitsLine(checks, 'g/kg')}
@@ -867,10 +867,10 @@ import { t } from '../../i18n/i18n.js';
 
     return `
       <div class="report-section">
-        <div class="report-section-title">Ισοδύναμο Άμμου — EN 933-8</div>
+        <div class="report-section-title">${t('pdf.se.section_title', 'Ισοδύναμο Άμμου — EN 933-8')}</div>
         <table class="report-data-table">
           <thead>
-            <tr><th>Μέτρηση</th><th>h₁ (mm)</th><th>h₂ (mm)</th><th>SE%</th></tr>
+            <tr><th>${t('pdf.se.col_measurement', 'Μέτρηση')}</th><th>h₁ (mm)</th><th>h₂ (mm)</th><th>SE%</th></tr>
           </thead>
           <tbody>
             ${meas.map(m => `
@@ -882,7 +882,7 @@ import { t } from '../../i18n/i18n.js';
               </tr>
             `).join('')}
             <tr class="report-row-total">
-              <td colspan="3"><strong>SE (Μέσος Όρος)</strong></td>
+              <td colspan="3"><strong>${t('pdf.preview.se_average', 'SE (Μέσος Όρος)')}</strong></td>
               <td><strong class="result-big ${seClass}">${seStr}%</strong></td>
             </tr>
             ${buildLimitsLine(checks, '%')}
@@ -913,10 +913,10 @@ import { t } from '../../i18n/i18n.js';
         <table class="report-data-table" style="margin-bottom:10px;">
           <thead>
             <tr>
-              <th>Κόσκινο Rᵢ (mm)</th>
-              <th>Βάρος Κλάσματος (g)</th>
-              <th>Πλακοειδή mᵢ (g)</th>
-              <th>Πλακοειδή (%)</th>
+              <th>${t('pdf.preview.flakiness_col_class', 'Κόσκινο Rᵢ (mm)')}</th>
+              <th>${t('pdf.preview.flakiness_col_fraction_weight', 'Βάρος Κλάσματος (g)')}</th>
+              <th>${t('pdf.preview.flakiness_col_flaky_weight', 'Πλακοειδή mᵢ (g)')}</th>
+              <th>${t('pdf.preview.flakiness_col_flaky_pct', 'Πλακοειδή (%)')}</th>
             </tr>
           </thead>
           <tbody>
@@ -935,7 +935,7 @@ import { t } from '../../i18n/i18n.js';
           </tbody>
           <tfoot>
             <tr class="report-row-total">
-              <td><strong>Σύνολο</strong></td>
+              <td><strong>${t('pdf.preview.total', 'Σύνολο')}</strong></td>
               <td><strong>${totalFrac.toFixed(1)}g</strong></td>
               <td><strong>${totalPass.toFixed(1)}g</strong></td>
               <td><strong>${totalPct !== '—' ? totalPct + '%' : '—'}</strong></td>
@@ -946,12 +946,12 @@ import { t } from '../../i18n/i18n.js';
 
     return `
       <div class="report-section">
-        <div class="report-section-title">Δείκτης Πλακοειδούς — EN 933-3</div>
+        <div class="report-section-title">${t('pdf.preview.flakiness_section_title', 'Δείκτης Πλακοειδούς — EN 933-3')}</div>
         ${fractionsHTML}
         <table class="report-data-table">
           <tbody>
             <tr>
-              <td class="meta-label">FI (Δείκτης Πλακοειδούς)</td>
+              <td class="meta-label">${t('pdf.preview.flakiness_fi_label', 'FI (Δείκτης Πλακοειδούς)')}</td>
               <td><strong class="result-big ${fiClass}">${fiStr}%</strong></td>
             </tr>
             ${buildLimitsLine(checks, '%')}
@@ -1075,7 +1075,7 @@ import { t } from '../../i18n/i18n.js';
     svg += `<text x="14" y="${margin.top + h/2}"
                   text-anchor="middle" fill="#6b7280"
                   font-size="11"
-                  transform="rotate(-90,14,${margin.top+h/2})">Διερχόμενο (%)</text>`;
+                  transform="rotate(-90,14,${margin.top+h/2})">${t('pdf.sieve.chart_y_label', 'Διερχόμενο (%)')}</text>`;
 
     // ─── Ζώνη προδιαγραφών (filled polygon) ───────────────
     const specNames  = [...new Set(specs.map(s => s.spec_name))];
@@ -1165,14 +1165,14 @@ import { t } from '../../i18n/i18n.js';
     const legendY = margin.top + h + 54;
     svg += `<text x="${margin.left+w/2}" y="${margin.top+h+34}"
                   text-anchor="middle" fill="#374151"
-                  font-size="12">Άνοιγμα βροχίδας (mm)</text>`;    let   lx      = margin.left;
+                  font-size="12">${t('pdf.sieve.chart_x_label', 'Άνοιγμα βροχίδας (mm)')}</text>`;    let   lx      = margin.left;
 
     svg += `<line x1="${lx}" y1="${legendY}" x2="${lx+24}" y2="${legendY}"
                   stroke="#1d4ed8" stroke-width="2.5"/>`;
     svg += `<circle cx="${lx+12}" cy="${legendY}" r="4"
                     fill="#fff" stroke="#1d4ed8" stroke-width="2"/>`;
     svg += `<text x="${lx+30}" y="${legendY+4}"
-                  fill="#374151" font-size="10">Αποτέλεσμα</text>`;
+                  fill="#374151" font-size="10">${t('pdf.sieve.chart_legend_result', 'Αποτέλεσμα')}</text>`;
     lx += 110;
 
     specNames.forEach((name, idx) => {
