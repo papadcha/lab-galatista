@@ -1,6 +1,7 @@
 // ES module — φορτώνεται με πραγματικό <script type="module" src="...">
 // (βλ. main-app.js: Pages.library.module + navigateTo()).
 import { App } from '../../main-app.js';
+import { t } from '../../i18n/i18n.js';
 
 (async function () {
   let _sections    = [];
@@ -84,8 +85,11 @@ import { App } from '../../main-app.js';
     const outdated = docs.filter(d => App.findOutdatedStandard(d, _standards));
     if (outdated.length) {
       alert.style.display = 'block';
-      msg.textContent = `${outdated.length} έγγραφ${outdated.length===1?'ο':'α'} με παλιά έκδοση: ` +
-        outdated.map(d => `${d.code} (έχεις: ${d.version || '—'}, τελευταία: ${App.findOutdatedStandard(d, _standards)?.latest})`).join(', ');
+      const word = outdated.length === 1
+        ? t('library.outdated_word_singular', 'έγγραφο')
+        : t('library.outdated_word_plural', 'έγγραφα');
+      msg.textContent = `${outdated.length} ${word}${t('library.outdated_alert_suffix', ' με παλιά έκδοση: ')}` +
+        outdated.map(d => `${d.code} (${t('library.outdated_you_have', 'έχεις')}: ${d.version || '—'}, ${t('library.outdated_latest', 'τελευταία')}: ${App.findOutdatedStandard(d, _standards)?.latest})`).join(', ');
     } else {
       alert.style.display = 'none';
     }
@@ -95,7 +99,7 @@ import { App } from '../../main-app.js';
     const el = document.getElementById('document-list');
     if (!el) return;
     if (!docs.length) {
-      el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Δεν υπάρχουν έγγραφα σε αυτή την ενότητα.</div>';
+      el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;">${t('library.no_documents', 'Δεν υπάρχουν έγγραφα σε αυτή την ενότητα.')}</div>`;
       return;
     }
     el.innerHTML = docs.map(d => {
@@ -105,9 +109,9 @@ import { App } from '../../main-app.js';
       let expiryBadge = '';
       if (d.expires_at) {
         const col = expired ? '#ef4444' : expiring ? '#f59e0b' : '#22c55e';
-        const lbl = expired ? `Έληξε ${_fmt(d.expires_at)}`
-                  : expiring ? `Λήγει σε ${days} μέρες`
-                  : `Λήγει ${_fmt(d.expires_at)}`;
+        const lbl = expired ? `${t('library.expired_prefix', 'Έληξε')} ${_fmt(d.expires_at)}`
+                  : expiring ? `${t('library.expiring_in_prefix', 'Λήγει σε')} ${days} ${t('library.expiring_in_suffix', 'μέρες')}`
+                  : `${t('library.expires_prefix', 'Λήγει')} ${_fmt(d.expires_at)}`;
         expiryBadge = `<span style="font-size:11px;padding:2px 7px;border-radius:10px;
                         background:${col}22;color:${col};border:1px solid ${col}44;">${lbl}</span>`;
       }
@@ -116,7 +120,7 @@ import { App } from '../../main-app.js';
       const outdatedBadge = outdatedStd
         ? `<span style="font-size:11px;padding:2px 7px;border-radius:10px;
              background:rgba(180,83,9,.12);color:#b45309;border:1px solid rgba(180,83,9,.3);">
-             Νέα έκδοση: ${_esc(outdatedStd.latest)}</span>`
+             ${t('library.new_version_badge', 'Νέα έκδοση')}: ${_esc(outdatedStd.latest)}</span>`
         : '';
 
       return `
@@ -135,13 +139,13 @@ import { App } from '../../main-app.js';
               ${d.notes ? `<div style="font-size:12px;color:var(--text-muted);">${_esc(d.notes)}</div>` : ''}
             </div>
             <div style="display:flex;gap:4px;flex-shrink:0;">
-              ${d.cloud_path ? `<button class="btn-secondary btn-sm" title="Άνοιγμα"
+              ${d.cloud_path ? `<button class="btn-secondary btn-sm" title="${t('library.tooltip_open', 'Άνοιγμα')}"
                   onclick="LibraryPage.openDocument('${_esc(d.cloud_path)}')">📂</button>` : ''}
-              ${d.url ? `<button class="btn-secondary btn-sm" title="Επίσημη πηγή"
+              ${d.url ? `<button class="btn-secondary btn-sm" title="${t('library.tooltip_official_source', 'Επίσημη πηγή')}"
                   onclick="window.pyBridge['open-pdf']('${_esc(d.url)}')">🌐</button>` : ''}
-              <button class="btn-secondary btn-sm" title="Επεξεργασία"
+              <button class="btn-secondary btn-sm" title="${t('library.tooltip_edit', 'Επεξεργασία')}"
                   onclick="LibraryPage.editDocument(${d.id})">✏️</button>
-              <button class="btn-secondary btn-sm" title="Διαγραφή" style="color:var(--fail);"
+              <button class="btn-secondary btn-sm" title="${t('library.tooltip_delete', 'Διαγραφή')}" style="color:var(--fail);"
                   onclick="LibraryPage.deleteDocument(${d.id}, '${_esc(d.title)}', '${_esc(d.cloud_path||'')}')">🗑</button>
             </div>
           </div>
@@ -165,74 +169,74 @@ import { App } from '../../main-app.js';
 
   function _showDocModal(doc) {
     App.showModal(
-      _editDocId ? '✏️ Επεξεργασία Εγγράφου' : '+ Προσθήκη Εγγράφου',
+      _editDocId ? t('library.edit_document_title', '✏️ Επεξεργασία Εγγράφου') : t('library.add_document_title', '+ Προσθήκη Εγγράφου'),
       `<div class="form-grid">
         <div class="form-group full-width">
-          <label>Τίτλος <span class="required">*</span></label>
+          <label>${t('library.field_title', 'Τίτλος')} <span class="required">*</span></label>
           <input type="text" id="doc-title" value="${_esc(doc.title||'')}"
-                 placeholder="πχ EN 12620 — Αδρανή σκυροδέματος"
+                 placeholder="${t('library.field_title_placeholder', 'πχ EN 12620 — Αδρανή σκυροδέματος')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group">
-          <label>Κωδικός</label>
+          <label>${t('library.field_code', 'Κωδικός')}</label>
           <input type="text" id="doc-code" value="${_esc(doc.code||'')}"
-                 placeholder="πχ EN 12620" style="width:100%;margin-top:4px;">
+                 placeholder="${t('library.field_code_placeholder', 'πχ EN 12620')}" style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group">
-          <label>Έκδοση</label>
+          <label>${t('library.field_version', 'Έκδοση')}</label>
           <input type="text" id="doc-version" value="${_esc(doc.version||'')}"
-                 placeholder="πχ 2002+A1:2008" style="width:100%;margin-top:4px;">
+                 placeholder="${t('library.field_version_placeholder', 'πχ 2002+A1:2008')}" style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group">
-          <label>Ημ/νία Λήξης</label>
+          <label>${t('library.field_expires', 'Ημ/νία Λήξης')}</label>
           <input type="text" id="doc-expires" value="${_esc(doc.expires_at||'')}"
                  placeholder="DD/MM/YYYY" style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group">
-          <label>URL Επίσημης Πηγής</label>
+          <label>${t('library.field_url', 'URL Επίσημης Πηγής')}</label>
           <input type="text" id="doc-url" value="${_esc(doc.url||'')}"
                  placeholder="https://..." style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Σημειώσεις</label>
+          <label>${t('library.field_notes', 'Σημειώσεις')}</label>
           <input type="text" id="doc-notes" value="${_esc(doc.notes||'')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Αρχείο (cloud)</label>
+          <label>${t('library.field_cloud_file', 'Αρχείο (cloud)')}</label>
           <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
             <input type="text" id="doc-cloud-path" value="${_esc(doc.cloud_path||'')}"
                    placeholder="—" style="flex:1;" readonly>
-            <button class="btn-secondary btn-sm" onclick="LibraryPage._pickDocFile()">📎 Ανέβασμα</button>
+            <button class="btn-secondary btn-sm" onclick="LibraryPage._pickDocFile()">${t('library.upload_button', '📎 Ανέβασμα')}</button>
           </div>
           <small style="color:var(--text-muted);font-size:11px;">
-            Το αρχείο ανεβαίνει στο cloud αυτόματα.
+            ${t('library.cloud_upload_hint', 'Το αρχείο ανεβαίνει στο cloud αυτόματα.')}
           </small>
         </div>
       </div>`,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: _editDocId ? '💾 Αποθήκευση' : '+ Προσθήκη', action: 'LibraryPage._saveDocument()' },
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: _editDocId ? t('library.save_button', '💾 Αποθήκευση') : t('library.add_button_short', '+ Προσθήκη'), action: 'LibraryPage._saveDocument()' },
       ]
     );
   }
 
   async function _pickDocFile() {
     if (!_activeSec) return;
-    App.toast('Ανέβασμα αρχείου...', 'info');
+    App.toast(t('library.uploading_toast', 'Ανέβασμα αρχείου...'), 'info');
     const result = await window.pyBridge?.['upload-document']?.({ sectionName: _activeSec.name });
     if (result?.ok) {
       const inp = document.getElementById('doc-cloud-path');
       if (inp) inp.value = result.cloud_path;
-      App.toast('✅ Ανέβηκε: ' + result.filename, 'ok');
+      App.toast(t('library.uploaded_prefix', '✅ Ανέβηκε: ') + result.filename, 'ok');
     } else if (!result?.canceled) {
-      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      App.toast(t('library.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
     }
   }
 
   async function _saveDocument() {
     const title   = document.getElementById('doc-title')?.value?.trim();
-    if (!title) { App.toast('Ο τίτλος είναι υποχρεωτικός', 'warn'); return; }
+    if (!title) { App.toast(t('library.title_required', 'Ο τίτλος είναι υποχρεωτικός'), 'warn'); return; }
     const payload = [
       title,
       document.getElementById('doc-code')?.value?.trim()       || null,
@@ -250,29 +254,29 @@ import { App } from '../../main-app.js';
     }
     App.closeModal();
     if (result?.ok) {
-      App.toast(_editDocId ? 'Αποθηκεύτηκε' : 'Προστέθηκε', 'ok');
+      App.toast(_editDocId ? t('library.saved_toast', 'Αποθηκεύτηκε') : t('library.added_toast', 'Προστέθηκε'), 'ok');
       await loadSections();
       if (_activeSec) selectSection(_activeSec.id);
     } else {
-      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      App.toast(t('library.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
     }
   }
 
   // ── Open / Delete ─────────────────────────────────────────
   async function openDocument(cloudPath) {
-    App.toast('Λήψη εγγράφου...', 'info');
+    App.toast(t('library.downloading_toast', 'Λήψη εγγράφου...'), 'info');
     const result = await window.pyBridge?.['open-document']?.(cloudPath);
-    if (!result?.ok) App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+    if (!result?.ok) App.toast(t('library.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
   }
 
   function deleteDocument(docId, title, cloudPath) {
     App.showModal(
-      '🗑 Διαγραφή Εγγράφου',
-      `<div style="font-size:13px;">Διαγραφή <strong>${_esc(title)}</strong>;<br>
-       ${cloudPath ? 'Το αρχείο θα διαγραφεί και από το cloud.' : ''}</div>`,
+      t('library.delete_document_title', '🗑 Διαγραφή Εγγράφου'),
+      `<div style="font-size:13px;">${t('library.delete_document_confirm_prefix', 'Διαγραφή')} <strong>${_esc(title)}</strong>;<br>
+       ${cloudPath ? t('library.delete_cloud_note', 'Το αρχείο θα διαγραφεί και από το cloud.') : ''}</div>`,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: '🗑 Διαγραφή', action: `LibraryPage._confirmDeleteDocument(${docId}, '${_esc(cloudPath)}')` },
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('common.delete', '🗑 Διαγραφή'), action: `LibraryPage._confirmDeleteDocument(${docId}, '${_esc(cloudPath)}')` },
       ]
     );
   }
@@ -281,7 +285,7 @@ import { App } from '../../main-app.js';
     App.closeModal();
     await pyCall('delete_document', docId);
     if (cloudPath) await window.pyBridge?.['delete-document-cloud']?.(cloudPath);
-    App.toast('Διαγράφηκε', 'ok');
+    App.toast(t('library.deleted_toast', 'Διαγράφηκε'), 'ok');
     await loadSections();
     if (_activeSec) selectSection(_activeSec.id);
   }
@@ -289,22 +293,22 @@ import { App } from '../../main-app.js';
   // ── Add / Edit Section ────────────────────────────────────
   function showAddSection() {
     App.showModal(
-      '+ Νέα Ενότητα',
+      t('library.new_section_title', '+ Νέα Ενότητα'),
       `<div class="form-grid">
         <div class="form-group full-width">
-          <label>Όνομα <span class="required">*</span></label>
-          <input type="text" id="sec-name" placeholder="πχ Συμβόλαια"
+          <label>${t('library.field_name', 'Όνομα')} <span class="required">*</span></label>
+          <input type="text" id="sec-name" placeholder="${t('library.field_name_placeholder', 'πχ Συμβόλαια')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Εικονίδιο</label>
+          <label>${t('library.field_icon', 'Εικονίδιο')}</label>
           <input type="text" id="sec-icon" value="📁" maxlength="2"
                  style="width:60px;margin-top:4px;font-size:20px;text-align:center;">
         </div>
       </div>`,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: '+ Προσθήκη', action: 'LibraryPage._saveSection()' },
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('library.add_button_short', '+ Προσθήκη'), action: 'LibraryPage._saveSection()' },
       ]
     );
   }
@@ -313,23 +317,23 @@ import { App } from '../../main-app.js';
     const sec = _sections.find(s => s.id === secId);
     if (!sec) return;
     App.showModal(
-      '✏️ Επεξεργασία Ενότητας',
+      t('library.edit_section_title', '✏️ Επεξεργασία Ενότητας'),
       `<div class="form-grid">
         <div class="form-group full-width">
-          <label>Όνομα</label>
+          <label>${t('library.field_name', 'Όνομα')}</label>
           <input type="text" id="sec-name" value="${_esc(sec.name)}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Εικονίδιο</label>
+          <label>${t('library.field_icon', 'Εικονίδιο')}</label>
           <input type="text" id="sec-icon" value="${_esc(sec.icon)}" maxlength="2"
                  style="width:60px;margin-top:4px;font-size:20px;text-align:center;">
         </div>
       </div>`,
       [
-        { label: 'Ακύρωση',   action: 'App.closeModal()',                    secondary: true },
-        { label: '🗑 Διαγραφή', action: `LibraryPage._deleteSection(${secId})`, secondary: true },
-        { label: '💾 Αποθήκευση', action: `LibraryPage._saveSection(${secId})` },
+        { label: t('common.cancel', 'Ακύρωση'),   action: 'App.closeModal()',                    secondary: true },
+        { label: t('common.delete', '🗑 Διαγραφή'), action: `LibraryPage._deleteSection(${secId})`, secondary: true },
+        { label: t('library.save_button', '💾 Αποθήκευση'), action: `LibraryPage._saveSection(${secId})` },
       ]
     );
   }
@@ -337,24 +341,24 @@ import { App } from '../../main-app.js';
   async function _saveSection(secId) {
     const name = document.getElementById('sec-name')?.value?.trim();
     const icon = document.getElementById('sec-icon')?.value?.trim() || '📁';
-    if (!name) { App.toast('Το όνομα είναι υποχρεωτικό', 'warn'); return; }
+    if (!name) { App.toast(t('library.name_required', 'Το όνομα είναι υποχρεωτικό'), 'warn'); return; }
     App.closeModal();
     const result = secId
       ? await pyCall('update_doc_section', secId, name, icon)
       : await pyCall('create_doc_section', name, icon);
-    if (result?.ok) { App.toast('Αποθηκεύτηκε', 'ok'); await loadSections(); }
-    else App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+    if (result?.ok) { App.toast(t('library.saved_toast', 'Αποθηκεύτηκε'), 'ok'); await loadSections(); }
+    else App.toast(t('library.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
   }
 
   async function _deleteSection(secId) {
     App.closeModal();
     const result = await pyCall('delete_doc_section', secId);
     if (result?.ok) {
-      App.toast('Διαγράφηκε', 'ok');
+      App.toast(t('library.deleted_toast', 'Διαγράφηκε'), 'ok');
       if (_activeSec?.id === secId) _activeSec = null;
       await loadSections();
     } else {
-      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      App.toast(t('library.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
     }
   }
 
