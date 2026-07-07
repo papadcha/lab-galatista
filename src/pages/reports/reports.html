@@ -11,8 +11,8 @@
 <div class="page">
 
   <div class="page-header">
-    <h1>Αναφορές</h1>
-    <p class="page-subtitle">
+    <h1 data-i18n="reports.title">Αναφορές</h1>
+    <p class="page-subtitle" data-i18n="reports.subtitle">
       Παραγωγή δελτίων αποτελεσμάτων και περιοδικών στατιστικών αναφορών.
     </p>
   </div>
@@ -20,15 +20,15 @@
   <!-- Tabs -->
   <div class="settings-tabs">
     <button class="settings-tab active" data-tab="single"
-            onclick="ReportsPage.switchTab('single')">
+            onclick="ReportsPage.switchTab('single')" data-i18n="reports.tab_single">
       📋 Δελτίο Αποτελεσμάτων
     </button>
     <button class="settings-tab" data-tab="periodic"
-            onclick="ReportsPage.switchTab('periodic')">
+            onclick="ReportsPage.switchTab('periodic')" data-i18n="reports.tab_periodic">
       📊 Περιοδική Αναφορά
     </button>
     <button class="settings-tab" data-tab="library"
-            onclick="ReportsPage.switchTab('library')">
+            onclick="ReportsPage.switchTab('library')" data-i18n="reports.tab_library">
       📚 Βιβλιοθήκη PDF
     </button>
   </div>
@@ -40,14 +40,14 @@
 
     <!-- Επιλογές -->
     <div class="form-card" id="single-options">
-      <h2>Επιλογές Δελτίου</h2>
+      <h2 data-i18n="reports.single_options_title">Επιλογές Δελτίου</h2>
 
       <div class="form-grid">
         <div class="form-group full-width">
-          <label>Δείγμα <span class="required">*</span></label>
+          <label><span data-i18n="reports.sample_label">Δείγμα</span> <span class="required">*</span></label>
           <div class="input-with-action">
             <input type="text" id="single-code-search"
-                   placeholder="Κωδικός δείγματος..."
+                   placeholder="Κωδικός δείγματος..." data-i18n-placeholder="reports.search_placeholder"
                    onkeydown="if(event.key==='Enter') ReportsPage.searchSample()">
             <button class="icon-btn"
                     onclick="ReportsPage.searchSample()">🔍</button>
@@ -67,7 +67,7 @@
 
         <h3 style="font-size:13px;color:var(--text-muted);
                    text-transform:uppercase;letter-spacing:0.5px;
-                   margin:16px 0 10px;">
+                   margin:16px 0 10px;" data-i18n="reports.tests_to_include_title">
           Δοκιμές προς συμπερίληψη
         </h3>
         <div id="single-tests-checkboxes" class="plan-checkboxes"></div>
@@ -76,7 +76,7 @@
         <div id="sieve-options" class="hidden" style="margin-top:16px;">
           <h3 style="font-size:13px;color:var(--text-muted);
                      text-transform:uppercase;letter-spacing:0.5px;
-                     margin-bottom:10px;">
+                     margin-bottom:10px;" data-i18n="reports.sieve_options_title">
             Επιλογές Κοκκομετρίας
           </h3>
           <div style="display:flex;flex-direction:column;gap:8px;">
@@ -84,18 +84,18 @@
                           font-size:13px;cursor:pointer;">
               <input type="checkbox" id="opt-sieve-chart" checked
                      style="accent-color:var(--accent);">
-              Εμφάνιση γραφήματος κοκκομετρίας
+              <span data-i18n="reports.opt_sieve_chart_label">Εμφάνιση γραφήματος κοκκομετρίας</span>
             </label>
             <label style="display:flex;gap:8px;align-items:center;
                           font-size:13px;cursor:pointer;">
               <input type="checkbox" id="opt-sieve-stats"
                      style="accent-color:var(--accent);">
-              Συμπερίληψη στατιστικών (μέσοι όροι περιόδου)
+              <span data-i18n="reports.opt_sieve_stats_label">Συμπερίληψη στατιστικών (μέσοι όροι περιόδου)</span>
             </label>
           </div>
           <div style="margin-top:12px;">
             <label style="font-size:12px;color:var(--text-muted);
-                          font-weight:600;display:block;margin-bottom:6px;">
+                          font-weight:600;display:block;margin-bottom:6px;" data-i18n="reports.spec_compare_label">
               Προδιαγραφές για σύγκριση
             </label>
             <div id="sieve-spec-options" style="display:flex;flex-wrap:wrap;gap:8px;">
@@ -106,7 +106,7 @@
 
         <div class="form-actions" style="margin-top:20px;">
           <button class="btn-primary"
-                  onclick="ReportsPage.previewSingle()">
+                  onclick="ReportsPage.previewSingle()" data-i18n="reports.preview_button">
             👁 Προεπισκόπηση
           </button>
         </div>
@@ -117,22 +117,22 @@
     <div id="single-preview" class="hidden">
       <div style="display:flex;justify-content:space-between;
                   align-items:center;margin-bottom:12px;">
-        <h2 style="margin:0;">Προεπισκόπηση</h2>
+        <h2 style="margin:0;" data-i18n="reports.preview_title">Προεπισκόπηση</h2>
         <div style="display:flex;gap:8px;">
           <button class="btn-secondary"
-                  onclick="ReportsPage.backToOptions()">
+                  onclick="ReportsPage.backToOptions()" data-i18n="common.back">
             ← Πίσω
           </button>
           <button class="btn-secondary"
-                  onclick="ReportsPage.printReport()">
+                  onclick="ReportsPage.printReport()" data-i18n="reports.print_button">
             🖨 Εκτύπωση
           </button>
           <button class="btn-secondary"
-                  onclick="ReportsPage.saveReport()">
+                  onclick="ReportsPage.saveReport()" data-i18n="reports.save_button">
             💾 Αποθήκευση
           </button>
           <button class="btn-primary"
-                  onclick="ReportsPage.emailReport()">
+                  onclick="ReportsPage.emailReport()" data-i18n="reports.email_button">
             📧 Email
           </button>
         </div>
@@ -151,41 +151,41 @@
        ═══════════════════════════════════════════════════ -->
   <div class="settings-panel" id="tab-periodic">
     <div class="form-card">
-      <h2>Φίλτρα Περιόδου</h2>
+      <h2 data-i18n="reports.periodic_filters_title">Φίλτρα Περιόδου</h2>
 
       <div class="filter-bar">
         <div class="filter-group">
-          <label>Προϊόν</label>
+          <label data-i18n="reports.periodic_product_label">Προϊόν</label>
           <select id="per-product">
-            <option value="">Όλα</option>
+            <option value="" data-i18n="reports.periodic_all_products">Όλα</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Προέλευση</label>
+          <label data-i18n="reports.periodic_source_label">Προέλευση</label>
           <select id="per-source">
-            <option value="">Όλες</option>
+            <option value="" data-i18n="reports.periodic_all_sources">Όλες</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Από <span id="per-from-hint" style="font-size:11px;color:var(--text-muted);font-weight:400;"></span></label>
-          <input type="text" id="per-from" placeholder="ηη/μμ/εεεε" maxlength="10"
+          <label><span data-i18n="reports.periodic_from_label">Από</span> <span id="per-from-hint" style="font-size:11px;color:var(--text-muted);font-weight:400;"></span></label>
+          <input type="text" id="per-from" placeholder="ηη/μμ/εεεε" data-i18n-placeholder="samples.date_placeholder" maxlength="10"
                  style="width:120px;font-family:'IBM Plex Mono',monospace"
                  onkeyup="autoSlashDate(this); ReportsPage.validatePeriodicDates()"
                  onchange="ReportsPage.validatePeriodicDates()">
         </div>
         <div class="filter-group">
-          <label>Έως <span id="per-to-hint" style="font-size:11px;color:var(--text-muted);font-weight:400;"></span></label>
-          <input type="text" id="per-to" placeholder="ηη/μμ/εεεε" maxlength="10"
+          <label><span data-i18n="reports.periodic_to_label">Έως</span> <span id="per-to-hint" style="font-size:11px;color:var(--text-muted);font-weight:400;"></span></label>
+          <input type="text" id="per-to" placeholder="ηη/μμ/εεεε" data-i18n-placeholder="samples.date_placeholder" maxlength="10"
                  style="width:120px;font-family:'IBM Plex Mono',monospace"
                  onkeyup="autoSlashDate(this); ReportsPage.validatePeriodicDates()"
                  onchange="ReportsPage.validatePeriodicDates()">
         </div>
         <button class="btn-primary" id="per-submit-btn"
-                onclick="ReportsPage.loadPeriodic()">
+                onclick="ReportsPage.loadPeriodic()" data-i18n="reports.periodic_submit_button">
           📊 Εμφάνιση
         </button>
         <button class="btn-secondary"
-                onclick="ReportsPage.exportPeriodicPdf()">
+                onclick="ReportsPage.exportPeriodicPdf()" data-i18n="reports.periodic_export_button">
           💾 PDF
         </button>
       </div>
@@ -201,9 +201,9 @@
       <div class="form-card" id="periodic-sieve-card" style="margin-top:12px;">
         <div style="display:flex;justify-content:space-between;
                     align-items:center;margin-bottom:12px;">
-          <h2 style="margin:0;">Κοκκομετρία — Μέσοι Όροι</h2>
+          <h2 style="margin:0;" data-i18n="reports.periodic_sieve_title">Κοκκομετρία — Μέσοι Όροι</h2>
           <div style="display:flex;gap:8px;align-items:center;">
-            <label style="font-size:12px;color:var(--text-muted);">Προδιαγραφές:</label>
+            <label style="font-size:12px;color:var(--text-muted);" data-i18n="reports.periodic_specs_label">Προδιαγραφές:</label>
             <div id="per-spec-options"
                  style="display:flex;gap:6px;flex-wrap:wrap;"></div>
           </div>
@@ -213,7 +213,7 @@
 
       <!-- Πίνακας αποτελεσμάτων -->
       <div class="form-card" style="margin-top:12px;">
-        <h2>Αναλυτικά Αποτελέσματα</h2>
+        <h2 data-i18n="reports.periodic_details_title">Αναλυτικά Αποτελέσματα</h2>
         <div id="periodic-table"></div>
       </div>
 
@@ -225,8 +225,8 @@
        ═══════════════════════════════════════════════════ -->
   <div class="settings-panel" id="tab-library">
     <div class="form-card">
-      <h2>Βιβλιοθήκη PDF</h2>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+      <h2 data-i18n="reports.library_title">Βιβλιοθήκη PDF</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-i18n="reports.library_description">
         Δημιουργία PDF για όλα τα ολοκληρωμένα δείγματα της τρέχουσας περιόδου.
         Τα αρχεία αποθηκεύονται στον φάκελο δεδομένων και συγχρονίζονται με το cloud.
       </p>
@@ -234,7 +234,7 @@
            padding:10px 12px;border-radius:6px;font-size:13px;margin-bottom:14px;
            background:var(--bg-card);border:1px solid var(--border);">
       </div>
-      <button class="btn-primary" onclick="ReportsPage.generatePdfLibrary()">
+      <button class="btn-primary" onclick="ReportsPage.generatePdfLibrary()" data-i18n="reports.library_generate_button">
         📚 Δημιουργία PDF Βιβλιοθήκης
       </button>
     </div>

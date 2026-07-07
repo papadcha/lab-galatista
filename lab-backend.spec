@@ -27,6 +27,7 @@ a = Analysis(
         ('standards.json',                               '.'),
         ('fonts',                                        'fonts'),
         ('src/assets/logopage.png',                      'src/assets'),
+        ('src/i18n/el.json',                             'src/i18n'),
     ],
     hiddenimports=[
         'reportlab',

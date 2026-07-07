@@ -9,6 +9,14 @@
  *   0.99.2 — CE period management UI + subperiod modal
  *   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
  */
+// ES module — φορτώνεται με πραγματικό <script type="module" src="...">
+// (βλ. main-app.js: Pages.settings.module + navigateTo()).
+import {
+  pyCall, pyCallStrict, App, AppState,
+  navigateTo, _esc, _formatCeDate, _toIsoDate, _updateSidebarArchiveBanner,
+} from '../../main-app.js';
+import { t } from '../../i18n/i18n.js';
+
 (() => {
 
   // ============================================================
@@ -24,15 +32,15 @@
   ];
 
   const CATEGORY_LABELS = {
-    'ΛΕΠΤΟΚΟΚΚΟ':  'Λεπτόκοκκο (0/d)',
-    'ΧΟΝΔΡΟΚΟΚΚΟ': 'Χονδρόκοκκο (d/D)',
-    'ALL_IN':      'All-In (Μικτό)',
+    get 'ΛΕΠΤΟΚΟΚΚΟ'()  { return t('settings.category_fine', 'Λεπτόκοκκο (0/d)'); },
+    get 'ΧΟΝΔΡΟΚΟΚΚΟ'() { return t('settings.category_coarse', 'Χονδρόκοκκο (d/D)'); },
+    get 'ALL_IN'()      { return t('settings.category_allin', 'All-In (Μικτό)'); },
   };
 
   const CATEGORY_BADGES = {
-    'ΛΕΠΤΟΚΟΚΚΟ':  '<span class="badge" style="background:var(--info-light,#e8f4fd);color:var(--info,#1976d2);">Λεπτόκοκκο</span>',
-    'ΧΟΝΔΡΟΚΟΚΚΟ': '<span class="badge" style="background:var(--warning-light,#fff3e0);color:var(--warning,#e65100);">Χονδρόκοκκο</span>',
-    'ALL_IN':      '<span class="badge" style="background:var(--success-light,#e8f5e9);color:var(--success,#2e7d32);">All-In</span>',
+    get 'ΛΕΠΤΟΚΟΚΚΟ'()  { return `<span class="badge" style="background:var(--info-light,#e8f4fd);color:var(--info,#1976d2);">${t('settings.category_fine_short', 'Λεπτόκοκκο')}</span>`; },
+    get 'ΧΟΝΔΡΟΚΟΚΚΟ'() { return `<span class="badge" style="background:var(--warning-light,#fff3e0);color:var(--warning,#e65100);">${t('settings.category_coarse_short', 'Χονδρόκοκκο')}</span>`; },
+    get 'ALL_IN'()      { return `<span class="badge" style="background:var(--success-light,#e8f5e9);color:var(--success,#2e7d32);">All-In</span>`; },
   };
 
   // ============================================================
@@ -178,9 +186,9 @@
     try {
       await pyCallStrict('set_guide_enabled', enabled ? 1 : 0);
       if (typeof AppState !== 'undefined') AppState.guideEnabled = enabled;
-      App.toast(enabled ? 'Οδηγός ενεργοποιήθηκε' : 'Οδηγός απενεργοποιήθηκε', 'ok');
+      App.toast(enabled ? t('settings.guide_enabled_toast', 'Οδηγός ενεργοποιήθηκε') : t('settings.guide_disabled_toast', 'Οδηγός απενεργοποιήθηκε'), 'ok');
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -197,17 +205,17 @@
       pdf_font:     el('lab-pdf-font')?.value || 'LiberationSans',
     };
     if (!data.name) {
-      App.toast('Η επωνυμία είναι υποχρεωτική', 'warn');
+      App.toast(t('settings.lab_name_required', 'Η επωνυμία είναι υποχρεωτική'), 'warn');
       el('lab-name').focus();
       return;
     }
     try {
       await pyCallStrict('save_lab_info', data);
-      App.toast('Στοιχεία εργαστηρίου αποθηκεύτηκαν', 'ok');
+      App.toast(t('settings.lab_saved_toast', 'Στοιχεία εργαστηρίου αποθηκεύτηκαν'), 'ok');
       const labEl = document.getElementById('sidebar-ce-number');
       if (labEl && data.ce_number) labEl.textContent = data.ce_number;
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -248,13 +256,13 @@
     const dMin   = parseFloat(p.d_min);
 
     if (sieves.length === 0) {
-      return '<span style="color:var(--text-muted);font-size:11px;font-style:italic;">Χωρίς κόσκινα</span>';
+      return `<span style="color:var(--text-muted);font-size:11px;font-style:italic;">${t('settings.materials_no_sieves', 'Χωρίς κόσκινα')}</span>`;
     }
 
     return sieves.map(s => {
       // Κόκκινο μόνο αν είναι εμφανώς εκτός εύρους
       const isRed = s > dMax * 3 || (dMin > 0 && s < dMin / 10 && s !== 0.063 && s !== 0.075);
-      return `<span title="${fmtMm(s)} mm${isRed ? ' — εκτός εύρους' : ''}" style="
+      return `<span title="${fmtMm(s)} mm${isRed ? ' — ' + t('settings.materials_out_of_range', 'εκτός εύρους') : ''}" style="
         display:inline-block;padding:2px 7px;border-radius:10px;
         border:1px solid ${isRed ? '#ef9a9a' : '#a5d6a7'};
         background:${isRed ? '#fce4ec' : '#e8f5e9'};
@@ -269,7 +277,7 @@
     if (!tbody) return;
 
     if (state.products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Δεν υπάρχουν είδη αδρανών</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-msg">${t('settings.materials_empty', 'Δεν υπάρχουν είδη αδρανών')}</td></tr>`;
       return;
     }
 
@@ -294,31 +302,31 @@
               ${_renderSievePills(p)}
             </div>
             <div style="margin-top:4px;font-size:10px;color:var(--text-muted);">
-              ${(state.productSieves[p.id] || []).length} κόσκινα
+              ${(state.productSieves[p.id] || []).length} ${t('settings.materials_sieves_count_word', 'κόσκινα')}
               &nbsp;·&nbsp;
-              <span style="color:#2e7d32;font-weight:600;">●</span> επιλεγμένο
+              <span style="color:#2e7d32;font-weight:600;">●</span> ${t('settings.materials_legend_selected', 'επιλεγμένο')}
               &nbsp;
-              <span style="color:#c62828;font-weight:600;">●</span> εκτός εύρους
+              <span style="color:#c62828;font-weight:600;">●</span> ${t('settings.materials_legend_out_of_range', 'εκτός εύρους')}
             </div>
           </td>
           <td>
             ${p.active
-              ? '<span class="badge badge-ok">Ενεργό</span>'
-              : '<span class="badge badge-none">Ανενεργό</span>'}
+              ? `<span class="badge badge-ok">${t('settings.status_active', 'Ενεργό')}</span>`
+              : `<span class="badge badge-none">${t('settings.status_inactive', 'Ανενεργό')}</span>`}
           </td>
           <td onclick="event.stopPropagation()">
             <button class="btn-sm"
                     onclick="SettingsPage.editProduct(${p.id})"
-                    title="Επεξεργασία">✎</button>
+                    title="${t('settings.tooltip_edit', 'Επεξεργασία')}">✎</button>
             <button class="btn-sm"
                     onclick="SettingsPage.toggleProduct(${p.id}, ${p.active})"
-                    title="${p.active ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}">
+                    title="${p.active ? t('settings.tooltip_deactivate', 'Απενεργοποίηση') : t('settings.tooltip_activate', 'Ενεργοποίηση')}">
               ${p.active ? '⊘' : '✓'}
             </button>
             ${!parseInt(p.active) ? `
             <button class="btn-sm" style="color:#c62828;border-color:#ef9a9a;"
                     onclick="SettingsPage.deleteProduct(${p.id})"
-                    title="Οριστική διαγραφή">Διαγραφή</button>
+                    title="${t('settings.tooltip_permanent_delete', 'Οριστική διαγραφή')}">${t('settings.delete_word', 'Διαγραφή')}</button>
             ` : ''}
           </td>
         </tr>
@@ -332,12 +340,12 @@
     // Φόρτωση υπαρχόντων τύπων για autocomplete
     const types = await pyCall('get_material_types') || [];
 
-    App.showModal('Νέο Είδος Αδρανούς', `
+    App.showModal(t('settings.add_product_title', 'Νέο Είδος Αδρανούς'), `
       <div class="form-grid">
         <div class="form-group" style="position:relative;">
-          <label>Τύπος Υλικού <span class="required">*</span></label>
+          <label>${t('settings.material_type_label', 'Τύπος Υλικού')} <span class="required">*</span></label>
           <input type="text" id="prod-material-type"
-                 placeholder="πχ ΑΜΜΟΣ, ΓΑΡΜΠΙΛΙ, ΣΚΥΡΑ"
+                 placeholder="${t('settings.material_type_placeholder', 'πχ ΑΜΜΟΣ, ΓΑΡΜΠΙΛΙ, ΣΚΥΡΑ')}"
                  autocomplete="off"
                  style="text-transform:uppercase;width:100%;"
                  oninput="SettingsPage._materialTypeInput(this)"
@@ -348,15 +356,15 @@
                       border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,0.15);
                       z-index:200;max-height:160px;overflow-y:auto;">
           </div>
-          <small class="form-hint">Επιλέξτε από τα υπάρχοντα ή πληκτρολογήστε νέο</small>
+          <small class="form-hint">${t('settings.material_type_hint', 'Επιλέξτε από τα υπάρχοντα ή πληκτρολογήστε νέο')}</small>
         </div>
         <div class="form-group">
-          <label>Κατηγορία <span class="required">*</span></label>
+          <label>${t('settings.category_label', 'Κατηγορία')} <span class="required">*</span></label>
           <select id="prod-category">
-            <option value="">— Επιλέξτε —</option>
-            <option value="ΛΕΠΤΟΚΟΚΚΟ">Λεπτόκοκκο (0/d)</option>
-            <option value="ΧΟΝΔΡΟΚΟΚΚΟ">Χονδρόκοκκο (d/D)</option>
-            <option value="ALL_IN">All-In (Μικτό)</option>
+            <option value="" data-i18n="common.select_placeholder">${t('common.select_placeholder', '— Επιλέξτε —')}</option>
+            <option value="ΛΕΠΤΟΚΟΚΚΟ">${t('settings.category_fine', 'Λεπτόκοκκο (0/d)')}</option>
+            <option value="ΧΟΝΔΡΟΚΟΚΚΟ">${t('settings.category_coarse', 'Χονδρόκοκκο (d/D)')}</option>
+            <option value="ALL_IN">${t('settings.category_allin', 'All-In (Μικτό)')}</option>
           </select>
         </div>
         <div class="form-group">
@@ -364,7 +372,7 @@
           <input type="number" id="prod-dmin"
                  min="0" max="200" step="0.5" placeholder="πχ 0"
                  oninput="SettingsPage._updateProductNamePreview()">
-          <small class="form-hint">0 για λεπτόκοκκα</small>
+          <small class="form-hint">${t('settings.dmin_hint', '0 για λεπτόκοκκα')}</small>
         </div>
         <div class="form-group">
           <label>d<sub>max</sub> (mm) <span class="required">*</span></label>
@@ -373,7 +381,7 @@
                  oninput="SettingsPage._updateProductNamePreview()">
         </div>
         <div class="form-group full-width">
-          <label>Πρότυπο EN</label>
+          <label>${t('settings.standard_en_label', 'Πρότυπο EN')}</label>
           <input type="text" id="prod-standard"
                  placeholder="πχ EN12620/EN13043/EN13242">
         </div>
@@ -382,14 +390,14 @@
            style="display:none;margin-top:8px;padding:8px 12px;
                   background:var(--bg-input);border-radius:var(--radius);
                   font-size:13px;color:var(--text-muted);">
-        Όνομα: <strong id="prod-name-preview-text"></strong>
+        ${t('settings.name_preview_label', 'Όνομα:')} <strong id="prod-name-preview-text"></strong>
       </div>
       <p style="margin-top:10px;font-size:11px;color:var(--text-muted);">
-        Μετά τη δημιουργία, ρυθμίστε τα κόσκινα από τον πίνακα.
+        ${t('settings.add_product_hint', 'Μετά τη δημιουργία, ρυθμίστε τα κόσκινα από τον πίνακα.')}
       </p>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '+ Προσθήκη', action: 'SettingsPage._saveNewProduct()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.add_button_short', '+ Προσθήκη'), action: 'SettingsPage._saveNewProduct()' },
     ]);
 
     // Αρχικοποίηση autocomplete με υπάρχοντες τύπους
@@ -458,14 +466,14 @@
     const dmax         = parseFloat(el('prod-dmax')?.value);
     const standard     = el('prod-standard')?.value?.trim() || '';
 
-    if (!materialType) { App.toast('Εισάγετε τύπο υλικού', 'warn'); return; }
-    if (!category)     { App.toast('Επιλέξτε κατηγορία', 'warn'); return; }
+    if (!materialType) { App.toast(t('settings.material_type_required', 'Εισάγετε τύπο υλικού'), 'warn'); return; }
+    if (!category)     { App.toast(t('settings.category_required', 'Επιλέξτε κατηγορία'), 'warn'); return; }
     if (isNaN(dmin) || isNaN(dmax)) {
-      App.toast('Συμπληρώστε τα όρια κόκκου (d_min, d_max)', 'warn');
+      App.toast(t('settings.grain_limits_required', 'Συμπληρώστε τα όρια κόκκου (d_min, d_max)'), 'warn');
       return;
     }
     if (dmin >= dmax) {
-      App.toast('Το d_min πρέπει να είναι μικρότερο από d_max', 'warn');
+      App.toast(t('settings.dmin_lt_dmax_required', 'Το d_min πρέπει να είναι μικρότερο από d_max'), 'warn');
       return;
     }
 
@@ -474,12 +482,12 @@
         'add_product', materialType, dmin, dmax, standard, category
       );
       App.closeModal();
-      App.toast(`Προϊόν "${materialType}" προστέθηκε`, 'ok');
+      App.toast(`${t('settings.product_added_prefix', 'Προϊόν')} "${materialType}" ${t('settings.product_added_suffix', 'προστέθηκε')}`, 'ok');
       await loadProducts();
       await _refreshAppStateProducts();
       if (newId) openSievesCard(newId);
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -489,29 +497,29 @@
     const p = state.products.find(x => x.id === id);
     if (!p) return;
 
-    App.showModal('Επεξεργασία Είδους Αδρανούς', `
+    App.showModal(t('settings.edit_product_title', 'Επεξεργασία Είδους Αδρανούς'), `
       <div class="form-grid">
         <div class="form-group">
-          <label>Τύπος Υλικού <span class="required">*</span></label>
+          <label>${t('settings.material_type_label', 'Τύπος Υλικού')} <span class="required">*</span></label>
           <input type="text" id="prod-edit-material-type"
                  value="${esc(p.material_type || p.name)}"
                  style="text-transform:uppercase;">
-          <small class="form-hint">Το όνομα θα ενημερωθεί αυτόματα</small>
+          <small class="form-hint">${t('settings.material_type_edit_hint', 'Το όνομα θα ενημερωθεί αυτόματα')}</small>
         </div>
         <div class="form-group">
-          <label>Κωδικός Δείγματος <span class="required">*</span></label>
+          <label>${t('settings.sample_code_label', 'Κωδικός Δείγματος')} <span class="required">*</span></label>
           <input type="text" id="prod-edit-code"
                  value="${esc(p.code || '')}"
                  maxlength="8"
                  style="text-transform:uppercase;width:120px;">
-          <small class="form-hint">Χρησιμοποιείται στον κωδικό δείγματος (πχ ΑΜΜ04)</small>
+          <small class="form-hint">${t('settings.sample_code_hint', 'Χρησιμοποιείται στον κωδικό δείγματος (πχ ΑΜΜ04)')}</small>
         </div>
         <div class="form-group">
-          <label>Κατηγορία <span class="required">*</span></label>
+          <label>${t('settings.category_label', 'Κατηγορία')} <span class="required">*</span></label>
           <select id="prod-edit-category">
-            <option value="ΛΕΠΤΟΚΟΚΚΟ"  ${p.category==='ΛΕΠΤΟΚΟΚΚΟ'  ? 'selected':''}>Λεπτόκοκκο (0/d)</option>
-            <option value="ΧΟΝΔΡΟΚΟΚΚΟ" ${p.category==='ΧΟΝΔΡΟΚΟΚΚΟ' ? 'selected':''}>Χονδρόκοκκο (d/D)</option>
-            <option value="ALL_IN"      ${p.category==='ALL_IN'       ? 'selected':''}>All-In (Μικτό)</option>
+            <option value="ΛΕΠΤΟΚΟΚΚΟ"  ${p.category==='ΛΕΠΤΟΚΟΚΚΟ'  ? 'selected':''}>${t('settings.category_fine', 'Λεπτόκοκκο (0/d)')}</option>
+            <option value="ΧΟΝΔΡΟΚΟΚΚΟ" ${p.category==='ΧΟΝΔΡΟΚΟΚΚΟ' ? 'selected':''}>${t('settings.category_coarse', 'Χονδρόκοκκο (d/D)')}</option>
+            <option value="ALL_IN"      ${p.category==='ALL_IN'       ? 'selected':''}>${t('settings.category_allin', 'All-In (Μικτό)')}</option>
           </select>
         </div>
         <div class="form-group">
@@ -525,14 +533,14 @@
                  value="${p.d_max}" min="0.1" max="200" step="0.5">
         </div>
         <div class="form-group full-width">
-          <label>Πρότυπο EN</label>
+          <label>${t('settings.standard_en_label', 'Πρότυπο EN')}</label>
           <input type="text" id="prod-edit-standard"
                  value="${esc(p.standard || '')}">
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '✓ Αποθήκευση', action: `SettingsPage._saveEditProduct(${id})` },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_button', '✓ Αποθήκευση'), action: `SettingsPage._saveEditProduct(${id})` },
     ]);
   }
 
@@ -544,38 +552,38 @@
     const dmax         = parseFloat(el('prod-edit-dmax')?.value);
     const standard     = el('prod-edit-standard')?.value?.trim() || '';
 
-    if (!materialType) { App.toast('Εισάγετε τύπο υλικού', 'warn'); return; }
-    if (!code)         { App.toast('Εισάγετε κωδικό δείγματος', 'warn'); return; }
-    if (!category)     { App.toast('Επιλέξτε κατηγορία', 'warn'); return; }
+    if (!materialType) { App.toast(t('settings.material_type_required', 'Εισάγετε τύπο υλικού'), 'warn'); return; }
+    if (!code)         { App.toast(t('settings.sample_code_required', 'Εισάγετε κωδικό δείγματος'), 'warn'); return; }
+    if (!category)     { App.toast(t('settings.category_required', 'Επιλέξτε κατηγορία'), 'warn'); return; }
     if (isNaN(dmin) || isNaN(dmax) || dmin >= dmax) {
-      App.toast('Ελέγξτε τα όρια κόκκου', 'warn');
+      App.toast(t('settings.check_grain_limits', 'Ελέγξτε τα όρια κόκκου'), 'warn');
       return;
     }
 
     try {
       await pyCallStrict('update_product', id, materialType, dmin, dmax, standard, category, code);
       App.closeModal();
-      App.toast('Είδος αδρανούς ενημερώθηκε', 'ok');
+      App.toast(t('settings.product_updated_toast', 'Είδος αδρανούς ενημερώθηκε'), 'ok');
       await loadProducts();
       await _refreshAppStateProducts();
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
   async function toggleProduct(id, currentActive) {
     const p      = state.products.find(x => x.id === id);
     const active = parseInt(currentActive); // SQLite επιστρέφει 0/1 ως int
-    const label  = active ? 'Απενεργοποίηση' : 'Ενεργοποίηση';
-    const action = active ? 'απενεργοποιηθεί' : 'ενεργοποιηθεί';
-    const note   = active ? ' Δεν θα εμφανίζεται σε νέα δείγματα.' : '';
+    const label  = active ? t('settings.tooltip_deactivate', 'Απενεργοποίηση') : t('settings.tooltip_activate', 'Ενεργοποίηση');
+    const action = active ? t('settings.will_be_deactivated', 'απενεργοποιηθεί') : t('settings.will_be_activated', 'ενεργοποιηθεί');
+    const note   = active ? ' ' + t('settings.deactivate_note', 'Δεν θα εμφανίζεται σε νέα δείγματα.') : '';
 
-    App.showModal(label + ' Είδους', `
+    App.showModal(label + ' ' + t('settings.item_word', 'Είδους'), `
       <p style="color:var(--text-muted);margin:8px 0;">
-        Το είδος <strong>${esc(p?.name || '')}</strong> θα ${action}.${note}
+        ${t('settings.item_prefix', 'Το είδος')} <strong>${esc(p?.name || '')}</strong> ${t('settings.will_be_word', 'θα')} ${action}.${note}
       </p>
     `, [
-      { label: 'Ακύρωση',  action: 'App.closeModal()', secondary: true },
+      { label: t('common.cancel', 'Ακύρωση'),  action: 'App.closeModal()', secondary: true },
       { label: label,      action: `SettingsPage._doToggleProduct(${id}, ${active})` },
     ]);
   }
@@ -584,7 +592,7 @@
     App.closeModal();
     try {
       await pyCallStrict('toggle_product', id, currentActive ? 0 : 1);
-      App.toast('Κατάσταση είδους ενημερώθηκε', 'ok');
+      App.toast(t('settings.item_status_updated', 'Κατάσταση είδους ενημερώθηκε'), 'ok');
       await loadProducts();
       await _refreshAppStateProducts();
     } catch(e) {
@@ -594,17 +602,16 @@
 
   function deleteProduct(id) {
     const p = state.products.find(x => x.id === id);
-    App.showModal('Οριστική Διαγραφή', `
+    App.showModal(t('settings.permanent_delete_title', 'Οριστική Διαγραφή'), `
       <p style="color:var(--text-muted);margin:8px 0;">
-        Το είδος <strong>${esc(p?.name || '')}</strong> θα διαγραφεί οριστικά
-        μαζί με τα κόσκινά του.
+        ${t('settings.item_prefix', 'Το είδος')} <strong>${esc(p?.name || '')}</strong> ${t('settings.item_delete_note', 'θα διαγραφεί οριστικά μαζί με τα κόσκινά του.')}
       </p>
       <p style="color:#c62828;font-size:12px;margin:8px 0;">
-        ⚠ Η ενέργεια δεν αναιρείται.
+        ⚠ ${t('settings.action_irreversible', 'Η ενέργεια δεν αναιρείται.')}
       </p>
     `, [
-      { label: 'Ακύρωση',          action: 'App.closeModal()', secondary: true },
-      { label: 'Οριστική Διαγραφή', action: `SettingsPage._doDeleteProduct(${id})` },
+      { label: t('common.cancel', 'Ακύρωση'),          action: 'App.closeModal()', secondary: true },
+      { label: t('settings.permanent_delete_button', 'Οριστική Διαγραφή'), action: `SettingsPage._doDeleteProduct(${id})` },
     ]);
   }
 
@@ -612,7 +619,7 @@
     App.closeModal();
     try {
       await pyCallStrict('delete_product', id);
-      App.toast('Είδος αδρανούς διαγράφηκε', 'ok');
+      App.toast(t('settings.product_deleted_toast', 'Είδος αδρανούς διαγράφηκε'), 'ok');
       if (state.selectedProductId === id) closeSievesCard();
       await loadProducts();
       await _refreshAppStateProducts();
@@ -655,7 +662,7 @@
       .sort((a, b) => b - a);
 
     el('sieves-card-title').textContent =
-      `Κόσκινα — ${p.name} (${fmtMm(p.d_min)}/${fmtMm(p.d_max)} mm)`;
+      `${t('settings.sieves_title', 'Κόσκινα')} — ${p.name} (${fmtMm(p.d_min)}/${fmtMm(p.d_max)} mm)`;
     el('sieves-card-subtitle').textContent =
       `${CATEGORY_LABELS[p.category] || p.category}  •  ${p.standard || ''}`;
 
@@ -713,7 +720,7 @@
 
     // Pills των ήδη επιλεγμένων κόσκινων (φθίνουσα σειρά)
     const pillsHtml = state.selectedSieves.length === 0
-      ? '<span style="color:var(--text-muted);font-size:12px;font-style:italic;">Δεν έχουν οριστεί κόσκινα</span>'
+      ? `<span style="color:var(--text-muted);font-size:12px;font-style:italic;">${t('settings.no_sieves_defined', 'Δεν έχουν οριστεί κόσκινα')}</span>`
       : state.selectedSieves.map(s => {
           // Κόκκινο μόνο αν είναι εμφανώς εκτός εύρους (πχ 63mm σε ΑΜΜΟΣ 0/4)
           const tooLarge = s > dMax * 3;
@@ -724,8 +731,8 @@
           const color   = isRed ? '#c62828' : '#1b5e20';
           const border  = isRed ? '#ef9a9a' : '#66bb6a';
           const tooltip = isRed
-            ? `Πιθανή ασυμφωνία με εύρος ${fmtMm(dMin)}/${fmtMm(dMax)}mm`
-            : `${fmtMm(s)} mm — δεξί κλικ για αφαίρεση`;
+            ? `${t('settings.sieve_range_mismatch_prefix', 'Πιθανή ασυμφωνία με εύρος')} ${fmtMm(dMin)}/${fmtMm(dMax)}mm`
+            : `${fmtMm(s)} mm — ${t('settings.sieve_right_click_remove', 'δεξί κλικ για αφαίρεση')}`;
 
           return `<span
             class="sieve-pill"
@@ -755,11 +762,11 @@
                   border:1px solid var(--info,#1976d2);border-radius:var(--radius);
                   font-size:12px;color:var(--info,#1976d2);margin-bottom:10px;
                   display:flex;justify-content:space-between;align-items:center;">
-        <span>📋 Προτεινόμενα κόσκινα — τροποποιήστε αν χρειάζεται και πατήστε Αποθήκευση</span>
+        <span>📋 ${t('settings.preset_sieves_hint', 'Προτεινόμενα κόσκινα — τροποποιήστε αν χρειάζεται και πατήστε Αποθήκευση')}</span>
         <button onclick="SettingsPage._clearPreset()"
                 style="background:none;border:none;cursor:pointer;
                        font-size:11px;color:var(--info,#1976d2);text-decoration:underline;">
-          Καθαρισμός
+          ${t('settings.clear_button', 'Καθαρισμός')}
         </button>
       </div>
       ` : ''}
@@ -775,7 +782,7 @@
       </div>
 
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">
-        💡 Δεξί κλικ σε κόσκινο για αφαίρεση
+        💡 ${t('settings.sieve_right_click_remove', 'Δεξί κλικ σε κόσκινο για αφαίρεση')}
       </div>
 
       <!-- Free entry -->
@@ -802,7 +809,7 @@
         </div>
         <button class="btn-primary" style="padding:7px 16px;white-space:nowrap;"
                 onclick="SettingsPage._addSieveFromInput()">
-          + Προσθήκη
+          ${t('settings.add_button_short', '+ Προσθήκη')}
         </button>
       </div>
 
@@ -822,14 +829,14 @@
                     display:flex;align-items:center;gap:8px;"
              onmouseover="this.style.background='#fce4ec'"
              onmouseout="this.style.background=''">
-          🗑 Αφαίρεση κόσκινου
+          🗑 ${t('settings.remove_sieve_button', 'Αφαίρεση κόσκινου')}
         </div>
         <div onclick="SettingsPage._hideSieveContextMenu()"
              style="padding:8px 16px;cursor:pointer;font-size:13px;color:var(--text-muted);
                     display:flex;align-items:center;gap:8px;"
              onmouseover="this.style.background='var(--bg-hover,#f5f5f5)'"
              onmouseout="this.style.background=''">
-          ✕ Ακύρωση
+          ✕ ${t('common.cancel', 'Ακύρωση')}
         </div>
       </div>
     `;
@@ -848,7 +855,7 @@
     const title = el('ctx-menu-title');
     if (!menu) return;
 
-    title.textContent = `Κόσκινο ${fmtMm(sieveMm)} mm`;
+    title.textContent = `${t('settings.sieve_word', 'Κόσκινο')} ${fmtMm(sieveMm)} mm`;
     menu.style.display = 'block';
 
     // Τοποθέτηση κοντά στο cursor
@@ -920,7 +927,7 @@
     if (input) input.value = '';
 
     if (state.selectedSieves.includes(mm)) {
-      App.toast(`Το κόσκινο ${fmtMm(mm)} mm υπάρχει ήδη`, 'warn');
+      App.toast(`${t('settings.sieve_already_exists_prefix', 'Το κόσκινο')} ${fmtMm(mm)} mm ${t('settings.sieve_already_exists_suffix', 'υπάρχει ήδη')}`, 'warn');
       return;
     }
     state.selectedSieves.push(mm);
@@ -945,7 +952,7 @@
     const mm  = parseFloat(raw);
 
     if (isNaN(mm) || mm <= 0 || mm > 200) {
-      App.toast('Εισάγετε έγκυρη τιμή κόσκινου (0.001 – 200 mm)', 'warn');
+      App.toast(t('settings.invalid_sieve_value', 'Εισάγετε έγκυρη τιμή κόσκινου (0.001 – 200 mm)'), 'warn');
       return;
     }
 
@@ -967,7 +974,7 @@
     if (!state.selectedProductId) return;
 
     if (state.selectedSieves.length === 0) {
-      App.toast('Προσθέστε τουλάχιστον ένα κόσκινο', 'warn');
+      App.toast(t('settings.add_at_least_one_sieve', 'Προσθέστε τουλάχιστον ένα κόσκινο'), 'warn');
       return;
     }
 
@@ -977,7 +984,7 @@
     try {
       await pyCallStrict('set_product_sieves', state.selectedProductId, sorted, force);
       App.toast(
-        `Κόσκινα "${product?.name || ''}" αποθηκεύτηκαν (${sorted.length} κόσκινα)`,
+        `${t('settings.sieves_word', 'Κόσκινα')} "${product?.name || ''}" ${t('settings.sieves_saved_suffix', 'αποθηκεύτηκαν')} (${sorted.length} ${t('settings.materials_sieves_count_word', 'κόσκινα')})`,
         'ok'
       );
       state._showingPreset = false;
@@ -988,9 +995,8 @@
       if (!force && /μη-μηδενικές τιμές/.test(e.message)) {
         const proceed = confirm(
           `${e.message}\n\n` +
-          'Οι υπάρχουσες κοκκομετρίες/αναφορές ΔΕΝ επηρεάζονται — ' +
-          'το κόσκινο απλά δεν θα προτείνεται πλέον σε νέα δείγματα αυτού του είδους.\n\n' +
-          'Να γίνει εξαναγκασμένη αφαίρεση;'
+          t('settings.sieve_removal_confirm_body', 'Οι υπάρχουσες κοκκομετρίες/αναφορές ΔΕΝ επηρεάζονται — το κόσκινο απλά δεν θα προτείνεται πλέον σε νέα δείγματα αυτού του είδους.') + '\n\n' +
+          t('settings.sieve_force_remove_confirm', 'Να γίνει εξαναγκασμένη αφαίρεση;')
         );
         if (proceed) { await saveSieves(true); return; }
         return;
@@ -1012,7 +1018,7 @@
     const tbody = el('sources-list');
     if (!tbody) return;
     if (state.sources.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Δεν υπάρχουν πηγές</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-msg">${t('settings.sources_empty', 'Δεν υπάρχουν πηγές')}</td></tr>`;
       return;
     }
     tbody.innerHTML = state.sources.map(s => `
@@ -1022,8 +1028,8 @@
         <td style="color:var(--text-muted);font-size:12px;">${esc(s.location || '—')}</td>
         <td>
           ${s.active
-            ? '<span class="badge badge-ok">Ενεργή</span>'
-            : '<span class="badge badge-none">Ανενεργή</span>'}
+            ? `<span class="badge badge-ok">${t('settings.status_active_fem', 'Ενεργή')}</span>`
+            : `<span class="badge badge-none">${t('settings.status_inactive_fem', 'Ανενεργή')}</span>`}
         </td>
         <td style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-sm"
@@ -1034,7 +1040,7 @@
           </button>
           ${!s.active ? `<button class="btn-sm" style="color:#c62828;border-color:#ef9a9a;"
                   onclick="SettingsPage.deleteSource(${s.id}, '${esc(s.name)}')">
-            Διαγραφή
+            ${t('settings.delete_word', 'Διαγραφή')}
           </button>` : ''}
         </td>
       </tr>
@@ -1042,26 +1048,26 @@
   }
 
   function showAddSource() {
-    App.showModal('Νέα Προέλευση Υλικού', `
+    App.showModal(t('settings.add_source_title', 'Νέα Προέλευση Υλικού'), `
       <div class="form-grid">
         <div class="form-group">
-          <label>Κωδικός <span class="required">*</span></label>
+          <label>${t('settings.code_label', 'Κωδικός')} <span class="required">*</span></label>
           <input type="text" id="src-code" placeholder="πχ ΓΑΛ"
                  style="text-transform:uppercase;"
                  maxlength="6">
         </div>
         <div class="form-group">
-          <label>Επωνυμία <span class="required">*</span></label>
+          <label>${t('settings.company_name_label', 'Επωνυμία')} <span class="required">*</span></label>
           <input type="text" id="src-name" placeholder="πχ Λατομείο Γαλάτιστας">
         </div>
         <div class="form-group full-width">
-          <label>Τοποθεσία</label>
+          <label>${t('settings.location_label', 'Τοποθεσία')}</label>
           <input type="text" id="src-location" placeholder="Διεύθυνση/Περιοχή">
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: 'Αποθήκευση', action: 'SettingsPage._saveNewSource()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_word', 'Αποθήκευση'), action: 'SettingsPage._saveNewSource()' },
     ]);
   }
 
@@ -1070,74 +1076,74 @@
     const name     = el('src-name')?.value?.trim();
     const location = el('src-location')?.value?.trim();
     if (!code || !name) {
-      App.toast('Κωδικός και επωνυμία είναι υποχρεωτικά', 'warn');
+      App.toast(t('settings.code_name_required', 'Κωδικός και επωνυμία είναι υποχρεωτικά'), 'warn');
       return;
     }
     try {
       await pyCallStrict('add_source', code, name, location || null);
       App.closeModal();
-      App.toast(`Προέλευση ${code} προστέθηκε`, 'ok');
+      App.toast(`${t('settings.source_added_prefix', 'Προέλευση')} ${code} ${t('settings.product_added_suffix', 'προστέθηκε')}`, 'ok');
       await loadSources();
       if (window.AppState) AppState.sources = state.sources;
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
   function editSource(id) {
     const src = state.sources.find(s => s.id === id);
     if (!src) return;
-    App.showModal('Επεξεργασία Προέλευσης', `
+    App.showModal(t('settings.edit_source_title', 'Επεξεργασία Προέλευσης'), `
       <div class="form-grid">
         <div class="form-group">
-          <label>Κωδικός</label>
+          <label>${t('settings.code_label', 'Κωδικός')}</label>
           <input type="text" id="src-edit-code"
                  value="${esc(src.code)}"
                  style="font-weight:700;" readonly>
           <small style="color:var(--text-muted);font-size:11px;">
-            Ο κωδικός δεν μπορεί να αλλάξει
+            ${t('settings.code_immutable_hint', 'Ο κωδικός δεν μπορεί να αλλάξει')}
           </small>
         </div>
         <div class="form-group">
-          <label>Επωνυμία <span class="required">*</span></label>
+          <label>${t('settings.company_name_label', 'Επωνυμία')} <span class="required">*</span></label>
           <input type="text" id="src-edit-name" value="${esc(src.name)}">
         </div>
         <div class="form-group full-width">
-          <label>Τοποθεσία</label>
+          <label>${t('settings.location_label', 'Τοποθεσία')}</label>
           <input type="text" id="src-edit-location"
                  value="${esc(src.location || '')}">
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: 'Αποθήκευση', action: `SettingsPage._saveEditSource(${id})` },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_word', 'Αποθήκευση'), action: `SettingsPage._saveEditSource(${id})` },
     ]);
   }
 
   async function _saveEditSource(id) {
     const name     = el('src-edit-name')?.value?.trim();
     const location = el('src-edit-location')?.value?.trim();
-    if (!name) { App.toast('Η επωνυμία είναι υποχρεωτική', 'warn'); return; }
+    if (!name) { App.toast(t('settings.company_name_required', 'Η επωνυμία είναι υποχρεωτική'), 'warn'); return; }
     try {
       await pyCallStrict('update_source', id, name, location || null);
       App.closeModal();
-      App.toast('Προέλευση ενημερώθηκε', 'ok');
+      App.toast(t('settings.source_updated_toast', 'Προέλευση ενημερώθηκε'), 'ok');
       await loadSources();
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
   async function toggleSource(id, currentActive) {
     const active = parseInt(currentActive);
-    const label  = active ? 'Απενεργοποίηση' : 'Ενεργοποίηση';
-    App.showModal(label + ' Προέλευσης', `
+    const label  = active ? t('settings.tooltip_deactivate', 'Απενεργοποίηση') : t('settings.tooltip_activate', 'Ενεργοποίηση');
+    App.showModal(label + ' ' + t('settings.source_word', 'Προέλευσης'), `
       <p style="color:var(--text-muted);margin:8px 0;">
-        Η προέλευση θα ${active ? 'απενεργοποιηθεί' : 'ενεργοποιηθεί'}.
-        Τα υπάρχοντα δείγματα δεν επηρεάζονται.
+        ${t('settings.source_prefix', 'Η προέλευση θα')} ${active ? t('settings.will_be_deactivated', 'απενεργοποιηθεί') : t('settings.will_be_activated', 'ενεργοποιηθεί')}.
+        ${t('settings.existing_samples_unaffected', 'Τα υπάρχοντα δείγματα δεν επηρεάζονται.')}
       </p>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
       { label: label,     action: `SettingsPage._doToggleSource(${id}, ${active})` },
     ]);
   }
@@ -1146,20 +1152,20 @@
     App.closeModal();
     try {
       await pyCallStrict('toggle_source', id, currentActive ? 0 : 1);
-      App.toast('Κατάσταση προέλευσης ενημερώθηκε', 'ok');
+      App.toast(t('settings.source_status_updated', 'Κατάσταση προέλευσης ενημερώθηκε'), 'ok');
       await loadSources();
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
   async function deleteSource(id, name) {
-    App.showModal('Διαγραφή Προέλευσης', `
-      <p style="color:var(--fail);">⚠ Η διαγραφή είναι μη αναστρέψιμη.</p>
-      <p>Να διαγραφεί η προέλευση <strong>${esc(name)}</strong>;</p>
+    App.showModal(t('settings.delete_source_title', 'Διαγραφή Προέλευσης'), `
+      <p style="color:var(--fail);">⚠ ${t('settings.delete_irreversible', 'Η διαγραφή είναι μη αναστρέψιμη.')}</p>
+      <p>${t('settings.delete_source_confirm_prefix', 'Να διαγραφεί η προέλευση')} <strong>${esc(name)}</strong>;</p>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: 'Διαγραφή', action: `SettingsPage._doDeleteSource(${id})` },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.delete_word', 'Διαγραφή'), action: `SettingsPage._doDeleteSource(${id})` },
     ]);
   }
 
@@ -1167,10 +1173,10 @@
     App.closeModal();
     try {
       await pyCallStrict('delete_source', id);
-      App.toast('Προέλευση διαγράφηκε', 'ok');
+      App.toast(t('settings.source_deleted_toast', 'Προέλευση διαγράφηκε'), 'ok');
       await loadSources();
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -1187,25 +1193,25 @@
     const tbody = el('technicians-list');
     if (!tbody) return;
     if (state.technicians.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">Δεν υπάρχουν τεχνικοί</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="3" class="empty-msg">${t('settings.technicians_empty', 'Δεν υπάρχουν τεχνικοί')}</td></tr>`;
       return;
     }
-    tbody.innerHTML = state.technicians.map(t => `
+    tbody.innerHTML = state.technicians.map(tech => `
       <tr>
-        <td>${esc(t.name)}</td>
+        <td>${esc(tech.name)}</td>
         <td>
-          ${t.active
-            ? '<span class="badge badge-ok">Ενεργός</span>'
-            : '<span class="badge badge-none">Ανενεργός</span>'}
+          ${tech.active
+            ? `<span class="badge badge-ok">${t('settings.status_active_masc', 'Ενεργός')}</span>`
+            : `<span class="badge badge-none">${t('settings.status_inactive_masc', 'Ανενεργός')}</span>`}
         </td>
         <td style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-sm"
-                  onclick="SettingsPage.toggleTechnician(${t.id}, ${t.active})">
-            ${t.active ? '⊘ Απενεργοποίηση' : '✓ Ενεργοποίηση'}
+                  onclick="SettingsPage.toggleTechnician(${tech.id}, ${tech.active})">
+            ${tech.active ? '⊘ ' + t('settings.tooltip_deactivate', 'Απενεργοποίηση') : '✓ ' + t('settings.tooltip_activate', 'Ενεργοποίηση')}
           </button>
-          ${!t.active ? `<button class="btn-sm" style="color:#c62828;border-color:#ef9a9a;"
-                  onclick="SettingsPage.deleteTechnician(${t.id}, '${esc(t.name)}')">
-            Διαγραφή
+          ${!tech.active ? `<button class="btn-sm" style="color:#c62828;border-color:#ef9a9a;"
+                  onclick="SettingsPage.deleteTechnician(${tech.id}, '${esc(tech.name)}')">
+            ${t('settings.delete_word', 'Διαγραφή')}
           </button>` : ''}
         </td>
       </tr>
@@ -1213,50 +1219,50 @@
   }
 
   function showAddTechnician() {
-    App.showModal('Νέος Τεχνικός', `
+    App.showModal(t('settings.add_technician_title', 'Νέος Τεχνικός'), `
       <div class="form-group">
-        <label>Ονοματεπώνυμο <span class="required">*</span></label>
+        <label>${t('settings.full_name_label', 'Ονοματεπώνυμο')} <span class="required">*</span></label>
         <input type="text" id="tech-name" placeholder="πχ Παπαδόπουλος Γιώργος"
                style="width:100%;margin-top:6px;">
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: 'Αποθήκευση', action: 'SettingsPage._saveNewTechnician()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_word', 'Αποθήκευση'), action: 'SettingsPage._saveNewTechnician()' },
     ]);
   }
 
   async function _saveNewTechnician() {
     const name = el('tech-name')?.value?.trim();
-    if (!name) { App.toast('Το ονοματεπώνυμο είναι υποχρεωτικό', 'warn'); return; }
+    if (!name) { App.toast(t('settings.full_name_required', 'Το ονοματεπώνυμο είναι υποχρεωτικό'), 'warn'); return; }
     try {
       await pyCallStrict('add_technician', name);
       App.closeModal();
-      App.toast(`Τεχνικός "${name}" προστέθηκε`, 'ok');
+      App.toast(`${t('settings.technician_word', 'Τεχνικός')} "${name}" ${t('settings.product_added_suffix', 'προστέθηκε')}`, 'ok');
       AppState.technicians = await pyCall('get_technicians') || [];
       await loadTechnicians();
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
   async function toggleTechnician(id, currentActive) {
     try {
       await pyCallStrict('toggle_technician', id, currentActive ? 0 : 1);
-      App.toast('Κατάσταση τεχνικού ενημερώθηκε', 'ok');
+      App.toast(t('settings.technician_status_updated', 'Κατάσταση τεχνικού ενημερώθηκε'), 'ok');
       AppState.technicians = await pyCall('get_technicians') || [];
       await loadTechnicians();
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
   async function deleteTechnician(id, name) {
-    App.showModal('Διαγραφή Τεχνικού', `
-      <p style="color:var(--fail);">⚠ Η διαγραφή είναι μη αναστρέψιμη.</p>
-      <p>Να διαγραφεί ο τεχνικός <strong>${esc(name)}</strong>;</p>
+    App.showModal(t('settings.delete_technician_title', 'Διαγραφή Τεχνικού'), `
+      <p style="color:var(--fail);">⚠ ${t('settings.delete_irreversible', 'Η διαγραφή είναι μη αναστρέψιμη.')}</p>
+      <p>${t('settings.delete_technician_confirm_prefix', 'Να διαγραφεί ο τεχνικός')} <strong>${esc(name)}</strong>;</p>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: 'Διαγραφή', action: `SettingsPage._doDeleteTechnician(${id})` },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.delete_word', 'Διαγραφή'), action: `SettingsPage._doDeleteTechnician(${id})` },
     ]);
   }
 
@@ -1264,11 +1270,11 @@
     App.closeModal();
     try {
       await pyCallStrict('delete_technician', id);
-      App.toast('Τεχνικός διαγράφηκε', 'ok');
+      App.toast(t('settings.technician_deleted_toast', 'Τεχνικός διαγράφηκε'), 'ok');
       AppState.technicians = await pyCall('get_technicians') || [];
       await loadTechnicians();
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -1287,12 +1293,12 @@
     // Reset
     if (editArea) editArea.style.display = 'none';
     if (actions)  actions.style.display  = 'none';
-    if (area) area.innerHTML = '<p class="form-card-intro">Επιλέξτε προδιαγραφή.</p>';
+    if (area) area.innerHTML = `<p class="form-card-intro">${t('settings.specs_select_spec_hint', 'Επιλέξτε προδιαγραφή.')}</p>`;
 
     if (!productId) {
       if (existingWrap) existingWrap.style.display = 'none';
       if (btnNew)       btnNew.style.display       = 'none';
-      if (area) area.innerHTML = '<p class="form-card-intro">Επιλέξτε προϊόν.</p>';
+      if (area) area.innerHTML = `<p class="form-card-intro">${t('settings.specs_select_product_hint2', 'Επιλέξτε προϊόν.')}</p>`;
       return;
     }
 
@@ -1306,7 +1312,7 @@
     if (existingWrap && btnNew) {
       if (specNames.length > 0) {
         const sel = el('spec-existing');
-        sel.innerHTML = '<option value="">— Επιλέξτε —</option>' +
+        sel.innerHTML = `<option value="">${t('common.select_placeholder', '— Επιλέξτε —')}</option>` +
           specNames.map(sn => {
             const [type, name] = sn.split('|||');
             return `<option value="${sn}">${name}</option>`;
@@ -1328,7 +1334,7 @@
     const editArea = el('spec-edit-area');
 
     if (!val) {
-      if (area) area.innerHTML = '<p class="form-card-intro">Επιλέξτε προδιαγραφή.</p>';
+      if (area) area.innerHTML = `<p class="form-card-intro">${t('settings.specs_select_spec_hint', 'Επιλέξτε προδιαγραφή.')}</p>`;
       if (actions) actions.style.display = 'none';
       if (editArea) editArea.style.display = 'none';
       return;
@@ -1375,7 +1381,7 @@
     const allSieves  = [...new Set([...state.sieves, ...specSieves])].sort((a,b) => b - a);
 
     if (allSieves.length === 0) {
-      area.innerHTML = '<p class="form-card-intro">Δεν βρέθηκαν κόσκινα.</p>';
+      area.innerHTML = `<p class="form-card-intro">${t('settings.no_sieves_found', 'Δεν βρέθηκαν κόσκινα.')}</p>`;
       return;
     }
 
@@ -1383,9 +1389,9 @@
       <table class="data-table full-width" style="margin-top:8px;">
         <thead>
           <tr>
-            <th>Κόσκινο (mm)</th>
-            <th>Κατώτερο Όριο (%)</th>
-            <th>Ανώτερο Όριο (%)</th>
+            <th>${t('settings.sieve_mm_col', 'Κόσκινο (mm)')}</th>
+            <th>${t('settings.lower_limit_col', 'Κατώτερο Όριο (%)')}</th>
+            <th>${t('settings.upper_limit_col', 'Ανώτερο Όριο (%)')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1419,7 +1425,7 @@
         </tbody>
       </table>
       <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">
-        Αφήστε κενό αν δεν υπάρχει όριο για συγκεκριμένο κόσκινο.
+        ${t('settings.empty_limit_hint', 'Αφήστε κενό αν δεν υπάρχει όριο για συγκεκριμένο κόσκινο.')}
       </p>
     `;
   }
@@ -1431,15 +1437,15 @@
     const productId = parseInt(el('spec-product')?.value) || null;
     if (!productId) return;
 
-    if (!confirm(`Διαγραφή προδιαγραφής "${specName}";`)) return;
+    if (!confirm(`${t('settings.delete_spec_confirm_prefix', 'Διαγραφή προδιαγραφής')} "${specName}";`)) return;
 
     try {
       await pyCallStrict('save_specifications', productId,
         el('spec-type').value, specName, []);
-      App.toast('Προδιαγραφή διαγράφηκε', 'ok');
+      App.toast(t('settings.spec_deleted_toast', 'Προδιαγραφή διαγράφηκε'), 'ok');
       await loadSpecs();
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -1447,8 +1453,8 @@
     const productId = parseInt(el('spec-product')?.value) || null;
     const specType  = el('spec-type')?.value || 'EN';
     const specName  = el('spec-name')?.value?.trim();
-    if (!productId) { App.toast('Επιλέξτε προϊόν', 'warn'); return; }
-    if (!specName)  { App.toast('Εισάγετε όνομα προδιαγραφής', 'warn'); return; }
+    if (!productId) { App.toast(t('settings.select_product_warn', 'Επιλέξτε προϊόν'), 'warn'); return; }
+    if (!specName)  { App.toast(t('settings.spec_name_required', 'Εισάγετε όνομα προδιαγραφής'), 'warn'); return; }
 
     // Συγχώνευση κόσκινων
     const specSieves = (state.allSpecs || [])
@@ -1456,15 +1462,21 @@
       .map(s => s.sieve_mm);
     const allSieves = [...new Set([...state.sieves, ...specSieves])].sort((a,b) => b - a);
 
+    // Στρογγυλοποίηση σε 2 δεκαδικά πριν την αποστολή στο backend — άμυνα
+    // κατά τυχόν floating-point ατέλειας (π.χ. αν η τιμή προέκυπτε ποτέ από
+    // υπολογισμό αντί για απευθείας πληκτρολόγηση) πριν τη σύγκριση με τα
+    // αποτελέσματα δοκιμών στο backend (_check_value).
+    const _round2 = v => (v === null || Number.isNaN(v)) ? null : Math.round(v * 100) / 100;
+
     const specs = allSieves.map(sieve => ({
       sieve_mm:    sieve,
-      lower_limit: parseFloat(el(`spec-lo-${String(sieve).replace('.','_')}`)?.value) || null,
-      upper_limit: parseFloat(el(`spec-hi-${String(sieve).replace('.','_')}`)?.value) || null,
+      lower_limit: _round2(parseFloat(el(`spec-lo-${String(sieve).replace('.','_')}`)?.value)) ?? null,
+      upper_limit: _round2(parseFloat(el(`spec-hi-${String(sieve).replace('.','_')}`)?.value)) ?? null,
     }));
 
     try {
       await pyCallStrict('save_specifications', productId, specType, specName, specs);
-      App.toast('Προδιαγραφές αποθηκεύτηκαν', 'ok');
+      App.toast(t('settings.specs_saved_toast', 'Προδιαγραφές αποθηκεύτηκαν'), 'ok');
       await loadSpecs();
       // Επαναεπιλογή της αποθηκευμένης προδιαγραφής
       setTimeout(() => {
@@ -1475,7 +1487,7 @@
         }
       }, 100);
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -1501,14 +1513,14 @@
       from: val('smtp-from'),
     };
     if (!cfg.host || !cfg.user) {
-      App.toast('Server και username είναι υποχρεωτικά', 'warn');
+      App.toast(t('settings.smtp_server_user_required', 'Server και username είναι υποχρεωτικά'), 'warn');
       return;
     }
     try {
       await pyCallStrict('save_smtp_config', cfg);
-      App.toast('Ρυθμίσεις email αποθηκεύτηκαν', 'ok');
+      App.toast(t('settings.email_settings_saved', 'Ρυθμίσεις email αποθηκεύτηκαν'), 'ok');
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -1520,19 +1532,19 @@
       pass: val('smtp-pass'),
     };
     if (!cfg.host || !cfg.user || !cfg.pass) {
-      App.toast('Συμπληρώστε server, username και password', 'warn');
+      App.toast(t('settings.smtp_fields_required', 'Συμπληρώστε server, username και password'), 'warn');
       return;
     }
-    App.toast('Δοκιμή σύνδεσης...', 'ok');
+    App.toast(t('settings.testing_connection', 'Δοκιμή σύνδεσης...'), 'ok');
     try {
       const result = await window.pyBridge['test-smtp-ipc']?.(cfg);
       if (result?.success) {
-        App.toast('✓ Σύνδεση επιτυχής!', 'ok');
+        App.toast('✓ ' + t('settings.connection_success', 'Σύνδεση επιτυχής!'), 'ok');
       } else {
-        App.toast('✗ Αποτυχία: ' + (result?.error || 'Άγνωστο σφάλμα'), 'fail');
+        App.toast('✗ ' + t('settings.failure_prefix', 'Αποτυχία: ') + (result?.error || t('settings.unknown_error', 'Άγνωστο σφάλμα')), 'fail');
       }
     } catch(e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -1550,10 +1562,10 @@
 
     if (rclone?.installed) {
       if (step1Num)    { step1Num.textContent = '✓'; step1Num.classList.add('ok'); }
-      if (step1Status) { step1Status.textContent = 'Εγκατεστημένο · v' + (rclone.version || ''); step1Status.className = 'cloud-step-status ok'; }
+      if (step1Status) { step1Status.textContent = t('settings.cloud_installed_prefix', 'Εγκατεστημένο · v') + (rclone.version || ''); step1Status.className = 'cloud-step-status ok'; }
     } else {
       if (step1Num)    { step1Num.textContent = '!'; step1Num.classList.add('fail'); }
-      if (step1Status) { step1Status.textContent = 'Δεν βρέθηκε'; step1Status.className = 'cloud-step-status fail'; }
+      if (step1Status) { step1Status.textContent = t('settings.cloud_not_found', 'Δεν βρέθηκε'); step1Status.className = 'cloud-step-status fail'; }
       if (step1Body)   step1Body.classList.remove('hidden');
       return; // Σταματάμε εδώ
     }
@@ -1577,7 +1589,7 @@
       if (step2Body) step2Body.classList.remove('hidden');
     } else {
       if (step2Num)    { step2Num.textContent = '2'; }
-      if (step2Status) { step2Status.textContent = 'Κανένα remote'; }
+      if (step2Status) { step2Status.textContent = t('settings.cloud_no_remotes', 'Κανένα remote'); }
       if (step2Body)   step2Body.classList.remove('hidden');
     }
 
@@ -1596,7 +1608,7 @@
       if (step3Status) { step3Status.textContent = cfg.remotePath; step3Status.className = 'cloud-step-status ok'; }
       if (actions) actions.classList.remove('hidden');
       if (lastSync && cfg.lastSync) {
-        lastSync.textContent = 'Τελευταίο sync: ' + cfg.lastSync + (cfg.lastSyncStatus === 'ok' ? ' ✓' : ' ✗');
+        lastSync.textContent = t('settings.last_sync_prefix', 'Τελευταίο sync: ') + cfg.lastSync + (cfg.lastSyncStatus === 'ok' ? ' ✓' : ' ✗');
       }
       await loadRetentionStatus();
     } else {
@@ -1620,10 +1632,10 @@
     if (lockInfo) {
       if (status.lock && !status.isMine) {
         const when = new Date(status.lock.enabledAt).toLocaleString('el-GR');
-        lockInfo.textContent = `Ήδη ενεργό σε άλλη συσκευή (${status.lock.hostname}, από ${when})`;
+        lockInfo.textContent = `${t('settings.lock_active_elsewhere_prefix', 'Ήδη ενεργό σε άλλη συσκευή')} (${status.lock.hostname}, ${t('settings.lock_active_elsewhere_since', 'από')} ${when})`;
         lockInfo.style.color = 'var(--warn-light,#f59e0b)';
       } else if (status.lock && status.isMine) {
-        lockInfo.textContent = 'Ενεργό σε αυτή τη συσκευή';
+        lockInfo.textContent = t('settings.lock_active_here', 'Ενεργό σε αυτή τη συσκευή');
         lockInfo.style.color = 'var(--ok-light,#22c55e)';
       } else {
         lockInfo.textContent = '';
@@ -1635,34 +1647,33 @@
   async function saveRetentionDays() {
     const days = parseInt(document.getElementById('retention-days')?.value) || 90;
     await pyBridgeCall('retention-set-days', days);
-    App.toast('Διατήρηση αποθηκεύτηκε: ' + days + ' ημέρες', 'ok');
+    App.toast(t('settings.retention_saved_prefix', 'Διατήρηση αποθηκεύτηκε:') + ' ' + days + ' ' + t('settings.days_word', 'ημέρες'), 'ok');
   }
 
   async function toggleRetentionAuto(checked) {
     if (checked) {
       const result = await pyBridgeCall('retention-enable-auto');
       if (result?.ok) {
-        App.toast('Αυτόματος καθαρισμός ενεργοποιήθηκε', 'ok');
+        App.toast(t('settings.auto_cleanup_enabled', 'Αυτόματος καθαρισμός ενεργοποιήθηκε'), 'ok');
       } else if (result?.error === 'owned_by_other') {
-        App.toast('Ήδη ενεργό σε άλλη συσκευή — απενεργοποίησέ το εκεί πρώτα', 'warn');
+        App.toast(t('settings.auto_cleanup_owned_by_other', 'Ήδη ενεργό σε άλλη συσκευή — απενεργοποίησέ το εκεί πρώτα'), 'warn');
       } else {
-        App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+        App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
       }
     } else {
       await pyBridgeCall('retention-disable-auto');
-      App.toast('Αυτόματος καθαρισμός απενεργοποιήθηκε', 'ok');
+      App.toast(t('settings.auto_cleanup_disabled', 'Αυτόματος καθαρισμός απενεργοποιήθηκε'), 'ok');
     }
     await loadRetentionStatus();
   }
 
   async function forceReleaseRetentionLock() {
     App.showModal(
-      '🔓 Εξαναγκασμένη Απελευθέρωση',
-      '<div style="font-size:13px;">Αυτό θα αφαιρέσει το lock ανεξάρτητα από ποια συσκευή το κατέχει. ' +
-      'Χρησιμοποίησέ το μόνο αν η άλλη συσκευή δεν υπάρχει πια ή δεν λειτουργεί.</div>',
+      t('settings.retention_force_release_button', '🔓 Εξαναγκασμένη Απελευθέρωση'),
+      `<div style="font-size:13px;">${t('settings.force_release_body', 'Αυτό θα αφαιρέσει το lock ανεξάρτητα από ποια συσκευή το κατέχει. Χρησιμοποίησέ το μόνο αν η άλλη συσκευή δεν υπάρχει πια ή δεν λειτουργεί.')}</div>`,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: '🔓 Απελευθέρωση', action: 'SettingsPage._doForceReleaseRetentionLock()' },
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('settings.release_button', '🔓 Απελευθέρωση'), action: 'SettingsPage._doForceReleaseRetentionLock()' },
       ]
     );
   }
@@ -1670,57 +1681,57 @@
   async function _doForceReleaseRetentionLock() {
     App.closeModal();
     await pyBridgeCall('retention-force-release');
-    App.toast('Το lock απελευθερώθηκε', 'ok');
+    App.toast(t('settings.lock_released', 'Το lock απελευθερώθηκε'), 'ok');
     await loadRetentionStatus();
   }
 
   async function previewRetentionCleanup() {
     const el = document.getElementById('retention-preview-result');
-    if (el) { el.textContent = 'Έλεγχος...'; el.style.color = 'var(--text-muted)'; }
+    if (el) { el.textContent = t('settings.checking', 'Έλεγχος...'); el.style.color = 'var(--text-muted)'; }
     const result = await pyBridgeCall('retention-preview');
     if (!el) return;
     if (!result?.ok) {
-      el.textContent = 'Σφάλμα: ' + (result?.error || '');
+      el.textContent = t('settings.generic_error_prefix', 'Σφάλμα: ') + (result?.error || '');
       el.style.color = 'var(--fail-light,#ef4444)';
       return;
     }
     if (result.files.length === 0) {
-      el.textContent = `Κανένα backup παλαιότερο από ${result.days} ημέρες.`;
+      el.textContent = `${t('settings.no_old_backups_prefix', 'Κανένα backup παλαιότερο από')} ${result.days} ${t('settings.days_word', 'ημέρες')}.`;
       el.style.color = 'var(--ok-light,#22c55e)';
     } else {
-      el.textContent = `${result.files.length} backup παλαιότερα από ${result.days} ημέρες θα διαγραφούν στον επόμενο αυτόματο καθαρισμό (ή πάτησε "Καθαρισμός Τώρα").`;
+      el.textContent = `${result.files.length} ${t('settings.old_backups_will_delete', 'backup παλαιότερα από')} ${result.days} ${t('settings.old_backups_will_delete_suffix', 'ημέρες θα διαγραφούν στον επόμενο αυτόματο καθαρισμό (ή πάτησε "Καθαρισμός Τώρα").')}`;
       el.style.color = 'var(--warn-light,#f59e0b)';
     }
   }
 
   async function runRetentionCleanupNow() {
     const preview = await pyBridgeCall('retention-preview');
-    if (!preview?.ok) { App.toast('Σφάλμα: ' + (preview?.error || ''), 'fail'); return; }
+    if (!preview?.ok) { App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + (preview?.error || ''), 'fail'); return; }
     if (preview.files.length === 0) {
-      App.toast('Κανένα backup προς διαγραφή', 'ok');
+      App.toast(t('settings.no_backups_to_delete', 'Κανένα backup προς διαγραφή'), 'ok');
       return;
     }
     App.showModal(
-      '🧹 Καθαρισμός Backup στο Cloud',
-      `<div style="font-size:13px;">Θα διαγραφούν <strong>${preview.files.length}</strong> backup ` +
-      `παλαιότερα από <strong>${preview.days}</strong> ημέρες από το cloud. ` +
-      `Τα backups "FINAL" (κλεισίματος υποπεριόδου) δεν επηρεάζονται. Η ενέργεια δεν αναιρείται.</div>`,
+      t('settings.cleanup_cloud_backup_title', '🧹 Καθαρισμός Backup στο Cloud'),
+      `<div style="font-size:13px;">${t('settings.cleanup_will_delete_prefix', 'Θα διαγραφούν')} <strong>${preview.files.length}</strong> backup ` +
+      `${t('settings.cleanup_older_than', 'παλαιότερα από')} <strong>${preview.days}</strong> ${t('settings.cleanup_days_from_cloud', 'ημέρες από το cloud.')} ` +
+      `${t('settings.cleanup_final_note', 'Τα backups "FINAL" (κλεισίματος υποπεριόδου) δεν επηρεάζονται. Η ενέργεια δεν αναιρείται.')}</div>`,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: '🧹 Διαγραφή', action: 'SettingsPage._doRunRetentionCleanupNow()' },
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('settings.cleanup_delete_button', '🧹 Διαγραφή'), action: 'SettingsPage._doRunRetentionCleanupNow()' },
       ]
     );
   }
 
   async function _doRunRetentionCleanupNow() {
     App.closeModal();
-    App.toast('Καθαρισμός σε εξέλιξη...', 'info');
+    App.toast(t('settings.cleanup_in_progress', 'Καθαρισμός σε εξέλιξη...'), 'info');
     const result = await pyBridgeCall('retention-run-cleanup');
     if (result?.ok) {
-      App.toast('Ο καθαρισμός ολοκληρώθηκε', 'ok');
+      App.toast(t('settings.cleanup_completed', 'Ο καθαρισμός ολοκληρώθηκε'), 'ok');
       await previewRetentionCleanup();
     } else {
-      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
     }
   }
 
@@ -1746,15 +1757,15 @@
   async function testCloudConnection() {
     const path  = document.getElementById('cloud-remote-path')?.value?.trim();
     const result_el = document.getElementById('cloud-test-result');
-    if (!path) { if (result_el) { result_el.textContent = 'Εισάγετε remote path'; result_el.style.color = 'var(--warn-light)'; } return; }
-    if (result_el) { result_el.textContent = 'Έλεγχος...'; result_el.style.color = 'var(--text-muted)'; }
+    if (!path) { if (result_el) { result_el.textContent = t('settings.enter_remote_path', 'Εισάγετε remote path'); result_el.style.color = 'var(--warn-light)'; } return; }
+    if (result_el) { result_el.textContent = t('settings.checking', 'Έλεγχος...'); result_el.style.color = 'var(--text-muted)'; }
     const result = await pyBridgeCall('cloud-test', path);
     if (result_el) {
       if (result?.ok) {
-        result_el.textContent = '✓ Σύνδεση επιτυχής';
+        result_el.textContent = '✓ ' + t('settings.connection_success_short', 'Σύνδεση επιτυχής');
         result_el.style.color = 'var(--ok-light)';
       } else {
-        result_el.textContent = '✗ ' + (result?.error || 'Αποτυχία σύνδεσης');
+        result_el.textContent = '✗ ' + (result?.error || t('settings.connection_failure', 'Αποτυχία σύνδεσης'));
         result_el.style.color = 'var(--fail-light)';
       }
     }
@@ -1762,9 +1773,9 @@
 
   async function saveCloudPath() {
     const path = document.getElementById('cloud-remote-path')?.value?.trim();
-    if (!path) { App.toast('Εισάγετε remote path', 'warn'); return; }
+    if (!path) { App.toast(t('settings.enter_remote_path', 'Εισάγετε remote path'), 'warn'); return; }
     await pyBridgeCall('cloud-save-config', path);
-    App.toast('Cloud path αποθηκεύτηκε', 'ok');
+    App.toast(t('settings.cloud_path_saved', 'Cloud path αποθηκεύτηκε'), 'ok');
     await loadCloudSync();
   }
 
@@ -1774,45 +1785,45 @@
   }
 
   async function syncNow() {
-    App.toast('Sync σε εξέλιξη...', 'info');
+    App.toast(t('settings.sync_in_progress', 'Sync σε εξέλιξη...'), 'info');
     const result = await pyBridgeCall('cloud-sync');
     if (result?.ok) {
-      App.toast('Sync ολοκληρώθηκε', 'ok');
+      App.toast(t('settings.sync_completed', 'Sync ολοκληρώθηκε'), 'ok');
     } else if (result?.noInternet) {
-      App.toast('Δεν υπάρχει σύνδεση internet', 'warn');
+      App.toast(t('settings.no_internet', 'Δεν υπάρχει σύνδεση internet'), 'warn');
     } else {
-      App.toast('Σφάλμα sync: ' + (result?.error || ''), 'fail');
+      App.toast(t('settings.sync_error_prefix', 'Σφάλμα sync: ') + (result?.error || ''), 'fail');
     }
     await loadCloudSync();
   }
 
   async function syncDocumentLibrary() {
-    App.toast('Sync βιβλιοθήκης σε εξέλιξη...', 'info');
+    App.toast(t('settings.library_sync_in_progress', 'Sync βιβλιοθήκης σε εξέλιξη...'), 'info');
     const result = await pyBridgeCall('sync-document-library');
     if (result?.ok) {
       const parts = [];
-      if (result.added)   parts.push(`+${result.added} νέα`);
-      if (result.updated) parts.push(`${result.updated} ενημερώθηκαν`);
-      if (result.deleted) parts.push(`${result.deleted} διαγράφηκαν`);
-      App.toast(parts.length ? `Sync βιβλιοθήκης: ${parts.join(', ')}` : 'Sync βιβλιοθήκης: καμία αλλαγή', 'ok');
+      if (result.added)   parts.push(`+${result.added} ${t('settings.new_word', 'νέα')}`);
+      if (result.updated) parts.push(`${result.updated} ${t('settings.updated_word', 'ενημερώθηκαν')}`);
+      if (result.deleted) parts.push(`${result.deleted} ${t('settings.deleted_word', 'διαγράφηκαν')}`);
+      App.toast(parts.length ? `${t('settings.library_sync_prefix', 'Sync βιβλιοθήκης:')} ${parts.join(', ')}` : t('settings.library_sync_no_change', 'Sync βιβλιοθήκης: καμία αλλαγή'), 'ok');
     } else if (result?.noInternet) {
-      App.toast('Δεν υπάρχει σύνδεση internet', 'warn');
+      App.toast(t('settings.no_internet', 'Δεν υπάρχει σύνδεση internet'), 'warn');
     } else {
-      App.toast('Σφάλμα sync βιβλιοθήκης: ' + (result?.error || ''), 'fail');
+      App.toast(t('settings.library_sync_error_prefix', 'Σφάλμα sync βιβλιοθήκης: ') + (result?.error || ''), 'fail');
     }
   }
 
   async function restoreFromCloud() {
     App.confirm(
-      'Επαναφορά από Cloud',
-      'Θα κατεβαστούν τα αρχεία από το cloud στον τοπικό φάκελο backup. Συνέχεια;',
+      t('settings.restore_from_cloud_title', 'Επαναφορά από Cloud'),
+      t('settings.restore_from_cloud_confirm', 'Θα κατεβαστούν τα αρχεία από το cloud στον τοπικό φάκελο backup. Συνέχεια;'),
       async () => {
-        App.toast('Επαναφορά σε εξέλιξη...', 'info');
+        App.toast(t('settings.restore_in_progress', 'Επαναφορά σε εξέλιξη...'), 'info');
         const result = await pyBridgeCall('cloud-restore');
         if (result?.ok) {
-          App.toast('Επαναφορά ολοκληρώθηκε', 'ok');
+          App.toast(t('settings.restore_completed', 'Επαναφορά ολοκληρώθηκε'), 'ok');
         } else {
-          App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+          App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
         }
       }
     );
@@ -1850,7 +1861,7 @@
     if (!el) return;
     const res = await window.pyBridge['list-backups']?.();
     if (!res?.ok || !res.files?.length) {
-      el.innerHTML = '<span style="color:var(--text-muted);font-size:0.85em;">Δεν βρέθηκαν αρχεία backup</span>';
+      el.innerHTML = `<span style="color:var(--text-muted);font-size:0.85em;">${t('settings.no_backup_files_found', 'Δεν βρέθηκαν αρχεία backup')}</span>`;
       return;
     }
     el.innerHTML = res.files.map(f => {
@@ -1873,25 +1884,25 @@
   function restoreFromBackup(filePath, fileName) {
     _pendingRestorePath = filePath;
     App.showModal(
-      '⚠ Επαναφορά Βάσης',
-      `<p>Θα επαναφερθεί το αρχείο:</p>
+      t('settings.restore_db_title', '⚠ Επαναφορά Βάσης'),
+      `<p>${t('settings.restore_file_intro', 'Θα επαναφερθεί το αρχείο:')}</p>
        <p style="font-family:'IBM Plex Mono',monospace;font-size:0.9em;margin:8px 0;word-break:break-all">${fileName}</p>
-       <p style="color:var(--text-muted);font-size:0.9em">Θα γίνει αυτόματο backup της τρέχουσας βάσης πριν ολοκληρωθεί η επαναφορά.</p>`,
+       <p style="color:var(--text-muted);font-size:0.9em">${t('settings.restore_auto_backup_note', 'Θα γίνει αυτόματο backup της τρέχουσας βάσης πριν ολοκληρωθεί η επαναφορά.')}</p>`,
       [
-        { label: 'Ακύρωση',   action: 'App.closeModal()',                              secondary: true },
-        { label: 'Συνέχεια →', action: 'App.closeModal();SettingsPage._confirmRestore2()' },
+        { label: t('common.cancel', 'Ακύρωση'),   action: 'App.closeModal()',                              secondary: true },
+        { label: t('common.continue', 'Συνέχεια →'), action: 'App.closeModal();SettingsPage._confirmRestore2()' },
       ]
     );
   }
 
   function _confirmRestore2() {
     App.showModal(
-      '⛔ Τελευταία Προειδοποίηση',
-      `<p>Όλες οι καταχωρήσεις που έγιναν <b>μετά</b> το επιλεγμένο backup θα χαθούν οριστικά.</p>
-       <p style="margin-top:12px;font-weight:600">Είστε απολύτως σίγουρος;</p>`,
+      t('settings.final_warning_title', '⛔ Τελευταία Προειδοποίηση'),
+      `<p>${t('settings.restore_final_warning_body', 'Όλες οι καταχωρήσεις που έγιναν')} <b>${t('settings.after_word', 'μετά')}</b> ${t('settings.restore_final_warning_body2', 'το επιλεγμένο backup θα χαθούν οριστικά.')}</p>
+       <p style="margin-top:12px;font-weight:600">${t('settings.are_you_absolutely_sure', 'Είστε απολύτως σίγουρος;')}</p>`,
       [
-        { label: 'Ακύρωση',    action: 'App.closeModal()',                              secondary: true },
-        { label: 'Επαναφορά', action: 'App.closeModal();SettingsPage._doRestore()'    },
+        { label: t('common.cancel', 'Ακύρωση'),    action: 'App.closeModal()',                              secondary: true },
+        { label: t('settings.restore_word', 'Επαναφορά'), action: 'App.closeModal();SettingsPage._doRestore()'    },
       ]
     );
   }
@@ -1902,9 +1913,9 @@
     if (!fp) return;
     const res = await window.pyBridge['restore-backup']?.(fp);
     if (res?.ok) {
-      App.toast('Επαναφορά ολοκληρώθηκε — επανεκκίνηση...', 'ok');
+      App.toast(t('settings.restore_completed_restarting', 'Επαναφορά ολοκληρώθηκε — επανεκκίνηση...'), 'ok');
     } else {
-      App.toast('Σφάλμα επαναφοράς: ' + (res?.error || ''), 'fail');
+      App.toast(t('settings.restore_error_prefix', 'Σφάλμα επαναφοράς: ') + (res?.error || ''), 'fail');
     }
   }
 
@@ -1924,16 +1935,16 @@
 
   async function inspectBackupFile(backupPath) {
     const container = document.getElementById('selective-restore-results');
-    if (container) container.innerHTML = '<span class="form-hint">Ανάλυση backup...</span>';
+    if (container) container.innerHTML = `<span class="form-hint">${t('settings.analyzing_backup', 'Ανάλυση backup...')}</span>`;
 
     const result = await window.pyBridge['inspect-backup-samples']?.(backupPath);
     if (!result?.ok) {
       if (container) container.innerHTML =
-        `<span style="color:var(--fail-light,#ef4444);font-size:12px;">Σφάλμα: ${_esc(result?.error || '')}</span>`;
+        `<span style="color:var(--fail-light,#ef4444);font-size:12px;">${t('settings.generic_error_prefix', 'Σφάλμα: ')}${_esc(result?.error || '')}</span>`;
       return;
     }
     if (!result.samples?.length) {
-      if (container) container.innerHTML = '<span class="form-hint">Δεν βρέθηκαν δείγματα σε αυτό το backup.</span>';
+      if (container) container.innerHTML = `<span class="form-hint">${t('settings.no_samples_in_backup', 'Δεν βρέθηκαν δείγματα σε αυτό το backup.')}</span>`;
       return;
     }
 
@@ -1947,11 +1958,11 @@
     const rows = result.samples.map((s, idx) => {
       const isCurrentPeriod = s.ce_number === activeCeNumber && s.subperiod_valid_from === activeSubValidFrom;
       const badge = isCurrentPeriod
-        ? '<span style="color:var(--ok-light,#22c55e);font-size:11px;">τρέχουσα περίοδος</span>'
-        : '<span style="color:var(--warn-light,#f59e0b);font-size:11px;">προηγούμενη περίοδος</span>';
+        ? `<span style="color:var(--ok-light,#22c55e);font-size:11px;">${t('settings.current_period', 'τρέχουσα περίοδος')}</span>`
+        : `<span style="color:var(--warn-light,#f59e0b);font-size:11px;">${t('settings.previous_period', 'προηγούμενη περίοδος')}</span>`;
       const action = isCurrentPeriod
-        ? `<button class="btn-secondary btn-sm" onclick="SettingsPage.startMergeSample(${idx})">↓ Εισαγωγή</button>`
-        : `<button class="btn-secondary btn-sm" onclick="SettingsPage.openBackupInArchiveMode()">📂 Λειτουργία Αρχείου</button>`;
+        ? `<button class="btn-secondary btn-sm" onclick="SettingsPage.startMergeSample(${idx})">↓ ${t('settings.import_button', 'Εισαγωγή')}</button>`
+        : `<button class="btn-secondary btn-sm" onclick="SettingsPage.openBackupInArchiveMode()">📂 ${t('settings.archive_mode_button', 'Λειτουργία Αρχείου')}</button>`;
       return `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;
              padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
@@ -1976,21 +1987,21 @@
     if (conflict?.exists) {
       const existing = conflict.sample;
       App.showModal(
-        '⚠ Το δείγμα υπάρχει ήδη',
+        t('settings.sample_exists_title', '⚠ Το δείγμα υπάρχει ήδη'),
         `<div style="font-size:13px;">
-          Υπάρχει ήδη δείγμα με κωδικό <strong>${_esc(sample.code)}</strong> στη ζωντανή βάση.
-          Η επαναφορά θα <strong>αντικαταστήσει όλες τις δοκιμές</strong> του με την έκδοση από το backup.
+          ${t('settings.sample_exists_body1', 'Υπάρχει ήδη δείγμα με κωδικό')} <strong>${_esc(sample.code)}</strong> ${t('settings.sample_exists_body2', 'στη ζωντανή βάση.')}
+          ${t('settings.sample_exists_body3', 'Η επαναφορά θα')} <strong>${t('settings.sample_exists_replace_tests', 'αντικαταστήσει όλες τις δοκιμές')}</strong> ${t('settings.sample_exists_body4', 'του με την έκδοση από το backup.')}
           <table style="margin-top:10px;width:100%;font-size:12px;">
-            <tr><td style="color:var(--text-muted);">Ημερομηνία:</td><td>${_esc(existing.date||'—')} → ${_esc(sample.date||'—')}</td></tr>
-            <tr><td style="color:var(--text-muted);">Σημείο δειγματοληψίας:</td><td>${_esc(existing.location||'—')} → ${_esc(sample.location||'—')}</td></tr>
-            <tr><td style="color:var(--text-muted);">Παρτίδα:</td><td>${_esc(existing.batch||'—')} → ${_esc(sample.batch||'—')}</td></tr>
-            <tr><td style="color:var(--text-muted);">Σχόλια:</td><td>${_esc(existing.comments||'—')} → ${_esc(sample.comments||'—')}</td></tr>
+            <tr><td style="color:var(--text-muted);">${t('settings.date_word', 'Ημερομηνία:')}</td><td>${_esc(existing.date||'—')} → ${_esc(sample.date||'—')}</td></tr>
+            <tr><td style="color:var(--text-muted);">${t('settings.sampling_point_label', 'Σημείο δειγματοληψίας:')}</td><td>${_esc(existing.location||'—')} → ${_esc(sample.location||'—')}</td></tr>
+            <tr><td style="color:var(--text-muted);">${t('settings.batch_label', 'Παρτίδα:')}</td><td>${_esc(existing.batch||'—')} → ${_esc(sample.batch||'—')}</td></tr>
+            <tr><td style="color:var(--text-muted);">${t('settings.comments_label', 'Σχόλια:')}</td><td>${_esc(existing.comments||'—')} → ${_esc(sample.comments||'—')}</td></tr>
           </table>
-          <p style="margin-top:10px;color:var(--warn-light,#f59e0b);">Θα ληφθεί αυτόματο backup ασφαλείας πριν την αντικατάσταση.</p>
+          <p style="margin-top:10px;color:var(--warn-light,#f59e0b);">${t('settings.auto_safety_backup_note', 'Θα ληφθεί αυτόματο backup ασφαλείας πριν την αντικατάσταση.')}</p>
         </div>`,
         [
-          { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-          { label: '⚠ Αντικατάσταση', action: `SettingsPage._doMergeSample(${idx}, ${existing.id})` },
+          { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+          { label: t('settings.replace_button', '⚠ Αντικατάσταση'), action: `SettingsPage._doMergeSample(${idx}, ${existing.id})` },
         ]
       );
       return;
@@ -2003,14 +2014,14 @@
     const backupPath = state._selectiveRestoreBackupPath;
     const sample      = state._selectiveRestoreSamples?.[idx];
     if (!backupPath || !sample) return;
-    App.toast('Επαναφορά σε εξέλιξη...', 'info');
+    App.toast(t('settings.restore_in_progress', 'Επαναφορά σε εξέλιξη...'), 'info');
     const result = await window.pyBridge['merge-sample-from-backup']?.({
       backupPath, backupSampleId: sample.id, overwriteSampleId,
     });
     if (result?.ok) {
-      App.toast('Το δείγμα επαναφέρθηκε επιτυχώς', 'ok');
+      App.toast(t('settings.sample_restored_success', 'Το δείγμα επαναφέρθηκε επιτυχώς'), 'ok');
     } else {
-      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
     }
   }
 
@@ -2018,17 +2029,14 @@
     const backupPath = state._selectiveRestoreBackupPath;
     if (!backupPath) return;
     App.showModal(
-      '📂 Άνοιγμα Backup σε Λειτουργία Αρχείου',
+      t('settings.open_backup_archive_title', '📂 Άνοιγμα Backup σε Λειτουργία Αρχείου'),
       `<div style="font-size:13px;">
-        Θα συνδεθείτε απευθείας πάνω σε αυτό το backup αρχείο — μπορείτε να
-        περιηγηθείτε, να επεξεργαστείτε, να εκτυπώσετε δείγματα κανονικά.
-        Οποιαδήποτε διόρθωση γράφεται <strong>μόνο σε αυτό το αρχείο backup</strong>,
-        καμία επίδραση στην τρέχουσα χρήση. Θα ληφθεί αυτόματα αντίγραφο
-        ασφαλείας του backup πριν την είσοδο.
+        ${t('settings.open_backup_archive_body', 'Θα συνδεθείτε απευθείας πάνω σε αυτό το backup αρχείο — μπορείτε να περιηγηθείτε, να επεξεργαστείτε, να εκτυπώσετε δείγματα κανονικά. Οποιαδήποτε διόρθωση γράφεται')} <strong>${t('settings.open_backup_only_this_file', 'μόνο σε αυτό το αρχείο backup')}</strong>,
+        ${t('settings.open_backup_archive_body2', 'καμία επίδραση στην τρέχουσα χρήση. Θα ληφθεί αυτόματα αντίγραφο ασφαλείας του backup πριν την είσοδο.')}
       </div>`,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: '📂 Είσοδος', action: 'SettingsPage._doOpenBackupInArchiveMode()' },
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('settings.enter_button', '📂 Είσοδος'), action: 'SettingsPage._doOpenBackupInArchiveMode()' },
       ]
     );
   }
@@ -2037,21 +2045,21 @@
     App.closeModal();
     const backupPath = state._selectiveRestoreBackupPath;
     if (!backupPath) return;
-    App.toast('Σύνδεση με backup...', 'info');
+    App.toast(t('settings.connecting_to_backup', 'Σύνδεση με backup...'), 'info');
     const result = await window.pyBridge['switch-to-backup-file']?.(backupPath);
     if (!result?.ok) {
-      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
       return;
     }
     const fakeName = backupPath.split(/[\\/]/).pop();
     if (typeof AppState !== 'undefined') {
       AppState.archiveMode   = true;
-      AppState.archivePeriod = { ce_number: 'Backup: ' + fakeName };
+      AppState.archivePeriod = { ce_number: t('settings.backup_prefix', 'Backup:') + ' ' + fakeName };
     }
     if (typeof _updateSidebarArchiveBanner === 'function') {
       _updateSidebarArchiveBanner(AppState.archivePeriod);
     }
-    App.toast('Λειτουργία αρχείου ενεργή', 'warn');
+    App.toast(t('settings.archive_mode_active', 'Λειτουργία αρχείου ενεργή'), 'warn');
     if (typeof navigateTo === 'function') navigateTo('dashboard');
   }
 
@@ -2060,7 +2068,7 @@
     if (result?.success) {
       const inp = document.getElementById('data-folder-path');
       if (inp) inp.value = result.folder;
-      App.toast('Φάκελος δεδομένων ορίστηκε', 'ok');
+      App.toast(t('settings.data_folder_set', 'Φάκελος δεδομένων ορίστηκε'), 'ok');
     }
   }
 
@@ -2069,9 +2077,9 @@
     if (result?.success) {
       App.toast(`Backup: ${result.path}`, 'ok');
     } else if (result?.reason === 'no_folder') {
-      App.toast('Ορίστε πρώτα φάκελο δεδομένων', 'warn');
+      App.toast(t('settings.set_data_folder_first', 'Ορίστε πρώτα φάκελο δεδομένων'), 'warn');
     } else {
-      App.toast('Σφάλμα backup: ' + (result?.error || ''), 'fail');
+      App.toast(t('settings.backup_error_prefix', 'Σφάλμα backup: ') + (result?.error || ''), 'fail');
     }
   }
 
@@ -2079,7 +2087,7 @@
     await window.pyBridge['set-config']?.({ dataFolder: null });
     const inp = document.getElementById('data-folder-path');
     if (inp) inp.value = '';
-    App.toast('Φάκελος δεδομένων εκκαθαρίστηκε', 'ok');
+    App.toast(t('settings.data_folder_cleared', 'Φάκελος δεδομένων εκκαθαρίστηκε'), 'ok');
   }
 
 
@@ -2104,7 +2112,7 @@
     if (!numEl) return;
 
     if (!period || !period.ce_number) {
-      numEl.textContent   = 'Δεν έχει οριστεί CE period';
+      numEl.textContent   = t('settings.no_ce_period_set', 'Δεν έχει οριστεί CE period');
       datesEl.textContent = '';
       return;
     }
@@ -2118,10 +2126,10 @@
     if (period._expiry_status && period._expiry_status !== 'ok') {
       const colors = { warning: '#f59e0b', urgent: '#ef4444', expired: '#dc2626', error: '#f59e0b' };
       const labels = {
-        warning: `⚠ Λήγει σε ${daysLeft} μέρες`,
-        urgent:  `🔴 Λήγει σε ${daysLeft} μέρες`,
-        expired: `🔴 Έχει λήξει`,
-        error:   `⚠ Άγνωστη ημερομηνία λήξης`,
+        warning: `⚠ ${t('settings.expires_in_prefix', 'Λήγει σε')} ${daysLeft} ${t('settings.days_word', 'μέρες')}`,
+        urgent:  `🔴 ${t('settings.expires_in_prefix', 'Λήγει σε')} ${daysLeft} ${t('settings.days_word', 'μέρες')}`,
+        expired: `🔴 ${t('settings.has_expired', 'Έχει λήξει')}`,
+        error:   `⚠ ${t('settings.unknown_expiry_date', 'Άγνωστη ημερομηνία λήξης')}`,
       };
       badgeEl.style.display     = 'inline-block';
       badgeEl.style.background  = colors[period._expiry_status] + '22';
@@ -2137,8 +2145,8 @@
     if (sub) {
       subCard.style.display = 'block';
       document.getElementById('ce-sub-report').textContent =
-        sub.lab_report_number ? `Έκθεση: ${sub.lab_report_number}` : 'Χωρίς αριθμό έκθεσης';
-      document.getElementById('ce-sub-from').textContent = `Από: ${_fmtDate(sub.valid_from)}`;
+        sub.lab_report_number ? `${t('settings.report_prefix', 'Έκθεση:')} ${sub.lab_report_number}` : t('settings.no_report_number', 'Χωρίς αριθμό έκθεσης');
+      document.getElementById('ce-sub-from').textContent = `${t('settings.from_prefix', 'Από:')} ${_fmtDate(sub.valid_from)}`;
       const vals = [
         sub.ext_mb_value != null ? `MB: ${sub.ext_mb_value} g/kg` : null,
         sub.ext_se_value != null ? `SE: ${sub.ext_se_value}%`     : null,
@@ -2161,7 +2169,7 @@
     if (!el) return;
     const inactive = periods.filter(p => !p.active);
     if (!inactive.length) {
-      el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Δεν υπάρχει ιστορικό</div>';
+      el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;">${t('settings.no_history', 'Δεν υπάρχει ιστορικό')}</div>`;
       return;
     }
     el.innerHTML = inactive.map(p => `
@@ -2176,7 +2184,7 @@
         <div style="display:flex;gap:4px;">
           <button class="btn-secondary btn-sm"
                   onclick="SettingsPage._enterArchiveFromHistory(${p.id})"
-                  title="Είσοδος σε Archive Mode">
+                  title="${t('settings.enter_archive_mode_tooltip', 'Είσοδος σε Archive Mode')}">
             🗄
           </button>
           ${p.data_folder ? `
@@ -2209,34 +2217,34 @@
         <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
           <div style="display:flex;justify-content:space-between;">
             <strong>${_esc(s.lab_report_number || '—')}</strong>
-            <span style="color:var(--text-muted);">από ${_fmtDate(s.valid_from)}</span>
+            <span style="color:var(--text-muted);">${t('settings.from_word_lower', 'από')} ${_fmtDate(s.valid_from)}</span>
           </div>
           ${vals ? `<div style="color:var(--text-muted);margin-top:2px;">${vals}</div>` : ''}
           ${s.notes ? `<div style="color:var(--text-muted);margin-top:2px);font-style:italic;">${_esc(s.notes)}</div>` : ''}
         </div>`;
-    }).join('') || '<div style="color:var(--text-muted);font-size:13px;">Δεν υπάρχουν υποπερίοδοι</div>';
+    }).join('') || `<div style="color:var(--text-muted);font-size:13px;">${t('settings.no_subperiods', 'Δεν υπάρχουν υποπερίοδοι')}</div>`;
 
     App.showModal(
-      `📋 ${_esc(period.ce_number)} — Αρχείο`,
+      `📋 ${_esc(period.ce_number)} — ${t('settings.archive_word', 'Αρχείο')}`,
       `<div style="font-size:13px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;
                     padding:10px;background:var(--bg-card);border-radius:6px;margin-bottom:14px;">
-          <div><span style="color:var(--text-muted);">Φορέας</span><br>
+          <div><span style="color:var(--text-muted);">${t('settings.body_word', 'Φορέας')}</span><br>
                <strong>${_esc(period.ce_body || '—')}</strong></div>
-          <div><span style="color:var(--text-muted);">Ισχύς</span><br>
+          <div><span style="color:var(--text-muted);">${t('settings.validity_word', 'Ισχύς')}</span><br>
                <strong>${_fmtDate(period.valid_from)} – ${_fmtDate(period.valid_to)}</strong></div>
           ${period.data_folder ? `
           <div style="grid-column:1/-1;">
-            <span style="color:var(--text-muted);">Φάκελος</span><br>
+            <span style="color:var(--text-muted);">${t('settings.folder_word', 'Φάκελος')}</span><br>
             <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;">${_esc(period.data_folder)}</span>
             <button class="btn-secondary btn-sm" style="margin-left:8px;"
                     onclick="SettingsPage._openCeFolder('${_esc(period.data_folder)}')">📂</button>
           </div>` : ''}
         </div>
-        <div style="font-weight:600;margin-bottom:8px;">Υποπερίοδοι</div>
+        <div style="font-weight:600;margin-bottom:8px;">${t('settings.subperiods_word', 'Υποπερίοδοι')}</div>
         ${subRows}
       </div>`,
-      [{ label: 'Κλείσιμο', action: 'App.closeModal()', secondary: true }]
+      [{ label: t('common.close', 'Κλείσιμο'), action: 'App.closeModal()', secondary: true }]
     );
   }
 
@@ -2248,7 +2256,7 @@
       _allPeriodsCache = await window.pyBridge?.get_all_ce_periods?.() || [];
     }
     const period = _allPeriodsCache.find(p => p.id === periodId);
-    if (!period) { App.toast('Δεν βρέθηκε η περίοδος', 'fail'); return; }
+    if (!period) { App.toast(t('settings.period_not_found', 'Δεν βρέθηκε η περίοδος'), 'fail'); return; }
     await App.enterArchiveMode(period);
   }
 
@@ -2267,19 +2275,19 @@
   async function showEditSubperiodModal() {
     const period = await window.pyBridge?.get_active_ce_period?.();
     const sub = period?.active_subperiod;
-    if (!sub) { App.toast('Δεν υπάρχει ενεργή υποπερίοδος', 'warn'); return; }
+    if (!sub) { App.toast(t('settings.no_active_subperiod', 'Δεν υπάρχει ενεργή υποπερίοδος'), 'warn'); return; }
     const subId = sub.id;
-    App.showModal('Επεξεργασία Υποπεριόδου', `
+    App.showModal(t('settings.edit_subperiod_title', 'Επεξεργασία Υποπεριόδου'), `
       <div class="form-grid">
         <div class="form-group full-width">
-          <label>Ημερομηνία Έναρξης</label>
+          <label>${t('settings.start_date_label', 'Ημερομηνία Έναρξης')}</label>
           <input type="date" id="edit-sub-valid-from"
                  value="${_toIsoDate(sub.valid_from || '')}"
                  style="width:100%;margin-top:4px;">
-          <small class="form-hint">Αλλαγή θα επανα-αναθέσει αυτόματα τα δείγματα της περιόδου στη σωστή υποπερίοδο.</small>
+          <small class="form-hint">${t('settings.start_date_hint', 'Αλλαγή θα επανα-αναθέσει αυτόματα τα δείγματα της περιόδου στη σωστή υποπερίοδο.')}</small>
         </div>
         <div class="form-group full-width">
-          <label>Αριθμός Έκθεσης Εξωτερικού Εργαστηρίου</label>
+          <label>${t('settings.external_lab_report_label', 'Αριθμός Έκθεσης Εξωτερικού Εργαστηρίου')}</label>
           <input type="text" id="edit-sub-report"
                  value="${_esc(sub.lab_report_number || '')}"
                  placeholder="πχ ΕΛΤΕΚ-2026-4471"
@@ -2304,7 +2312,7 @@
                  placeholder="πχ 12.0" style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Παρατηρήσεις</label>
+          <label>${t('settings.notes_label', 'Παρατηρήσεις')}</label>
           <textarea id="edit-sub-notes" rows="2"
                     style="width:100%;margin-top:4px;resize:vertical;">${_esc(sub.notes || '')}</textarea>
         </div>
@@ -2313,13 +2321,13 @@
             <input type="checkbox" id="edit-sub-pdf-subfolder"
                    ${sub.pdf_subfolder ? 'checked' : ''}
                    style="width:16px;height:16px;">
-            <span>Ξεχωριστός υποφάκελος PDF για αυτή την υποπερίοδο</span>
+            <span>${t('settings.pdf_subfolder_checkbox', 'Ξεχωριστός υποφάκελος PDF για αυτή την υποπερίοδο')}</span>
           </label>
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '✓ Αποθήκευση', action: 'SettingsPage._saveEditSubperiod(' + subId + ')' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_button', '✓ Αποθήκευση'), action: 'SettingsPage._saveEditSubperiod(' + subId + ')' },
     ]);
   }
 
@@ -2341,10 +2349,10 @@
         // που επεξεργαζόμαστε εδώ είναι πάντα η ενεργή)
         await window.pyBridge?.['set-config']?.({ activePeriodStart: validFrom });
       }
-      App.toast('Υποπερίοδος ενημερώθηκε', 'ok');
+      App.toast(t('settings.subperiod_updated_toast', 'Υποπερίοδος ενημερώθηκε'), 'ok');
       await loadCePeriods();
     } else {
-      App.toast('Σφάλμα αποθήκευσης', 'fail');
+      App.toast(t('settings.save_error', 'Σφάλμα αποθήκευσης'), 'fail');
     }
   }
 
@@ -2372,14 +2380,14 @@
             ? `<input type="number" step="0.1" class="specs-fl" value="${p.fl ?? ''}" style="width:80px;">`
             : '<span style="color:var(--text-muted);">—</span>'}</td>
         </tr>`;
-    }).join('') || '<tr><td colspan="4" style="color:var(--text-muted);padding:8px 4px;">Δεν υπάρχουν ενεργά προϊόντα</td></tr>';
+    }).join('') || `<tr><td colspan="4" style="color:var(--text-muted);padding:8px 4px;">${t('settings.no_active_products', 'Δεν υπάρχουν ενεργά προϊόντα')}</td></tr>`;
 
-    App.showModal('Προδιαγραφές ανά Προϊόν', `
+    App.showModal(t('settings.subperiod_specs_button', 'Προδιαγραφές ανά Προϊόν'), `
       <div style="font-size:13px;">
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr style="text-align:left;border-bottom:1px solid var(--border);">
-              <th style="padding:4px;">Προϊόν</th>
+              <th style="padding:4px;">${t('settings.product_word', 'Προϊόν')}</th>
               <th style="padding:4px;">MB (g/kg)</th>
               <th style="padding:4px;">SE (%)</th>
               <th style="padding:4px;">FI (%)</th>
@@ -2389,8 +2397,8 @@
         </table>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '✓ Αποθήκευση', action: 'SettingsPage._saveSubperiodSpecs(' + subperiodId + ')' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_button', '✓ Αποθήκευση'), action: 'SettingsPage._saveSubperiodSpecs(' + subperiodId + ')' },
     ]);
   }
 
@@ -2410,9 +2418,9 @@
     App.closeModal();
     const ok = await window.pyBridge?.call?.('set_subperiod_specs', subperiodId, rows);
     if (ok) {
-      App.toast('Προδιαγραφές αποθηκεύτηκαν', 'ok');
+      App.toast(t('settings.specs_saved_toast', 'Προδιαγραφές αποθηκεύτηκαν'), 'ok');
     } else {
-      App.toast('Σφάλμα αποθήκευσης', 'fail');
+      App.toast(t('settings.save_error', 'Σφάλμα αποθήκευσης'), 'fail');
     }
   }
 
@@ -2426,32 +2434,32 @@
       `<option value="${p.id}">${_esc(App.formatProduct({ product_name: p.name, d_min: p.d_min, d_max: p.d_max }))}</option>`
     ).join('');
 
-    App.showModal('Προδιαγραφές Κοκκομετρίας', `
+    App.showModal(t('settings.subperiod_gradation_button', 'Προδιαγραφές Κοκκομετρίας'), `
       <div style="font-size:13px;">
         <div class="form-grid">
           <div class="form-group">
-            <label>Προϊόν</label>
+            <label>${t('settings.product_word', 'Προϊόν')}</label>
             <select id="grad-product" style="width:100%;margin-top:4px;"
                     onchange="SettingsPage._loadGradationSpecNames(${subperiodId})">
-              <option value="">— Επιλέξτε —</option>
+              <option value="">${t('common.select_placeholder', '— Επιλέξτε —')}</option>
               ${options}
             </select>
           </div>
           <div class="form-group" id="grad-specname-wrap" style="display:none;">
-            <label>Πρότυπο</label>
+            <label>${t('settings.standard_word', 'Πρότυπο')}</label>
             <select id="grad-specname" style="width:100%;margin-top:4px;"
                     onchange="SettingsPage._loadGradationTable(${subperiodId})"></select>
           </div>
         </div>
         <div id="grad-source-note" style="font-size:11px;color:var(--text-muted);margin:8px 0;"></div>
         <div id="grad-table-area">
-          <p class="form-card-intro">Επιλέξτε προϊόν.</p>
+          <p class="form-card-intro">${t('settings.select_product_hint', 'Επιλέξτε προϊόν.')}</p>
         </div>
       </div>
     `, [
-      { label: 'Κλείσιμο', action: 'App.closeModal()', secondary: true },
-      { label: '↺ Επαναφορά σε global', action: 'SettingsPage._resetSubperiodGradation(' + subperiodId + ')', secondary: true },
-      { label: '✓ Αποθήκευση', action: 'SettingsPage._saveSubperiodGradation(' + subperiodId + ')' },
+      { label: t('common.close', 'Κλείσιμο'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.reset_to_global_button', '↺ Επαναφορά σε global'), action: 'SettingsPage._resetSubperiodGradation(' + subperiodId + ')', secondary: true },
+      { label: t('settings.save_button', '✓ Αποθήκευση'), action: 'SettingsPage._saveSubperiodGradation(' + subperiodId + ')' },
     ]);
   }
 
@@ -2462,7 +2470,7 @@
     const note = el('grad-source-note');
     if (!productId) {
       if (wrap) wrap.style.display = 'none';
-      if (area) area.innerHTML = '<p class="form-card-intro">Επιλέξτε προϊόν.</p>';
+      if (area) area.innerHTML = `<p class="form-card-intro">${t('settings.select_product_hint', 'Επιλέξτε προϊόν.')}</p>`;
       if (note) note.textContent = '';
       return;
     }
@@ -2473,7 +2481,7 @@
 
     if (specNames.length === 0) {
       if (wrap) wrap.style.display = 'none';
-      if (area) area.innerHTML = '<p class="form-card-intro">Δεν υπάρχουν global προδιαγραφές για αυτό το προϊόν.</p>';
+      if (area) area.innerHTML = `<p class="form-card-intro">${t('settings.no_global_specs_for_product', 'Δεν υπάρχουν global προδιαγραφές για αυτό το προϊόν.')}</p>`;
       if (note) note.textContent = '';
       return;
     }
@@ -2506,8 +2514,8 @@
     const rows = usingOverride ? overrideRows : globalRows;
     if (note) {
       note.textContent = usingOverride
-        ? '✎ Υπάρχει override για αυτή την υποπερίοδο.'
-        : 'Τιμές από το global πρότυπο (σημείο εκκίνησης) — η αποθήκευση δημιουργεί override μόνο για αυτή την υποπερίοδο.';
+        ? '✎ ' + t('settings.override_exists', 'Υπάρχει override για αυτή την υποπερίοδο.')
+        : t('settings.global_starting_point_note', 'Τιμές από το global πρότυπο (σημείο εκκίνησης) — η αποθήκευση δημιουργεί override μόνο για αυτή την υποπερίοδο.');
     }
 
     _gradState = { ..._gradState, subperiodId, productId, specType, specName, sieves };
@@ -2516,7 +2524,7 @@
     const allSieves  = [...new Set([...sieves, ...specSieves])].sort((a,b) => b - a);
 
     if (allSieves.length === 0) {
-      area.innerHTML = '<p class="form-card-intro">Δεν βρέθηκαν κόσκινα.</p>';
+      area.innerHTML = `<p class="form-card-intro">${t('settings.no_sieves_found', 'Δεν βρέθηκαν κόσκινα.')}</p>`;
       return;
     }
 
@@ -2524,9 +2532,9 @@
       <table class="data-table full-width" style="margin-top:4px;">
         <thead>
           <tr>
-            <th>Κόσκινο (mm)</th>
-            <th>Κατώτερο Όριο (%)</th>
-            <th>Ανώτερο Όριο (%)</th>
+            <th>${t('settings.sieve_mm_col', 'Κόσκινο (mm)')}</th>
+            <th>${t('settings.lower_limit_col', 'Κατώτερο Όριο (%)')}</th>
+            <th>${t('settings.upper_limit_col', 'Ανώτερο Όριο (%)')}</th>
           </tr>
         </thead>
         <tbody id="grad-table-body">
@@ -2549,7 +2557,7 @@
 
   async function _saveSubperiodGradation(subperiodId) {
     const { productId, specType, specName, sieves } = _gradState;
-    if (!productId || !specName) { App.toast('Επιλέξτε προϊόν και πρότυπο', 'warn'); return; }
+    if (!productId || !specName) { App.toast(t('settings.select_product_and_standard', 'Επιλέξτε προϊόν και πρότυπο'), 'warn'); return; }
 
     const rows = [...document.querySelectorAll('#grad-table-body tr[data-sieve]')].map(tr => {
       const sieve = parseFloat(tr.dataset.sieve);
@@ -2564,37 +2572,37 @@
     const ok = await window.pyBridge?.call?.(
       'save_subperiod_specifications', subperiodId, productId, specType, specName, rows);
     if (ok) {
-      App.toast('Προδιαγραφές κοκκομετρίας αποθηκεύτηκαν', 'ok');
+      App.toast(t('settings.gradation_specs_saved', 'Προδιαγραφές κοκκομετρίας αποθηκεύτηκαν'), 'ok');
       App.closeModal();
     } else {
-      App.toast('Σφάλμα αποθήκευσης', 'fail');
+      App.toast(t('settings.save_error', 'Σφάλμα αποθήκευσης'), 'fail');
     }
   }
 
   async function _resetSubperiodGradation(subperiodId) {
     const { productId, specType, specName } = _gradState;
-    if (!productId || !specName) { App.toast('Επιλέξτε προϊόν και πρότυπο', 'warn'); return; }
-    if (!confirm(`Επαναφορά "${specName}" στις global τιμές για αυτή την υποπερίοδο;`)) return;
+    if (!productId || !specName) { App.toast(t('settings.select_product_and_standard', 'Επιλέξτε προϊόν και πρότυπο'), 'warn'); return; }
+    if (!confirm(`${t('settings.reset_to_global_confirm_prefix', 'Επαναφορά')} "${specName}" ${t('settings.reset_to_global_confirm_suffix', 'στις global τιμές για αυτή την υποπερίοδο;')}`)) return;
 
     const ok = await window.pyBridge?.call?.(
       'save_subperiod_specifications', subperiodId, productId, specType, specName, []);
     if (ok) {
-      App.toast('Επανήλθε στο global', 'ok');
+      App.toast(t('settings.reverted_to_global', 'Επανήλθε στο global'), 'ok');
       await _loadGradationTable(subperiodId);
     } else {
-      App.toast('Σφάλμα', 'fail');
+      App.toast(t('settings.error_word', 'Σφάλμα'), 'fail');
     }
   }
 
   async function copySubperiodSpecs(subperiodId) {
-    if (!confirm('Θα αντιγραφούν οι προδιαγραφές (MB/SE/FI + κοκκομετρία) από την πιο πρόσφατη υποπερίοδο με δεδομένα, αντικαθιστώντας τυχόν υπάρχουσες τιμές σε αυτή την υποπερίοδο. Συνέχεια;')) return;
+    if (!confirm(t('settings.copy_specs_confirm', 'Θα αντιγραφούν οι προδιαγραφές (MB/SE/FI + κοκκομετρία) από την πιο πρόσφατη υποπερίοδο με δεδομένα, αντικαθιστώντας τυχόν υπάρχουσες τιμές σε αυτή την υποπερίοδο. Συνέχεια;'))) return;
 
     const result = await window.pyBridge?.call?.('copy_previous_subperiod_specs', subperiodId);
     if (result?.ok) {
-      App.toast(`Αντιγράφηκαν ${result.mb_se_fl_count} τιμές MB/SE/FI + ${result.sieve_count} γραμμές κοκκομετρίας`, 'ok');
+      App.toast(`${t('settings.copied_prefix', 'Αντιγράφηκαν')} ${result.mb_se_fl_count} ${t('settings.mb_se_fl_values_suffix', 'τιμές MB/SE/FI')} + ${result.sieve_count} ${t('settings.gradation_rows_suffix', 'γραμμές κοκκομετρίας')}`, 'ok');
       await loadCePeriods();
     } else {
-      App.toast('Σφάλμα: ' + (result?.error || ''), 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
     }
   }
 
@@ -2603,17 +2611,17 @@
   async function showNewSubperiodModal() {
     const period = await window.pyBridge?.get_active_ce_period?.();
     if (!period?.id) {
-      App.toast('Δεν υπάρχει ενεργή CE period', 'warn'); return;
+      App.toast(t('settings.no_active_ce_period', 'Δεν υπάρχει ενεργή CE period'), 'warn'); return;
     }
     const today = new Date().toISOString().substring(0, 10);
-    App.showModal('Νέα Υποπερίοδος', `
+    App.showModal(t('settings.new_subperiod_title', 'Νέα Υποπερίοδος'), `
       <div class="form-grid">
         <div class="form-group full-width">
-          <label>Ημερομηνία Έναρξης <span class="required">*</span></label>
+          <label>${t('settings.start_date_label', 'Ημερομηνία Έναρξης')} <span class="required">*</span></label>
           <input type="date" id="sub-valid-from" value="${today}" style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Αριθμός Έκθεσης Εξωτερικού Εργαστηρίου</label>
+          <label>${t('settings.external_lab_report_label', 'Αριθμός Έκθεσης Εξωτερικού Εργαστηρίου')}</label>
           <input type="text" id="sub-report-number" placeholder="πχ ΕΛΤΕΚ-2026-4471"
                  style="width:100%;margin-top:4px;">
         </div>
@@ -2633,20 +2641,20 @@
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Παρατηρήσεις</label>
+          <label>${t('settings.notes_label', 'Παρατηρήσεις')}</label>
           <textarea id="sub-notes" rows="2"
                     style="width:100%;margin-top:4px;resize:vertical;"></textarea>
         </div>
         <div class="form-group full-width">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
             <input type="checkbox" id="sub-pdf-subfolder" style="width:16px;height:16px;">
-            <span>Ξεχωριστός υποφάκελος PDF για αυτή την υποπερίοδο</span>
+            <span>${t('settings.pdf_subfolder_checkbox', 'Ξεχωριστός υποφάκελος PDF για αυτή την υποπερίοδο')}</span>
           </label>
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '✓ Δημιουργία', action: 'SettingsPage._saveNewSubperiod()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.create_button', '✓ Δημιουργία'), action: 'SettingsPage._saveNewSubperiod()' },
     ]);
     const subFromEl = document.getElementById('sub-valid-from');
     if (subFromEl) subFromEl._ceperiodId = period.id;
@@ -2661,10 +2669,10 @@
     const notes        = document.getElementById('sub-notes')?.value?.trim() || null;
     const pdfSub       = document.getElementById('sub-pdf-subfolder')?.checked ? 1 : 0;
 
-    if (!validFrom) { App.toast('Εισάγετε ημερομηνία έναρξης', 'warn'); return; }
+    if (!validFrom) { App.toast(t('settings.enter_start_date', 'Εισάγετε ημερομηνία έναρξης'), 'warn'); return; }
 
     const period = await window.pyBridge?.get_active_ce_period?.();
-    if (!period?.id) { App.toast('Δεν υπάρχει ενεργή CE period', 'fail'); return; }
+    if (!period?.id) { App.toast(t('settings.no_active_ce_period', 'Δεν υπάρχει ενεργή CE period'), 'fail'); return; }
 
     App.closeModal();
     // FINAL backup της τρέχουσας υποπεριόδου πριν την αλλαγή
@@ -2675,10 +2683,10 @@
     if (id) {
       // Ενημέρωση ημερομηνίας έναρξης για ονοματοδοσία backups
       await window.pyBridge?.['set-config']?.({ activePeriodStart: validFrom });
-      App.toast('Νέα υποπερίοδος δημιουργήθηκε', 'ok');
+      App.toast(t('settings.new_subperiod_created', 'Νέα υποπερίοδος δημιουργήθηκε'), 'ok');
       await loadCePeriods();
     } else {
-      App.toast('Σφάλμα δημιουργίας υποπεριόδου', 'fail');
+      App.toast(t('settings.subperiod_create_error', 'Σφάλμα δημιουργίας υποπεριόδου'), 'fail');
     }
   }
 
@@ -2686,37 +2694,37 @@
 
   async function showEditCePeriodModal() {
     const period = await window.pyBridge?.get_active_ce_period?.();
-    if (!period?.id) { App.toast('Δεν υπάρχει ενεργή CE period', 'warn'); return; }
-    App.showModal('Επεξεργασία CE Period', `
+    if (!period?.id) { App.toast(t('settings.no_active_ce_period', 'Δεν υπάρχει ενεργή CE period'), 'warn'); return; }
+    App.showModal(t('settings.edit_ce_period_title', 'Επεξεργασία CE Period'), `
       <div class="form-grid">
         <div class="form-group full-width">
-          <label>Αριθμός Πιστοποιητικού <span class="required">*</span></label>
+          <label>${t('settings.ce_number_label', 'Αριθμός Πιστοποιητικού')} <span class="required">*</span></label>
           <input type="text" id="edit-ce-number"
                  value="${_esc(period.ce_number || '')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Φορέας Πιστοποίησης</label>
+          <label>${t('settings.ce_body_label', 'Φορέας Πιστοποίησης')}</label>
           <input type="text" id="edit-ce-body"
                  value="${_esc(period.ce_body || '')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group">
-          <label>Ισχύς Από <span class="required">*</span></label>
+          <label>${t('settings.ce_valid_from_label', 'Ισχύς Από')} <span class="required">*</span></label>
           <input type="date" id="edit-ce-from"
                  value="${_toIsoDate(period.valid_from)}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group">
-          <label>Ισχύς Έως <span class="required">*</span></label>
+          <label>${t('settings.ce_valid_to_label', 'Ισχύς Έως')} <span class="required">*</span></label>
           <input type="date" id="edit-ce-to"
                  value="${_toIsoDate(period.valid_to)}"
                  style="width:100%;margin-top:4px;">
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '✓ Αποθήκευση', action: 'SettingsPage._saveEditCePeriod(' + period.id + ')' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_button', '✓ Αποθήκευση'), action: 'SettingsPage._saveEditCePeriod(' + period.id + ')' },
     ]);
   }
 
@@ -2726,7 +2734,7 @@
     const from   = document.getElementById('edit-ce-from')?.value?.trim();
     const to     = document.getElementById('edit-ce-to')?.value?.trim();
     if (!ceNum || !from || !to) {
-      App.toast('Συμπληρώστε τα υποχρεωτικά πεδία', 'warn'); return;
+      App.toast(t('settings.fill_required_fields', 'Συμπληρώστε τα υποχρεωτικά πεδία'), 'warn'); return;
     }
     App.closeModal();
 
@@ -2739,12 +2747,12 @@
         ce_valid_from: from, ce_valid_to: to,
       });
       await window.pyBridge?.['ce-notify-clear-snooze']?.();
-      App.toast('CE period ενημερώθηκε', 'ok');
+      App.toast(t('settings.ce_period_updated', 'CE period ενημερώθηκε'), 'ok');
       await loadCePeriods();
       // Ενημέρωση sidebar
       if (window.App?.updateSidebarCeBadge) window.App.updateSidebarCeBadge();
     } else {
-      App.toast('Σφάλμα αποθήκευσης', 'fail');
+      App.toast(t('settings.save_error', 'Σφάλμα αποθήκευσης'), 'fail');
     }
   }
 
@@ -2761,25 +2769,25 @@
       : 0;
 
     if (current?.id && sampleCount > 0) {
-      App.showModal('⚠️ Δεν έχετε κάνει Clean Start', `
+      App.showModal(t('settings.no_clean_start_title', '⚠️ Δεν έχετε κάνει Clean Start'), `
         <p style="margin-bottom:12px;">
-          Η τρέχουσα CE περίοδος <strong>${_esc(current.ce_number || '—')}</strong>
-          περιέχει <strong>${sampleCount} δείγματα</strong>.
+          ${t('settings.current_ce_period_prefix', 'Η τρέχουσα CE περίοδος')} <strong>${_esc(current.ce_number || '—')}</strong>
+          ${t('settings.contains_samples_suffix', 'περιέχει')} <strong>${sampleCount} ${t('settings.samples_word', 'δείγματα')}</strong>.
         </p>
         <p style="margin-bottom:12px;">
-          Αν δημιουργήσετε νέα περίοδο χωρίς Clean Start:
+          ${t('settings.new_period_without_clean_start', 'Αν δημιουργήσετε νέα περίοδο χωρίς Clean Start:')}
         </p>
         <ul style="margin:0 0 12px 18px;font-size:13px;color:var(--text-muted);">
-          <li>Τα παλιά δεδομένα <strong>παραμένουν</strong> στη βάση</li>
-          <li>Δεν δημιουργείται <strong>FINAL backup</strong> της παλιάς περιόδου</li>
-          <li>Τα ονόματα backup αρχείων δεν ενημερώνονται άμεσα</li>
+          <li>${t('settings.old_data_remains_pre', 'Τα παλιά δεδομένα')} <strong>${t('settings.remains_word', 'παραμένουν')}</strong> ${t('settings.old_data_remains_post', 'στη βάση')}</li>
+          <li>${t('settings.no_final_backup_pre', 'Δεν δημιουργείται')} <strong>FINAL backup</strong> ${t('settings.no_final_backup_post', 'της παλιάς περιόδου')}</li>
+          <li>${t('settings.backup_names_not_updated', 'Τα ονόματα backup αρχείων δεν ενημερώνονται άμεσα')}</li>
         </ul>
         <p style="font-size:13px;color:var(--text-muted);">
-          Συνιστάται να κάνετε <strong>Clean Start</strong> πρώτα.
+          ${t('settings.recommend_clean_start_pre', 'Συνιστάται να κάνετε')} <strong>Clean Start</strong> ${t('settings.recommend_clean_start_post', 'πρώτα.')}
         </p>
       `, [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: 'Συνέχεια χωρίς Clean Start', action: 'SettingsPage._openNewCePeriodForm()' },
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('settings.continue_without_clean_start', 'Συνέχεια χωρίς Clean Start'), action: 'SettingsPage._openNewCePeriodForm()' },
       ]);
       return;
     }
@@ -2797,42 +2805,42 @@
     const prefillFrom = _toIsoDate(lab.ce_valid_from || '');
     const prefillTo   = _toIsoDate(lab.ce_valid_to   || '');
 
-    App.showModal('Νέα CE Period', `
+    App.showModal(t('settings.new_ce_period_title', 'Νέα CE Period'), `
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
-        Η τρέχουσα period (${_esc(current?.ce_number || '—')}) θα αρχειοθετηθεί.
-        Ο νέος φάκελος δεδομένων θα οριστεί αυτόματα ως ο κύριος φάκελος.
+        ${t('settings.current_period_will_archive_pre', 'Η τρέχουσα period')} (${_esc(current?.ce_number || '—')}) ${t('settings.current_period_will_archive_post', 'θα αρχειοθετηθεί.')}
+        ${t('settings.new_folder_auto_set', 'Ο νέος φάκελος δεδομένων θα οριστεί αυτόματα ως ο κύριος φάκελος.')}
       </p>
       <div class="form-grid">
         <div class="form-group full-width">
-          <label>Αριθμός Πιστοποιητικού <span class="required">*</span></label>
+          <label>${t('settings.ce_number_label', 'Αριθμός Πιστοποιητικού')} <span class="required">*</span></label>
           <input type="text" id="nce-number" value="${prefillNum}"
                  placeholder="πχ 1128-CPR-0221"
                  style="width:100%;margin-top:4px;"
                  oninput="SettingsPage._updateSuggestedFolder()">
         </div>
         <div class="form-group full-width">
-          <label>Φορέας Πιστοποίησης</label>
+          <label>${t('settings.ce_body_label', 'Φορέας Πιστοποίησης')}</label>
           <input type="text" id="nce-body" value="${prefillBody}"
                  placeholder="πχ EUROCERT Α.Ε."
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group">
-          <label>Ισχύς Από <span class="required">*</span></label>
+          <label>${t('settings.ce_valid_from_label', 'Ισχύς Από')} <span class="required">*</span></label>
           <input type="date" id="nce-from" value="${prefillFrom}"
                  style="width:100%;margin-top:4px;"
                  oninput="SettingsPage._updateSuggestedFolder()">
         </div>
         <div class="form-group">
-          <label>Ισχύς Έως <span class="required">*</span></label>
+          <label>${t('settings.ce_valid_to_label', 'Ισχύς Έως')} <span class="required">*</span></label>
           <input type="date" id="nce-to" value="${prefillTo}"
                  style="width:100%;margin-top:4px;"
                  oninput="SettingsPage._updateSuggestedFolder()">
         </div>
         <div class="form-group full-width">
-          <label>Φάκελος Δεδομένων <span class="required">*</span></label>
+          <label>${t('settings.data_folder_label', 'Φάκελος Δεδομένων')} <span class="required">*</span></label>
           <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
             <input type="text" id="nce-folder"
-                   placeholder="Προτείνεται αυτόματα"
+                   placeholder="${t('settings.folder_suggested_auto', 'Προτείνεται αυτόματα')}"
                    style="flex:1;">
             <button class="btn-secondary btn-sm"
                     onclick="SettingsPage._selectNewCeFolder()">📂</button>
@@ -2841,8 +2849,8 @@
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '✓ Δημιουργία', action: 'SettingsPage._saveNewCePeriod()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.create_button', '✓ Δημιουργία'), action: 'SettingsPage._saveNewCePeriod()' },
     ]);
 
     // Αυτόματη πρόταση φακέλου αμέσως μετά το άνοιγμα
@@ -2859,7 +2867,7 @@
       const inp = document.getElementById('nce-folder');
       if (inp && !inp._manuallyEdited) inp.value = result.folder;
       const hint = document.getElementById('nce-folder-hint');
-      if (hint) hint.textContent = 'Προτεινόμενος φάκελος — μπορείτε να τον αλλάξετε';
+      if (hint) hint.textContent = t('settings.suggested_folder_hint', 'Προτεινόμενος φάκελος — μπορείτε να τον αλλάξετε');
     }
   }
 
@@ -2879,7 +2887,7 @@
     const folder = document.getElementById('nce-folder')?.value?.trim() || null;
 
     if (!ceNum || !from || !to) {
-      App.toast('Συμπληρώστε τα υποχρεωτικά πεδία', 'warn'); return;
+      App.toast(t('settings.fill_required_fields', 'Συμπληρώστε τα υποχρεωτικά πεδία'), 'warn'); return;
     }
 
     App.closeModal();
@@ -2901,11 +2909,11 @@
       await window.pyBridge?.['ce-notify-clear-snooze']?.();
       // Αποθήκευση ημερομηνίας έναρξης για ονοματοδοσία backups
       await window.pyBridge?.['set-config']?.({ activePeriodStart: from });
-      App.toast('Νέα CE period δημιουργήθηκε', 'ok');
+      App.toast(t('settings.new_ce_period_created', 'Νέα CE period δημιουργήθηκε'), 'ok');
       await loadCePeriods();
       await loadStorageSettings();
     } else {
-      App.toast('Σφάλμα δημιουργίας CE period', 'fail');
+      App.toast(t('settings.ce_period_create_error', 'Σφάλμα δημιουργίας CE period'), 'fail');
     }
   }
 
@@ -2914,57 +2922,57 @@
   async function showCleanStartModal() {
     const period      = await window.pyBridge?.get_active_ce_period?.();
     const sampleCount = await window.pyBridge?.call?.('get_samples_count') ?? '?';
-    App.showModal('🗑 Clean Start — Κλείσιμο Περιόδου', `
+    App.showModal(t('settings.clean_start_modal_title', '🗑 Clean Start — Κλείσιμο Περιόδου'), `
       <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);
                   border-radius:8px;padding:12px;margin-bottom:14px;">
-        <div style="font-weight:600;color:#ef4444;margin-bottom:6px;">⚠ Μη αναστρέψιμη ενέργεια</div>
+        <div style="font-weight:600;color:#ef4444;margin-bottom:6px;">⚠ ${t('settings.irreversible_action', 'Μη αναστρέψιμη ενέργεια')}</div>
         <div style="font-size:13px;color:var(--text-muted);">
-          Θα διαγραφούν <strong style="color:var(--text);">${sampleCount} δείγματα</strong>
-          και όλες οι εξαρτημένες δοκιμές της περιόδου
+          ${t('settings.clean_start_will_delete_pre', 'Θα διαγραφούν')} <strong style="color:var(--text);">${sampleCount} ${t('settings.samples_word', 'δείγματα')}</strong>
+          ${t('settings.clean_start_will_delete_post', 'και όλες οι εξαρτημένες δοκιμές της περιόδου')}
           <strong style="color:var(--text);">${_esc(period?.ce_number || '')}</strong>.
-          Η περίοδος αρχειοθετείται και η εφαρμογή επιστρέφει στον οδηγό εγκατάστασης.
+          ${t('settings.clean_start_archive_note', 'Η περίοδος αρχειοθετείται και η εφαρμογή επιστρέφει στον οδηγό εγκατάστασης.')}
         </div>
       </div>
 
-      <div style="font-size:13px;margin-bottom:10px;"><strong>Τι θα γίνει αυτόματα:</strong></div>
+      <div style="font-size:13px;margin-bottom:10px;"><strong>${t('settings.what_happens_automatically', 'Τι θα γίνει αυτόματα:')}</strong></div>
       <div style="font-size:13px;color:var(--text-muted);display:flex;flex-direction:column;gap:5px;margin-bottom:16px;">
-        <div>✓ Final backup (VACUUM INTO) + cloud sync</div>
-        <div>✓ Διαγραφή δειγμάτων & δοκιμών</div>
-        <div>✓ Αρχειοθέτηση CE period (παραμένει για ανάγνωση)</div>
-        <div>✓ Reset μετρητή δειγμάτων</div>
-        <div>✓ Επιστροφή στον οδηγό νέας περιόδου</div>
+        <div>✓ ${t('settings.final_backup_cloud_sync', 'Final backup (VACUUM INTO) + cloud sync')}</div>
+        <div>✓ ${t('settings.delete_samples_tests', 'Διαγραφή δειγμάτων & δοκιμών')}</div>
+        <div>✓ ${t('settings.archive_ce_period', 'Αρχειοθέτηση CE period (παραμένει για ανάγνωση)')}</div>
+        <div>✓ ${t('settings.reset_sample_counter', 'Reset μετρητή δειγμάτων')}</div>
+        <div>✓ ${t('settings.return_to_new_period_wizard', 'Επιστροφή στον οδηγό νέας περιόδου')}</div>
       </div>
 
-      <div style="font-size:13px;margin-bottom:8px;"><strong>Τι να κρατηθεί:</strong></div>
+      <div style="font-size:13px;margin-bottom:8px;"><strong>${t('settings.what_to_keep', 'Τι να κρατηθεί:')}</strong></div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
           <input type="checkbox" id="cs-keep-technicians" checked
                  style="width:15px;height:15px;cursor:pointer;">
-          Τεχνικοί
+          ${t('settings.technicians_word', 'Τεχνικοί')}
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
           <input type="checkbox" id="cs-keep-products" checked
                  style="width:15px;height:15px;cursor:pointer;">
-          Πηγές αδρανών & Προδιαγραφές
+          ${t('settings.material_sources_and_specs', 'Πηγές αδρανών & Προδιαγραφές')}
         </label>
       </div>
 
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">
-        Για επιβεβαίωση πληκτρολογήστε <strong>CLEAN</strong>:
+        ${t('settings.type_clean_to_confirm_pre', 'Για επιβεβαίωση πληκτρολογήστε')} <strong>CLEAN</strong>:
       </div>
       <input type="text" id="clean-confirm-input"
              placeholder="CLEAN" autocomplete="off"
              style="width:100%;font-family:'IBM Plex Mono',monospace;">
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '🗑 Εκτέλεση Clean Start', action: 'SettingsPage._doCleanStart()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.execute_clean_start', '🗑 Εκτέλεση Clean Start'), action: 'SettingsPage._doCleanStart()' },
     ]);
   }
 
   async function _doCleanStart() {
     const input = document.getElementById('clean-confirm-input')?.value?.trim();
     if (input !== 'CLEAN') {
-      App.toast('Πληκτρολογήστε CLEAN για επιβεβαίωση', 'warn'); return;
+      App.toast(t('settings.type_clean_to_confirm', 'Πληκτρολογήστε CLEAN για επιβεβαίωση'), 'warn'); return;
     }
 
     const keepTechnicians = document.getElementById('cs-keep-technicians')?.checked ?? true;
@@ -2973,24 +2981,24 @@
     App.closeModal();
 
     // Βήμα 1: Παραγωγή PDF βιβλιοθήκης πριν τη διαγραφή
-    App.toast('Βήμα 1/2 — Παραγωγή PDF βιβλιοθήκης...', 'info');
+    App.toast(t('settings.clean_start_step1', 'Βήμα 1/2 — Παραγωγή PDF βιβλιοθήκης...'), 'info');
     if (window.ReportsPage?.generatePdfLibrary) {
       await window.ReportsPage.generatePdfLibrary(true); // silent=true
     }
 
     // Βήμα 2: Clean Start
-    App.toast('Βήμα 2/2 — Clean Start σε εξέλιξη...', 'info');
+    App.toast(t('settings.clean_start_step2', 'Βήμα 2/2 — Clean Start σε εξέλιξη...'), 'info');
     const result = await window.pyBridge?.['clean-start']?.({ keepTechnicians, keepProducts });
     if (result?.ok) {
       App.toast(
-        `Clean Start ολοκληρώθηκε — ${result.deleted} δείγματα διαγράφηκαν. Επανεκκίνηση σε λίγο...`,
+        `${t('settings.clean_start_completed_prefix', 'Clean Start ολοκληρώθηκε —')} ${result.deleted} ${t('settings.clean_start_completed_suffix', 'δείγματα διαγράφηκαν. Επανεκκίνηση σε λίγο...')}`,
         'ok'
       );
       // Η επανεκκίνηση γίνεται αυτόματα από το main process (2.5s)
     } else if (result?.canceled) {
-      App.toast('Clean Start ακυρώθηκε', 'warn');
+      App.toast(t('settings.clean_start_canceled', 'Clean Start ακυρώθηκε'), 'warn');
     } else {
-      App.toast('Σφάλμα Clean Start: ' + (result?.error || 'άγνωστο'), 'fail');
+      App.toast(t('settings.clean_start_error_prefix', 'Σφάλμα Clean Start: ') + (result?.error || t('settings.unknown_word', 'άγνωστο')), 'fail');
     }
   }
 
@@ -3000,16 +3008,16 @@
     const period = await window.pyBridge?.get_active_ce_period?.();
     const sub = period?.active_subperiod;
     if (!sub) return;
-    App.showModal('Διαγραφή Υποπεριόδου', `
-      <p>Είστε σίγουροι ότι θέλετε να διαγράψετε την υποπερίοδο
-         <strong>${_esc(sub.lab_report_number || 'χωρίς αριθμό έκθεσης')}</strong>
-         (από ${_fmtDate(sub.valid_from)});</p>
+    App.showModal(t('settings.delete_subperiod_title', 'Διαγραφή Υποπεριόδου'), `
+      <p>${t('settings.delete_subperiod_confirm_pre', 'Είστε σίγουροι ότι θέλετε να διαγράψετε την υποπερίοδο')}
+         <strong>${_esc(sub.lab_report_number || t('settings.no_report_number', 'χωρίς αριθμό έκθεσης'))}</strong>
+         (${t('settings.from_word_lower', 'από')} ${_fmtDate(sub.valid_from)});</p>
       <p style="color:var(--text-muted);font-size:13px;">
-        Αν υπάρχουν δείγματα που την αναφέρουν, η διαγραφή δεν θα επιτραπεί.
+        ${t('settings.delete_blocked_if_samples', 'Αν υπάρχουν δείγματα που την αναφέρουν, η διαγραφή δεν θα επιτραπεί.')}
       </p>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '✕ Διαγραφή', action: 'SettingsPage._doDeleteSubperiod(' + sub.id + ')' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.delete_button_x', '✕ Διαγραφή'), action: 'SettingsPage._doDeleteSubperiod(' + sub.id + ')' },
     ]);
   }
 
@@ -3017,27 +3025,26 @@
     App.closeModal();
     const result = await window.pyBridge?.delete_subperiod?.(subperiodId);
     if (result?.ok) {
-      App.toast('Υποπερίοδος διαγράφηκε', 'ok');
+      App.toast(t('settings.subperiod_deleted_toast', 'Υποπερίοδος διαγράφηκε'), 'ok');
       await loadCePeriods();
     } else if (result?.reason === 'has_samples') {
-      App.toast(`Δεν είναι δυνατή η διαγραφή — υπάρχουν ${result.count} δείγματα`, 'warn');
+      App.toast(`${t('settings.cannot_delete_has_samples', 'Δεν είναι δυνατή η διαγραφή — υπάρχουν')} ${result.count} ${t('settings.samples_word', 'δείγματα')}`, 'warn');
     } else if (result?.reason === 'last_subperiod') {
-      App.toast('Δεν μπορεί να διαγραφεί η μοναδική υποπερίοδος', 'warn');
+      App.toast(t('settings.cannot_delete_only_subperiod', 'Δεν μπορεί να διαγραφεί η μοναδική υποπερίοδος'), 'warn');
     } else {
-      App.toast('Σφάλμα διαγραφής', 'fail');
+      App.toast(t('settings.delete_error', 'Σφάλμα διαγραφής'), 'fail');
     }
   }
 
   async function deleteCePeriod(periodId) {
-    App.showModal('Διαγραφή CE Period', `
-      <p>Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την CE period
-         και όλες τις υποπεριόδους της;</p>
+    App.showModal(t('settings.delete_ce_period_title', 'Διαγραφή CE Period'), `
+      <p>${t('settings.delete_ce_period_confirm', 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την CE period και όλες τις υποπεριόδους της;')}</p>
       <p style="color:var(--text-muted);font-size:13px;">
-        Αν υπάρχουν δείγματα που την αναφέρουν, η διαγραφή δεν θα επιτραπεί.
+        ${t('settings.delete_blocked_if_samples', 'Αν υπάρχουν δείγματα που την αναφέρουν, η διαγραφή δεν θα επιτραπεί.')}
       </p>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '✕ Διαγραφή', action: 'SettingsPage._doDeleteCePeriod(' + periodId + ')' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.delete_button_x', '✕ Διαγραφή'), action: 'SettingsPage._doDeleteCePeriod(' + periodId + ')' },
     ]);
   }
 
@@ -3045,7 +3052,7 @@
     App.closeModal();
     const result = await window.pyBridge?.delete_ce_period?.(periodId);
     if (result?.ok) {
-      App.toast('CE period διαγράφηκε', 'ok');
+      App.toast(t('settings.ce_period_deleted_toast', 'CE period διαγράφηκε'), 'ok');
       // Ενημέρωση dataFolder με το path της νέας active period
       const newPeriod = await window.pyBridge?.get_active_ce_period?.();
       if (newPeriod?.data_folder) {
@@ -3055,11 +3062,11 @@
       }
       await loadCePeriods();
     } else if (result?.reason === 'has_samples') {
-      App.toast(`Δεν είναι δυνατή η διαγραφή — υπάρχουν ${result.count} δείγματα`, 'warn');
+      App.toast(`${t('settings.cannot_delete_has_samples', 'Δεν είναι δυνατή η διαγραφή — υπάρχουν')} ${result.count} ${t('settings.samples_word', 'δείγματα')}`, 'warn');
     } else if (result?.reason === 'last_period') {
-      App.toast('Δεν μπορεί να διαγραφεί η μοναδική CE period', 'warn');
+      App.toast(t('settings.cannot_delete_only_ce_period', 'Δεν μπορεί να διαγραφεί η μοναδική CE period'), 'warn');
     } else {
-      App.toast('Σφάλμα διαγραφής', 'fail');
+      App.toast(t('settings.delete_error', 'Σφάλμα διαγραφής'), 'fail');
     }
   }
 

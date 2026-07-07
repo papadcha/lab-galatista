@@ -18,6 +18,8 @@
  */
 'use strict';
 
+import { initI18n, t, applyI18n } from './i18n/i18n.js';
+
 // ============================================================
 // GLOBAL STATE — Κοινά δεδομένα για όλες τις σελίδες
 // ============================================================
@@ -95,13 +97,15 @@ async function pyCallStrict(method, ...args) {
 // ============================================================
 
 const Pages = {
-  dashboard: { html: 'pages/dashboard/dashboard.html', js: 'pages/dashboard/dashboard.js' },
-  samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js'     },
-  tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js'         },
-  history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js'     },
-  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js'     },
-  library:   { html: 'pages/library/library.html',     js: 'pages/library/library.js'     },
-  settings:  { html: 'pages/settings/settings.html',   js: 'pages/settings/settings.js'   },
+  // module:true — η σελίδα έχει μετατραπεί σε ES module (import/export)·
+  // βλ. navigateTo() παρακάτω για τη διαφορά στον τρόπο φόρτωσης.
+  dashboard: { html: 'pages/dashboard/dashboard.html', js: 'pages/dashboard/dashboard.js', module: true },
+  samples:   { html: 'pages/samples/samples.html',     js: 'pages/samples/samples.js',     module: true },
+  tests:     { html: 'pages/tests/tests.html',         js: 'pages/tests/tests.js',         module: true },
+  history:   { html: 'pages/history/history.html',     js: 'pages/history/history.js',     module: true },
+  reports:   { html: 'pages/reports/reports.html',     js: 'pages/reports/reports.js',     module: true },
+  library:   { html: 'pages/library/library.html',     js: 'pages/library/library.js',     module: true },
+  settings:  { html: 'pages/settings/settings.html',   js: 'pages/settings/settings.js',   module: true },
 };
 
 async function navigateTo(pageId) {
@@ -117,6 +121,7 @@ async function navigateTo(pageId) {
   try {
     const html = await loadFile(Pages[pageId].html);
     document.getElementById('page-container').innerHTML = html;
+    applyI18n(document.getElementById('page-container'));
   } catch(e) {
     document.getElementById('page-container').innerHTML =
       `<div class="page-error">Σφάλμα φόρτωσης: ${pageId} — ${e.message}</div>`;
@@ -127,10 +132,8 @@ async function navigateTo(pageId) {
   const oldScript = document.getElementById('page-script');
   if (oldScript) oldScript.remove();
 
-  // Φόρτωση JS περιεχομένου και εκτέλεση ως inline script
+  // Φόρτωση JS και εκτέλεση
   try {
-    const jsContent = await loadFile(Pages[pageId].js);
-
     // Αναμονή για DOM render
     await new Promise(r => setTimeout(r, 50));
 
@@ -147,9 +150,20 @@ async function navigateTo(pageId) {
     container.id    = 'page-script-container';
     document.body.appendChild(container);
 
-    const script       = document.createElement('script');
-    script.id          = 'page-script';
-    script.textContent = jsContent;
+    const script = document.createElement('script');
+    script.id    = 'page-script';
+    if (Pages[pageId].module) {
+      // ES module σελίδα: πραγματικό <script type="module" src="..."> με
+      // cache-busting query string — ο browser κάνει cache τα modules ανά
+      // resolved URL, οπότε χωρίς αυτό δεν θα ξανάτρεχε σε επόμενη πλοήγηση
+      // στην ίδια σελίδα (επαληθεύτηκε εμπειρικά).
+      script.type = 'module';
+      script.src  = Pages[pageId].js + '?v=' + Date.now();
+    } else {
+      // Παλιό μονοπάτι: fetch ως κείμενο + εκτέλεση ως inline classic script
+      // (ξανατρέχει πάντα, αφού είναι νέο <script> στοιχείο κάθε φορά).
+      script.textContent = await loadFile(Pages[pageId].js);
+    }
     container.appendChild(script);
     console.log('[NAV] Script loaded:', Pages[pageId].js);
   } catch(e) {
@@ -395,6 +409,17 @@ window.App        = App;
 window.pyCall     = pyCall;
 window.pyCallStrict = pyCallStrict;
 window.AppState   = AppState;
+
+// Πραγματικά ESM exports — για τις σελίδες που έχουν ήδη μετατραπεί σε
+// modules (βλ. Pages{ module:true }) και κάνουν πλέον ρητό `import` αντί
+// να βασίζονται σε γυμνά globals. Προστίθεται ΜΑΖΙ με τα window.X παραπάνω
+// (όχι αντί) — τα classic-script pages συνεχίζουν να δουλεύουν αμετάβλητα.
+// Σημείωση: κάποια από αυτά δηλώνονται πιο κάτω στο αρχείο — λειτουργούν
+// εδώ λόγω hoisting των function declarations.
+export {
+  App, pyCall, pyCallStrict, AppState,
+  navigateTo, _esc, _formatCeDate, _toIsoDate, _updateSidebarArchiveBanner,
+};
 
 // Wizard functions — exposed μετά το App
 // ── Archive Mode ─────────────────────────────────────────────
@@ -757,75 +782,6 @@ function _showCloudSyncFailToast(info) {
     </div>
   `;
   document.body.appendChild(toast);
-}
-
-// Listener για παλιές κοκκομετρίες με διπλομετρημένο βάρος τυφλού (fix
-// b174af5 — δεν έγινε retroactive recalculation, ο χειριστής επιλέγει
-// ποιες να ελέγξει/ξανα-αποθηκεύσει)
-if (window.pyBridge?.['on-pan-fix-needed']) {
-  window.pyBridge['on-pan-fix-needed']((items) => {
-    _showPanFixModal(items);
-  });
-}
-
-function _showPanFixModal(items) {
-  if (!items || items.length === 0) return;
-  window._panFixPendingIds = new Set(items.map(it => it.sample_id));
-
-  const rows = items.map(it => `
-    <tr>
-      <td>${App.formatCode(it.sample_code)}</td>
-      <td>${_esc(it.product_name || '')}</td>
-      <td>${App.formatDate(it.sample_date)}</td>
-      <td>${it.sieve_mm} mm</td>
-      <td style="color:var(--fail);">${it.stored_passing}%</td>
-      <td style="color:var(--ok);">${it.correct_passing}%</td>
-      <td><button class="btn-secondary btn-sm" onclick="_openPanFixSample(${it.sample_id})">Άνοιγμα</button></td>
-    </tr>
-  `).join('');
-
-  App.showModal(
-    '⚠ Διόρθωση Παλαιών Κοκκομετριών',
-    `<div style="font-size:13px;">
-      <p style="color:var(--text-muted);margin-bottom:10px;">
-        Ένα παλιό σφάλμα υπολόγιζε λανθασμένα το %διερχόμενο στο μικρότερο
-        κόσκινο (προσμετρούσε διπλά το βάρος τυφλού). Οι παρακάτω επίσημες
-        κοκκομετρίες επηρεάζονται — ανοίξτε κάθε μία, ελέγξτε τα στοιχεία
-        και πατήστε Αποθήκευση για να διορθωθεί αυτόματα με τον σωστό τύπο.
-      </p>
-      <div style="max-height:280px;overflow-y:auto;">
-        <table class="data-table">
-          <thead><tr>
-            <th>Δείγμα</th><th>Προϊόν</th><th>Ημ/νία</th><th>Κόσκινο</th>
-            <th>Παλιά τιμή</th><th>Σωστή τιμή</th><th></th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <label style="display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--text-muted);">
-        <input type="checkbox" id="pan-fix-hide-checkbox">
-        Να μην εμφανιστεί ξανά αυτό το μήνυμα
-      </label>
-    </div>`,
-    [
-      { label: 'Κλείσιμο', action: '_closePanFixModal()', secondary: true },
-    ]
-  );
-}
-
-function _openPanFixSample(sampleId) {
-  App.closeModal();
-  window._currentSampleId = sampleId;
-  window._fromHistory     = true;
-  App.go('tests');
-}
-
-async function _closePanFixModal() {
-  const cb = document.getElementById('pan-fix-hide-checkbox');
-  if (cb?.checked) {
-    await window.pyBridge?.['pan-fix-notice-dismiss']?.();
-  }
-  App.closeModal();
 }
 
 // Listener για νέα έκδοση
@@ -1343,8 +1299,39 @@ function initTitlebar() {
   window.pyBridge['on-window-maximized-change']?.(setMaxIcon);
 }
 
+// ============================================================
+// ΕΚΘΕΣΗ ΣΤΟ WINDOW — συμβατότητα με τα page scripts
+// ============================================================
+// main-app.js είναι πλέον ES module (βλ. index.html: type="module"),
+// άρα οι top-level function δηλώσεις του ΔΕΝ γίνονται πια αυτόματα
+// window properties όπως όταν ήταν classic script — και τα 7 page
+// scripts (dashboard.js, samples.js, κλπ.) παραμένουν classic scripts
+// που τις καλούν ως γυμνά ονόματα (π.χ. bare `_esc(...)`, `navigateTo(...)`),
+// όπως και κάποιο inline `onclick="..."` HTML που παράγεται εδώ.
+// Χωρίς αυτή τη ρητή έκθεση θα έσπαγαν με ReferenceError.
+Object.assign(window, {
+  navigateTo, loadFile, Pages,
+  _updateSidebarArchiveBanner, enterArchiveMode, _doEnterArchiveMode,
+  exitArchiveMode, _doExitArchiveMode, _doForceQuit,
+  fetchStandards, findOutdatedStandard, checkDocumentStandards,
+  _formatCeDate, updateSidebarCeBadge,
+  _showCeExpiryToast, _dismissCeToast, _snoozeCeToast,
+  _dismissDataFolderToast, _snoozeDataFolderToast, _showDataFolderMismatchToast,
+  _dismissCloudSyncToast, _snoozeCloudSyncToast, _showCloudSyncFailToast,
+  _showUpdateBanner, _parseVersionsMd, showVersionHistory, _submitVersionIssueReport,
+  checkAndShowInitBanner, _removeInitBanner, _showInitBanner, showSetupWizard,
+  _showWizardStep, _wizardStep1, _wizardStep2, _wizardStep3, _wizardActions,
+  _wizardNext, _wizardBack, _wizardFinish, updateSuggestedWizardFolder, _wizardSelectFolder,
+  _toIsoDate, _esc, hideSplash, initTitlebar,
+  t, applyI18n,
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+
+  // i18n: εφαρμόζεται πρώτο, ανεξάρτητο από τον Python backend (μόνο
+  // στατικό markup — sidebar/titlebar/splash σήμερα, βλ. src/i18n/i18n.js).
+  await initI18n('el');
 
   // Περιμένω τον Python backend να είναι έτοιμος ΠΡΙΝ κάνω οποιαδήποτε
   // κλήση δεδομένων παρακάτω (get_products κλπ) — αλλιώς σε αργή εκκίνηση

@@ -10,7 +10,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Εργαστήριο Λατομείων Γαλάτιστας</title>
+  <!-- 'unsafe-inline' στο script-src χρειάζεται τα onclick="..." attributes
+       που χρησιμοποιούνται σε όλη την εφαρμογή (buttons, pills, modal
+       actions) — αφαίρεσή του θα τα έσπαγε όλα σιωπηλά. Τα ίδια τα page
+       scripts φορτώνονται ως πραγματικά <script type="module" src="...">
+       (βλ. main-app.js navigateTo()), όχι inline, άρα δεν εξαρτώνται από
+       'unsafe-inline' — το CSP εδώ κυρίως μπλοκάρει απρόσμενα remote
+       resources/συνδέσεις, όχι τα υπάρχοντα inline onclick handlers. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://raw.githubusercontent.com https://api.github.com;">
+  <title data-i18n="app.title">Εργαστήριο Λατομείων Γαλάτιστας</title>
   <link rel="stylesheet" href="styles/main.css">
   <link rel="stylesheet" href="styles/reports-print.css">
 </head>
@@ -19,9 +27,9 @@
   <!-- Splash overlay — εμφανίζεται ώσπου ο Python backend να είναι έτοιμος -->
   <div id="splash-overlay">
     <img src="assets/logo.png" alt="Λατομεία Γαλάτιστας" id="splash-logo">
-    <div id="splash-title">Εργαστήριο Λατομείων Γαλάτιστας</div>
+    <div id="splash-title" data-i18n="app.title">Εργαστήριο Λατομείων Γαλάτιστας</div>
     <div id="splash-spinner"></div>
-    <div id="splash-msg">Εκκίνηση συστήματος…</div>
+    <div id="splash-msg" data-i18n="splash.starting">Εκκίνηση συστήματος…</div>
   </div>
 
   <!-- ================================================
@@ -30,12 +38,12 @@
   <div id="titlebar">
     <div id="titlebar-drag">
       <img src="assets/logo.png" id="titlebar-logo" alt="">
-      <span id="titlebar-title">Εργαστήριο Λατομείων Γαλάτιστας</span>
+      <span id="titlebar-title" data-i18n="app.title">Εργαστήριο Λατομείων Γαλάτιστας</span>
     </div>
     <div id="titlebar-controls">
-      <button id="titlebar-min" class="titlebar-btn" title="Ελαχιστοποίηση">─</button>
-      <button id="titlebar-max" class="titlebar-btn" title="Μεγιστοποίηση">▢</button>
-      <button id="titlebar-close" class="titlebar-btn titlebar-btn-close" title="Κλείσιμο">✕</button>
+      <button id="titlebar-min" class="titlebar-btn" data-i18n-title="titlebar.minimize" title="Ελαχιστοποίηση">─</button>
+      <button id="titlebar-max" class="titlebar-btn" data-i18n-title="titlebar.maximize" title="Μεγιστοποίηση">▢</button>
+      <button id="titlebar-close" class="titlebar-btn titlebar-btn-close" data-i18n-title="titlebar.close" title="Κλείσιμο">✕</button>
     </div>
   </div>
 
@@ -52,29 +60,29 @@
       <ul class="nav-menu">
         <li class="nav-item active" data-page="dashboard">
           <span class="nav-icon">⬛</span>
-          <span class="nav-label">Αρχική</span>
+          <span class="nav-label" data-i18n="nav.dashboard">Αρχική</span>
         </li>
         <li class="nav-item" data-page="samples">
           <span class="nav-icon">✎</span>
-          <span class="nav-label">Καταχώρηση</span>
+          <span class="nav-label" data-i18n="nav.samples">Καταχώρηση</span>
         </li>
         <li class="nav-item" data-page="history">
           <span class="nav-icon">≡</span>
-          <span class="nav-label">Ιστορικό</span>
+          <span class="nav-label" data-i18n="nav.history">Ιστορικό</span>
         </li>
         <li class="nav-item" data-page="reports">
           <span class="nav-icon">▤</span>
-          <span class="nav-label">Εκθέσεις</span>
+          <span class="nav-label" data-i18n="nav.reports">Εκθέσεις</span>
         </li>
         <li class="nav-item" data-page="library">
           <span class="nav-icon">📚</span>
-          <span class="nav-label">Βιβλιοθήκη</span>
+          <span class="nav-label" data-i18n="nav.library">Βιβλιοθήκη</span>
           <span id="library-badge" style="display:none;background:#b45309;color:#fff;
                 border-radius:10px;font-size:10px;padding:1px 6px;margin-left:auto;">!</span>
         </li>
         <li class="nav-item" data-page="settings">
           <span class="nav-icon">⚙</span>
-          <span class="nav-label">Ρυθμίσεις</span>
+          <span class="nav-label" data-i18n="nav.settings">Ρυθμίσεις</span>
         </li>
       </ul>
 
@@ -82,14 +90,15 @@
       <div id="sidebar-archive-banner" style="display:none;
            background:#b45309;color:#fff;padding:8px 10px;
            border-radius:6px;margin:0 8px 8px;font-size:12px;">
-        <div style="font-weight:700;letter-spacing:.5px;margin-bottom:2px;">
+        <div style="font-weight:700;letter-spacing:.5px;margin-bottom:2px;" data-i18n="archive.mode">
           🗄 ARCHIVE MODE
         </div>
         <div id="archive-banner-ce" style="font-size:11px;opacity:.9;margin-bottom:6px;"></div>
         <button onclick="App.exitArchiveMode()"
                 style="width:100%;padding:4px;border:1px solid rgba(255,255,255,.5);
                        border-radius:4px;background:rgba(255,255,255,.15);
-                       color:#fff;font-size:11px;cursor:pointer;">
+                       color:#fff;font-size:11px;cursor:pointer;"
+                data-i18n="archive.return">
           ↩ Επιστροφή στην τρέχουσα
         </button>
       </div>
@@ -131,6 +140,6 @@
   <!-- Global Toasts -->
   <div id="toast-container"></div>
 
-  <script src="main-app.js"></script>
+  <script type="module" src="main-app.js"></script>
 </body>
 </html>

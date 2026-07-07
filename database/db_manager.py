@@ -948,15 +948,24 @@ def apply_sample_code_rename(rename_id: int, rename_to: str) -> bool:
     Καλείται αυτόματα από create_sample όταν χρειάζεται.
     """
     conn = get_connection()
-    conn.execute(
-        "UPDATE tbl_samples SET code=?, updated_at=datetime('now') WHERE id=?",
-        (rename_to, rename_id)
-    )
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn.execute(
+            "UPDATE tbl_samples SET code=?, updated_at=datetime('now') WHERE id=?",
+            (rename_to, rename_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def get_sources() -> list:
     """Επιστρέφει όλες τις ενεργές πηγές."""
     conn = get_connection()
@@ -1015,6 +1024,12 @@ def create_sample(code: str, date: str, product_id: int,
         sample_id = cursor.lastrowid
         conn.commit()
         return sample_id
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -1057,7 +1072,10 @@ def create_sample_with_rename(code_info: dict, date: str, product_id: int,
         conn.commit()
         return sample_id
     except Exception:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         raise
     finally:
         conn.close()
@@ -1129,6 +1147,12 @@ def update_sample(sample_id: int, **kwargs) -> bool:
     try:
         conn.execute(f"UPDATE tbl_samples SET {set_clause} WHERE id=?", values)
         conn.commit()
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
     return True
@@ -1225,66 +1249,75 @@ def set_required_tests(sample_id: int, test_types: List[str]) -> bool:
     """
     # 1. Validation επιτρεπόμενων δοκιμών για την κατηγορία
     conn = get_connection()
-    sample = conn.execute("""
-        SELECT s.id, p.category, p.name, p.d_min, p.d_max
-          FROM tbl_samples s
-          JOIN tbl_products p ON s.product_id = p.id
-         WHERE s.id = ?
-    """, (sample_id,)).fetchone()
-    if not sample:
-        conn.close()
-        raise ValueError(f"Δεν βρέθηκε δείγμα με id={sample_id}")
+    try:
+        sample = conn.execute("""
+            SELECT s.id, p.category, p.name, p.d_min, p.d_max
+              FROM tbl_samples s
+              JOIN tbl_products p ON s.product_id = p.id
+             WHERE s.id = ?
+        """, (sample_id,)).fetchone()
+        if not sample:
+            conn.close()
+            raise ValueError(f"Δεν βρέθηκε δείγμα με id={sample_id}")
 
-    category = sample['category']
-    invalid = [tt for tt in test_types
-               if not is_test_allowed_for_category(tt, category)]
-    if invalid:
-        conn.close()
-        labels = [TEST_REGISTRY[tt]['label'] for tt in invalid
-                  if tt in TEST_REGISTRY]
-        raise ValueError(
-            f"Οι δοκιμές {labels} δεν επιτρέπονται για κατηγορία '{category}'."
-        )
+        category = sample['category']
+        invalid = [tt for tt in test_types
+                   if not is_test_allowed_for_category(tt, category)]
+        if invalid:
+            conn.close()
+            labels = [TEST_REGISTRY[tt]['label'] for tt in invalid
+                      if tt in TEST_REGISTRY]
+            raise ValueError(
+                f"Οι δοκιμές {labels} δεν επιτρέπονται για κατηγορία '{category}'."
+            )
 
-    # 2. Έλεγχος ότι δεν αφαιρούνται δοκιμές με εκτελέσεις
-    current = set(r['test_type'] for r in conn.execute(
-        "SELECT test_type FROM tbl_required_tests WHERE sample_id=?",
-        (sample_id,)
-    ).fetchall())
-    requested = set(test_types)
-    to_remove = current - requested
-
-    blocked = []
-    for tt in to_remove:
-        entry = TEST_REGISTRY.get(tt)
-        if not entry:
-            continue
-        existing = conn.execute(
-            f"SELECT COUNT(*) AS c FROM {entry['table']} WHERE sample_id=?",
+        # 2. Έλεγχος ότι δεν αφαιρούνται δοκιμές με εκτελέσεις
+        current = set(r['test_type'] for r in conn.execute(
+            "SELECT test_type FROM tbl_required_tests WHERE sample_id=?",
             (sample_id,)
-        ).fetchone()
-        if existing['c'] > 0:
-            blocked.append(entry['label'])
+        ).fetchall())
+        requested = set(test_types)
+        to_remove = current - requested
 
-    if blocked:
+        blocked = []
+        for tt in to_remove:
+            entry = TEST_REGISTRY.get(tt)
+            if not entry:
+                continue
+            existing = conn.execute(
+                f"SELECT COUNT(*) AS c FROM {entry['table']} WHERE sample_id=?",
+                (sample_id,)
+            ).fetchone()
+            if existing['c'] > 0:
+                blocked.append(entry['label'])
+
+        if blocked:
+            conn.close()
+            raise ValueError(
+                f"Δεν μπορούν να αφαιρεθούν οι δοκιμές {blocked} γιατί "
+                f"έχουν ήδη εκτελέσεις. Διαγράψτε πρώτα τις εκτελέσεις."
+            )
+
+        # 3. Replace
+        conn.execute("DELETE FROM tbl_required_tests WHERE sample_id=?", (sample_id,))
+        for tt in test_types:
+            conn.execute(
+                "INSERT INTO tbl_required_tests (sample_id, test_type) VALUES (?, ?)",
+                (sample_id, tt)
+            )
+        conn.commit()
         conn.close()
-        raise ValueError(
-            f"Δεν μπορούν να αφαιρεθούν οι δοκιμές {blocked} γιατί "
-            f"έχουν ήδη εκτελέσεις. Διαγράψτε πρώτα τις εκτελέσεις."
-        )
-
-    # 3. Replace
-    conn.execute("DELETE FROM tbl_required_tests WHERE sample_id=?", (sample_id,))
-    for tt in test_types:
-        conn.execute(
-            "INSERT INTO tbl_required_tests (sample_id, test_type) VALUES (?, ?)",
-            (sample_id, tt)
-        )
-    conn.commit()
-    conn.close()
-    return True
+        return True
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def get_default_required_tests(product_id: int) -> List[str]:
     """
     Επιστρέφει τις προτεινόμενες δοκιμές για ένα προϊόν,
@@ -1313,20 +1346,29 @@ def initialize_required_tests_default(sample_id: int, product_id: int) -> bool:
     if not defaults:
         return False
     conn = get_connection()
-    for tt in defaults:
-        conn.execute(
-            "INSERT OR IGNORE INTO tbl_required_tests (sample_id, test_type) VALUES (?, ?)",
-            (sample_id, tt)
-        )
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        for tt in defaults:
+            conn.execute(
+                "INSERT OR IGNORE INTO tbl_required_tests (sample_id, test_type) VALUES (?, ?)",
+                (sample_id, tt)
+            )
+        conn.commit()
+        conn.close()
+        return True
 
 
-# ============================================================
-# ΚΟΚΚΟΜΕΤΡΙΑ
-# ============================================================
+    # ============================================================
+    # ΚΟΚΚΟΜΕΤΡΙΑ
+    # ============================================================
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def save_sieve_analysis(sample_id: int, date: str,
                         weight_initial: float, weight_dry: float,
                         weight_washed: float,
@@ -1406,6 +1448,12 @@ def save_sieve_analysis(sample_id: int, date: str,
 
         conn.commit()
         return analysis_id
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -1479,69 +1527,6 @@ def _insert_sieve_results(conn, analysis_id, weight_dry, sieve_results):
                 (sieve_analysis_id, sieve_mm, weight_retained, passing_percent)
             VALUES (?, ?, ?, ?)
         """, (analysis_id, 0, p.get('weight_retained', 0), 0.0))
-
-
-def get_pan_doublecount_affected_samples() -> list:
-    """
-    Εντοπίζει επίσημες κοκκομετρίες (is_official=1) όπου η ήδη αποθηκευμένη
-    τιμή %διερχόμενου στο μικρότερο κόσκινο δεν ταιριάζει με τον διορθωμένο
-    τύπο του _insert_sieve_results() (βλ. σχόλιο εκεί) — δηλαδή
-    αποθηκεύτηκε πριν το fix, με το βάρος τυφλού να προσμετράται διπλά.
-
-    Καμία νέα στήλη/flag δεν χρειάζεται: μόλις μια κοκκομετρία ξανα-
-    αποθηκευτεί με τον σωστό τύπο, η αποθηκευμένη τιμή θα ταιριάζει πλέον
-    με την επανυπολογισμένη — αυτόματα εξαφανίζεται από τη λίστα στον
-    επόμενο έλεγχο.
-    """
-    conn = get_connection()
-    try:
-        analyses = conn.execute("""
-            SELECT sa.id AS analysis_id, sa.sample_id, sa.weight_dry,
-                   s.code AS sample_code, s.date AS sample_date,
-                   p.name AS product_name
-              FROM tbl_sieve_analysis sa
-              JOIN tbl_samples  s ON s.id = sa.sample_id
-              JOIN tbl_products p ON p.id = s.product_id
-             WHERE sa.is_official = 1
-        """).fetchall()
-
-        affected = []
-        for a in analyses:
-            rows = conn.execute("""
-                SELECT sieve_mm, weight_retained, passing_percent
-                  FROM tbl_sieve_results
-                 WHERE sieve_analysis_id = ?
-                 ORDER BY sieve_mm DESC
-            """, (a['analysis_id'],)).fetchall()
-
-            pan     = next((r for r in rows if r['sieve_mm'] == 0), None)
-            regular = [r for r in rows if r['sieve_mm'] > 0]
-            if not pan or not regular or (pan['weight_retained'] or 0) == 0:
-                continue
-
-            M1 = a['weight_dry'] or 0
-            if M1 <= 0:
-                continue
-
-            cumulative = sum(r['weight_retained'] or 0 for r in regular)
-            correct_passing = max(0, min(100, round((M1 - cumulative) / M1 * 100, 1)))
-            finest = regular[-1]  # ήδη ταξινομημένα φθίνοντα → τελευταίο = μικρότερο
-            stored_passing = finest['passing_percent']
-
-            if stored_passing is None or abs(stored_passing - correct_passing) > 0.05:
-                affected.append({
-                    'sample_id':      a['sample_id'],
-                    'analysis_id':    a['analysis_id'],
-                    'sample_code':    a['sample_code'],
-                    'sample_date':    a['sample_date'],
-                    'product_name':   a['product_name'],
-                    'sieve_mm':       finest['sieve_mm'],
-                    'stored_passing': stored_passing,
-                    'correct_passing': correct_passing,
-                })
-        return affected
-    finally:
-        conn.close()
 
 
 def get_sieve_analysis(sample_id: int, run_id: Optional[int] = None) -> Optional[dict]:
@@ -1648,6 +1633,12 @@ def save_flakiness(sample_id: int, date: str,
 
         conn.commit()
         return flakiness_id
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -1752,6 +1743,12 @@ def save_methylene_blue(sample_id: int, date: str,
 
         conn.commit()
         return mb_id
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -1843,6 +1840,12 @@ def save_sand_equivalent(sample_id: int, date: str,
 
         conn.commit()
         return se_id
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -1921,16 +1924,25 @@ def mark_run_rejected(test_type: str, run_id: int, reason: str) -> bool:
         raise ValueError("Λόγος απόρριψης είναι υποχρεωτικός.")
     entry = _validate_test_type(test_type)
     conn = get_connection()
-    conn.execute(
-        f"UPDATE {entry['table']} "
-        f"SET is_official=0, rejected_reason=? WHERE id=?",
-        (reason, run_id)
-    )
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn.execute(
+            f"UPDATE {entry['table']} "
+            f"SET is_official=0, rejected_reason=? WHERE id=?",
+            (reason, run_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def update_rejected_reason(test_type: str, run_id: int, reason: str) -> bool:
     """
     Διορθώνει τον λόγο απόρριψης μιας ήδη απορριφθείσας εκτέλεσης.
@@ -1938,28 +1950,37 @@ def update_rejected_reason(test_type: str, run_id: int, reason: str) -> bool:
     """
     entry = _validate_test_type(test_type)
     conn = get_connection()
-    row = conn.execute(
-        f"SELECT is_official FROM {entry['table']} WHERE id=?",
-        (run_id,)
-    ).fetchone()
-    if not row:
-        conn.close()
-        raise ValueError(f"Δεν βρέθηκε run με id={run_id}")
-    if row['is_official'] == 1:
-        conn.close()
-        raise ValueError(
-            "Δεν μπορεί να αλλάξει το rejected_reason σε official run. "
-            "Πρώτα κάντε το απορριφθέν."
+    try:
+        row = conn.execute(
+            f"SELECT is_official FROM {entry['table']} WHERE id=?",
+            (run_id,)
+        ).fetchone()
+        if not row:
+            conn.close()
+            raise ValueError(f"Δεν βρέθηκε run με id={run_id}")
+        if row['is_official'] == 1:
+            conn.close()
+            raise ValueError(
+                "Δεν μπορεί να αλλάξει το rejected_reason σε official run. "
+                "Πρώτα κάντε το απορριφθέν."
+            )
+        conn.execute(
+            f"UPDATE {entry['table']} SET rejected_reason=? WHERE id=?",
+            (reason, run_id)
         )
-    conn.execute(
-        f"UPDATE {entry['table']} SET rejected_reason=? WHERE id=?",
-        (reason, run_id)
-    )
-    conn.commit()
-    conn.close()
-    return True
+        conn.commit()
+        conn.close()
+        return True
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def promote_run_to_official(test_type: str, run_id: int,
                             demote_reason: str) -> bool:
     """
@@ -2010,6 +2031,12 @@ def promote_run_to_official(test_type: str, run_id: int,
         )
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2032,6 +2059,12 @@ def delete_test_run(test_type: str, run_id: int) -> bool:
         conn.execute(f"DELETE FROM {table} WHERE id=?", (run_id,))
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2127,53 +2160,89 @@ def save_lab_info(data: dict) -> bool:
         return False
     set_clause = ', '.join(f"{k}=?" for k in fields)
     conn = get_connection()
-    conn.execute(
-        f"UPDATE tbl_laboratory SET {set_clause} WHERE id=1",
-        list(fields.values())
-    )
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn.execute(
+            f"UPDATE tbl_laboratory SET {set_clause} WHERE id=1",
+            list(fields.values())
+        )
+        conn.commit()
+        conn.close()
+        return True
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def add_source(code: str, name: str, location: Optional[str] = None) -> int:
     """Προσθέτει νέα πηγή υλικού."""
     conn = get_connection()
-    cursor = conn.execute(
-        "INSERT INTO tbl_sources (code, name, location, active) VALUES (?, ?, ?, 1)",
-        (code.upper(), name, location)
-    )
-    source_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    return source_id
+    try:
+        cursor = conn.execute(
+            "INSERT INTO tbl_sources (code, name, location, active) VALUES (?, ?, ?, 1)",
+            (code.upper(), name, location)
+        )
+        source_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return source_id
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def update_source(source_id: int, name: str,
                   location: Optional[str] = None) -> bool:
     """Ενημερώνει στοιχεία πηγής (εκτός κωδικού)."""
     conn = get_connection()
-    conn.execute(
-        "UPDATE tbl_sources SET name=?, location=? WHERE id=?",
-        (name, location, source_id)
-    )
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn.execute(
+            "UPDATE tbl_sources SET name=?, location=? WHERE id=?",
+            (name, location, source_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def toggle_source(source_id: int, active: int) -> bool:
     """Ενεργοποίηση/απενεργοποίηση πηγής."""
     conn = get_connection()
-    conn.execute(
-        "UPDATE tbl_sources SET active=? WHERE id=?",
-        (active, source_id)
-    )
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn.execute(
+            "UPDATE tbl_sources SET active=? WHERE id=?",
+            (active, source_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def delete_source(source_id: int) -> bool:
     """Οριστική διαγραφή πηγής. Επιτρέπεται μόνο αν δεν υπάρχουν δείγματα."""
     conn = get_connection()
@@ -2188,6 +2257,12 @@ def delete_source(source_id: int) -> bool:
         conn.execute("DELETE FROM tbl_sources WHERE id=?", (source_id,))
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2205,15 +2280,24 @@ def get_all_technicians() -> list:
 def toggle_technician(tech_id: int, active: int) -> bool:
     """Ενεργοποίηση/απενεργοποίηση τεχνικού."""
     conn = get_connection()
-    conn.execute(
-        "UPDATE tbl_technicians SET active=? WHERE id=?",
-        (active, tech_id)
-    )
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn.execute(
+            "UPDATE tbl_technicians SET active=? WHERE id=?",
+            (active, tech_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
 
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def delete_technician(tech_id: int) -> bool:
     """Οριστική διαγραφή τεχνικού. Επιτρέπεται μόνο αν δεν υπάρχουν δείγματα."""
     conn = get_connection()
@@ -2228,6 +2312,12 @@ def delete_technician(tech_id: int) -> bool:
         conn.execute("DELETE FROM tbl_technicians WHERE id=?", (tech_id,))
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2239,25 +2329,34 @@ def save_specifications(product_id: int, spec_type: str,
     Replace mode: διαγράφει τα παλιά και εισάγει τα νέα.
     """
     conn = get_connection()
-    # Διαγραφή παλιών
-    conn.execute(
-        "DELETE FROM tbl_specifications "
-        "WHERE product_id=? AND spec_type=? AND spec_name=?",
-        (product_id, spec_type, spec_name)
-    )
-    # Εισαγωγή νέων (μόνο αν έχουν έστω ένα όριο)
-    for s in specs:
-        lo = s.get('lower_limit')
-        hi = s.get('upper_limit')
-        conn.execute("""
-            INSERT INTO tbl_specifications
-                (product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (product_id, spec_type, spec_name, s['sieve_mm'], lo, hi))
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        # Διαγραφή παλιών
+        conn.execute(
+            "DELETE FROM tbl_specifications "
+            "WHERE product_id=? AND spec_type=? AND spec_name=?",
+            (product_id, spec_type, spec_name)
+        )
+        # Εισαγωγή νέων (μόνο αν έχουν έστω ένα όριο)
+        for s in specs:
+            lo = s.get('lower_limit')
+            hi = s.get('upper_limit')
+            conn.execute("""
+                INSERT INTO tbl_specifications
+                    (product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (product_id, spec_type, spec_name, s['sieve_mm'], lo, hi))
+        conn.commit()
+        conn.close()
+        return True
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def get_subperiod_specifications(subperiod_id: int, product_id: int) -> list:
     """Επιστρέφει τα per-υποπερίοδο overrides κοκκομετρίας για ένα προϊόν."""
     conn = get_connection()
@@ -2277,23 +2376,32 @@ def save_subperiod_specifications(subperiod_id: int, product_id: int, spec_type:
     Άδειο specs[] = επαναφορά σε global (διαγραφή override).
     """
     conn = get_connection()
-    conn.execute(
-        "DELETE FROM tbl_subperiod_specifications "
-        "WHERE subperiod_id=? AND product_id=? AND spec_type=? AND spec_name=?",
-        (subperiod_id, product_id, spec_type, spec_name)
-    )
-    for s in specs:
-        lo = s.get('lower_limit')
-        hi = s.get('upper_limit')
-        conn.execute("""
-            INSERT INTO tbl_subperiod_specifications
-                (subperiod_id, product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (subperiod_id, product_id, spec_type, spec_name, s['sieve_mm'], lo, hi))
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn.execute(
+            "DELETE FROM tbl_subperiod_specifications "
+            "WHERE subperiod_id=? AND product_id=? AND spec_type=? AND spec_name=?",
+            (subperiod_id, product_id, spec_type, spec_name)
+        )
+        for s in specs:
+            lo = s.get('lower_limit')
+            hi = s.get('upper_limit')
+            conn.execute("""
+                INSERT INTO tbl_subperiod_specifications
+                    (subperiod_id, product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (subperiod_id, product_id, spec_type, spec_name, s['sieve_mm'], lo, hi))
+        conn.commit()
+        conn.close()
+        return True
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def get_effective_specifications(subperiod_id: int, product_id: int) -> list:
     """
     Προδιαγραφές κοκκομετρίας που ισχύουν πραγματικά για ένα (υποπερίοδο,
@@ -2350,40 +2458,49 @@ def copy_previous_subperiod_specs(subperiod_id: int) -> dict:
         return {'ok': False, 'error': 'Δεν βρέθηκε προηγούμενη υποπερίοδος με δεδομένα'}
 
     conn = get_connection()
+    try:
 
-    mb_se_fl = conn.execute(
-        "SELECT product_id, mb, se, fl FROM tbl_subperiod_specs WHERE subperiod_id=?",
-        (source_id,)
-    ).fetchall()
-    conn.execute("DELETE FROM tbl_subperiod_specs WHERE subperiod_id=?", (subperiod_id,))
-    for r in mb_se_fl:
-        conn.execute("""
-            INSERT INTO tbl_subperiod_specs (subperiod_id, product_id, mb, se, fl)
-            VALUES (?, ?, ?, ?, ?)
-        """, (subperiod_id, r['product_id'], r['mb'], r['se'], r['fl']))
+        mb_se_fl = conn.execute(
+            "SELECT product_id, mb, se, fl FROM tbl_subperiod_specs WHERE subperiod_id=?",
+            (source_id,)
+        ).fetchall()
+        conn.execute("DELETE FROM tbl_subperiod_specs WHERE subperiod_id=?", (subperiod_id,))
+        for r in mb_se_fl:
+            conn.execute("""
+                INSERT INTO tbl_subperiod_specs (subperiod_id, product_id, mb, se, fl)
+                VALUES (?, ?, ?, ?, ?)
+            """, (subperiod_id, r['product_id'], r['mb'], r['se'], r['fl']))
 
-    sieve = conn.execute("""
-        SELECT product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit
-          FROM tbl_subperiod_specifications WHERE subperiod_id=?
-    """, (source_id,)).fetchall()
-    conn.execute("DELETE FROM tbl_subperiod_specifications WHERE subperiod_id=?", (subperiod_id,))
-    for r in sieve:
-        conn.execute("""
-            INSERT INTO tbl_subperiod_specifications
-                (subperiod_id, product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (subperiod_id, r['product_id'], r['spec_type'], r['spec_name'],
-              r['sieve_mm'], r['lower_limit'], r['upper_limit']))
+        sieve = conn.execute("""
+            SELECT product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit
+              FROM tbl_subperiod_specifications WHERE subperiod_id=?
+        """, (source_id,)).fetchall()
+        conn.execute("DELETE FROM tbl_subperiod_specifications WHERE subperiod_id=?", (subperiod_id,))
+        for r in sieve:
+            conn.execute("""
+                INSERT INTO tbl_subperiod_specifications
+                    (subperiod_id, product_id, spec_type, spec_name, sieve_mm, lower_limit, upper_limit)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (subperiod_id, r['product_id'], r['spec_type'], r['spec_name'],
+                  r['sieve_mm'], r['lower_limit'], r['upper_limit']))
 
-    conn.commit()
-    conn.close()
-    return {
-        'ok': True,
-        'source_subperiod_id': source_id,
-        'mb_se_fl_count': len(mb_se_fl),
-        'sieve_count': len(sieve),
-    }
+        conn.commit()
+        conn.close()
+        return {
+            'ok': True,
+            'source_subperiod_id': source_id,
+            'mb_se_fl_count': len(mb_se_fl),
+            'sieve_count': len(sieve),
+        }
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def get_smtp_config() -> dict:
     """Επιστρέφει SMTP ρυθμίσεις από tbl_laboratory."""
     import json as _json
@@ -2405,21 +2522,30 @@ def save_smtp_config(cfg: dict) -> bool:
     import json as _json
     # Μην αποθηκεύεις password σε plaintext — TODO: encryption
     conn = get_connection()
-    # Προσθήκη smtp_config column αν δεν υπάρχει
     try:
+        # Προσθήκη smtp_config column αν δεν υπάρχει
+        try:
+            conn.execute(
+                "ALTER TABLE tbl_laboratory ADD COLUMN smtp_config TEXT"
+            )
+            conn.commit()
+        except Exception:
+            pass  # Ήδη υπάρχει
         conn.execute(
-            "ALTER TABLE tbl_laboratory ADD COLUMN smtp_config TEXT"
+            "UPDATE tbl_laboratory SET smtp_config=? WHERE id=1",
+            (_json.dumps(cfg),)
         )
         conn.commit()
+        return True
     except Exception:
-        pass  # Ήδη υπάρχει
-    conn.execute(
-        "UPDATE tbl_laboratory SET smtp_config=? WHERE id=1",
-        (_json.dumps(cfg),)
-    )
-    conn.commit()
-    conn.close()
-    return True
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
+
 
 if __name__ == '__main__':
     initialize_database()
@@ -2517,6 +2643,12 @@ def add_product(material_type: str, d_min: float, d_max: float,
         )
         conn.commit()
         return cursor.lastrowid
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2600,6 +2732,12 @@ def update_product(product_id: int, material_type: str, d_min: float,
             )
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2627,6 +2765,12 @@ def toggle_product(product_id: int, active: int) -> bool:
         )
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2715,6 +2859,12 @@ def set_product_sieves(product_id: int, sieves: list, force: bool = False) -> bo
             )
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2758,6 +2908,12 @@ def delete_product(product_id: int) -> bool:
         conn.execute("DELETE FROM tbl_products WHERE id=?", (product_id,))
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2793,6 +2949,12 @@ def register_sieve(sieve_mm: float) -> bool:
         )
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2855,6 +3017,12 @@ def set_guide_enabled(enabled: bool) -> bool:
         )
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -2962,7 +3130,10 @@ def create_ce_period(ce_number: str, ce_body: str,
         conn.commit()
         return period_id
     except Exception:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         raise
     finally:
         conn.close()
@@ -3014,7 +3185,10 @@ def create_subperiod(ce_period_id: int, valid_from: str,
         conn.commit()
         return subperiod_id
     except Exception:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         raise
     finally:
         conn.close()
@@ -3031,6 +3205,10 @@ def update_active_ce_period_folder(data_folder: str) -> dict:
         conn.commit()
         return {'ok': True}
     except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         return {'ok': False, 'error': str(e)}
     finally:
         conn.close()
@@ -3046,6 +3224,12 @@ def update_ce_period_folder(period_id: int, data_folder: str) -> bool:
         )
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -3252,6 +3436,12 @@ def delete_subperiod(subperiod_id: int) -> dict:
 
         conn.commit()
         return {'ok': True}
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -3302,6 +3492,12 @@ def delete_ce_period(period_id: int) -> dict:
 
         conn.commit()
         return {'ok': True}
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -3317,6 +3513,12 @@ def update_ce_period(period_id: int, ce_number: str, ce_body: Optional[str],
         """, (ce_number, ce_body, valid_from, valid_to, period_id))
         conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -3375,6 +3577,12 @@ def update_subperiod(subperiod_id: int,
                     )
                 conn.commit()
         return True
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         conn.close()
 
@@ -3399,25 +3607,34 @@ def set_subperiod_specs(subperiod_id: int, rows: list) -> bool:
     Replace mode: διαγράφει τις παλιές και εισάγει τις νέες.
     """
     conn = get_connection()
-    conn.execute(
-        "DELETE FROM tbl_subperiod_specs WHERE subperiod_id=?",
-        (subperiod_id,)
-    )
-    for r in rows:
-        mb = r.get('mb')
-        se = r.get('se')
-        fl = r.get('fl')
-        if mb is None and se is None and fl is None:
-            continue
-        conn.execute("""
-            INSERT INTO tbl_subperiod_specs
-                (subperiod_id, product_id, mb, se, fl)
-            VALUES (?, ?, ?, ?, ?)
-        """, (subperiod_id, r['product_id'], mb, se, fl))
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        conn.execute(
+            "DELETE FROM tbl_subperiod_specs WHERE subperiod_id=?",
+            (subperiod_id,)
+        )
+        for r in rows:
+            mb = r.get('mb')
+            se = r.get('se')
+            fl = r.get('fl')
+            if mb is None and se is None and fl is None:
+                continue
+            conn.execute("""
+                INSERT INTO tbl_subperiod_specs
+                    (subperiod_id, product_id, mb, se, fl)
+                VALUES (?, ?, ?, ?, ?)
+            """, (subperiod_id, r['product_id'], mb, se, fl))
+        conn.commit()
+        conn.close()
+        return True
 
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 def get_ce_expiry_status() -> dict:
     """
     Ελέγχει την κατάσταση λήξης της ενεργής CE period.

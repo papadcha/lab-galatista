@@ -14,6 +14,11 @@
  *   0.99.3 — Footer: αριθμός έκθεσης εξωτ. εργαστηρίου
  *   0.99.0 — Προσθήκη επικεφαλίδας έκδοσης
  */
+// ES module — φορτώνεται με πραγματικό <script type="module" src="...">
+// (βλ. main-app.js: Pages.reports.module + navigateTo()).
+import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
+import { t } from '../../i18n/i18n.js';
+
 (() => {
 
   // ============================================================
@@ -120,7 +125,7 @@
     if (!container) return;
 
     if (results.length === 0) {
-      container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;margin-top:6px;">Δεν βρέθηκαν αποτελέσματα</p>';
+      container.innerHTML = `<p style="color:var(--text-muted);font-size:13px;margin-top:6px;">${t('reports.no_results', 'Δεν βρέθηκαν αποτελέσματα')}</p>`;
       return;
     }
 
@@ -151,7 +156,7 @@
       await pyCall('get_required_tests', id),
     ];
 
-    if (!report) { App.toast('Σφάλμα φόρτωσης δείγματος', 'fail'); return; }
+    if (!report) { App.toast(t('reports.load_error', 'Σφάλμα φόρτωσης δείγματος'), 'fail'); return; }
 
     state.selectedSample = report;
     state.requiredTests  = Array.isArray(requiredTests) ? requiredTests : [];
@@ -216,7 +221,7 @@
               <span class="plan-check-std">${esc(App.testStandard(tt))}</span>
             </div>
             <div class="plan-check-desc">
-              ${hasData ? '✓ Υπάρχουν αποτελέσματα' : 'Δεν έχει εκτελεστεί'}
+              ${hasData ? t('reports.test_has_data', '✓ Υπάρχουν αποτελέσματα') : t('reports.test_no_data', 'Δεν έχει εκτελεστεί')}
             </div>
           </div>
         </label>
@@ -238,7 +243,7 @@
     // Μοναδικές spec_names
     const names = [...new Set(state.specs.map(s => s.spec_name))];
     if (names.length === 0) {
-      container.innerHTML = '<span style="color:var(--text-muted);font-size:12px;">Δεν υπάρχουν προδιαγραφές για αυτό το προϊόν</span>';
+      container.innerHTML = `<span style="color:var(--text-muted);font-size:12px;">${t('reports.no_specs', 'Δεν υπάρχουν προδιαγραφές για αυτό το προϊόν')}</span>`;
       return;
     }
 
@@ -261,7 +266,7 @@
 
   async function previewSingle() {
     if (!state.selectedSample) {
-      App.toast('Επιλέξτε δείγμα πρώτα', 'warn');
+      App.toast(t('reports.select_sample_first', 'Επιλέξτε δείγμα πρώτα'), 'warn');
       return;
     }
 
@@ -316,14 +321,14 @@
 
   async function _doGeneratePdf() {
     const s = state.selectedSample?.sample;
-    if (!s) { App.toast('Δεν υπάρχει επιλεγμένο δείγμα', 'warn'); return null; }
+    if (!s) { App.toast(t('reports.no_sample_selected', 'Δεν υπάρχει επιλεγμένο δείγμα'), 'warn'); return null; }
 
     // Τρέχουσες επιλογές δοκιμών
     const selectedTests = [...document.querySelectorAll(
       '#single-tests-checkboxes input[type="checkbox"]:checked'
     )].map(c => c.dataset.test).filter(Boolean);
 
-    App.toast('Δημιουργία PDF…', 'info');
+    App.toast(t('sampleModal.pdf_generating', 'Δημιουργία PDF…'), 'info');
     const opts   = { sampleId: s.id, sampleCode: s.code,
                      tests: selectedTests.length > 0
                             ? selectedTests
@@ -332,7 +337,7 @@
     const result = await window.pyBridge?.['generate-report-pdf']?.(opts);
 
     if (!result?.success) {
-      App.toast('Σφάλμα παραγωγής PDF: ' + (result?.error || ''), 'fail');
+      App.toast(t('sampleModal.pdf_error', 'Σφάλμα παραγωγής PDF: ') + (result?.error || ''), 'fail');
       return null;
     }
     return result.path;
@@ -356,10 +361,10 @@
   async function printReport() {
     const init = await pyCall('get_init_status');
     if (!init?.can_pdf) {
-      App.toast('Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις', 'warn'); return;
+      App.toast(t('reports.setup_required', 'Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις'), 'warn'); return;
     }
     const s = state.selectedSample?.sample;
-    if (!s) { App.toast('Δεν υπάρχει επιλεγμένο δείγμα', 'warn'); return; }
+    if (!s) { App.toast(t('reports.no_sample_selected', 'Δεν υπάρχει επιλεγμένο δείγμα'), 'warn'); return; }
     const pdfPath = await _generatePdf();
     if (!pdfPath) return;
     await window.pyBridge?.['open-pdf']?.(pdfPath);
@@ -368,7 +373,7 @@
   async function saveReport() {
     const init = await pyCall('get_init_status');
     if (!init?.can_pdf) {
-      App.toast('Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις', 'warn'); return;
+      App.toast(t('reports.setup_required', 'Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις'), 'warn'); return;
     }
     if (!state.lastPdfPath) {
       state.lastPdfPath = await _generatePdf();
@@ -392,44 +397,44 @@
     const subFolder     = activeSub?.pdf_subfolder ? `UP${activeSub.id}` : null;
     const saved = await window.pyBridge?.['save-pdf']?.(state.lastPdfPath, name, productFolder, subFolder);
     if (saved?.success) {
-      App.toast('PDF αποθηκεύτηκε', 'ok');
+      App.toast(t('reports.pdf_saved', 'PDF αποθηκεύτηκε'), 'ok');
     } else if (!saved?.canceled) {
-      App.toast('Σφάλμα αποθήκευσης PDF: ' + (saved?.error || ''), 'fail');
+      App.toast(t('reports.pdf_save_error', 'Σφάλμα αποθήκευσης PDF: ') + (saved?.error || ''), 'fail');
     }
   }
 
   async function emailReport() {
     const init = await pyCall('get_init_status');
     if (!init?.can_pdf) {
-      App.toast('Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις', 'warn'); return;
+      App.toast(t('reports.setup_required', 'Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις'), 'warn'); return;
     }
     if (!state.lastPdfPath) {
       state.lastPdfPath = await _generatePdf();
       if (!state.lastPdfPath) return;
     }
     const s = state.selectedSample?.sample;
-    App.showModal('Αποστολή Email', `
+    App.showModal(t('reports.email_modal_title', 'Αποστολή Email'), `
       <div class="form-grid">
         <div class="form-group full-width">
-          <label>Προς <span class="required">*</span></label>
-          <input type="email" id="email-to" placeholder="recipient@example.com"
+          <label>${t('reports.email_to_label', 'Προς')} <span class="required">*</span></label>
+          <input type="email" id="email-to" placeholder="${t('reports.email_placeholder', 'recipient@example.com')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Θέμα</label>
+          <label>${t('reports.email_subject_label', 'Θέμα')}</label>
           <input type="text" id="email-subject"
-                 value="Δελτίο Αποτελεσμάτων — ${esc(s?.code || '')}"
+                 value="${t('reports.email_subject_prefix', 'Δελτίο Αποτελεσμάτων — ')}${esc(s?.code || '')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Μήνυμα</label>
+          <label>${t('reports.email_body_label', 'Μήνυμα')}</label>
           <textarea id="email-body" rows="3"
-                    style="width:100%;margin-top:4px;">Επισυνάπτεται το δελτίο αποτελεσμάτων δείγματος ${esc(s?.code || '')}.</textarea>
+                    style="width:100%;margin-top:4px;">${t('reports.email_body_prefix', 'Επισυνάπτεται το δελτίο αποτελεσμάτων δείγματος ')}${esc(s?.code || '')}${t('reports.email_body_suffix', '.')}</textarea>
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '📧 Αποστολή', action: 'ReportsPage._sendEmail()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('reports.email_send_button', '📧 Αποστολή'), action: 'ReportsPage._sendEmail()' },
     ]);
   }
 
@@ -438,21 +443,21 @@
     const subject = document.getElementById('email-subject')?.value?.trim();
     const body    = document.getElementById('email-body')?.value?.trim();
 
-    if (!to) { App.toast('Εισάγετε email παραλήπτη', 'warn'); return; }
+    if (!to) { App.toast(t('reports.email_missing_to', 'Εισάγετε email παραλήπτη'), 'warn'); return; }
     App.closeModal();
 
     // Φόρτωση SMTP config
     const smtpCfg = await pyCall('get_smtp_config');
     if (!smtpCfg?.host) {
-      App.toast('Ρυθμίστε πρώτα τις παραμέτρους email στις Ρυθμίσεις', 'warn');
+      App.toast(t('reports.email_smtp_missing', 'Ρυθμίστε πρώτα τις παραμέτρους email στις Ρυθμίσεις'), 'warn');
       return;
     }
 
-    App.toast('Αποστολή...', 'ok');
+    App.toast(t('reports.email_sending', 'Αποστολή...'), 'ok');
     const s = state.selectedSample?.sample;
     const result = await window.pyBridge?.['send-email']?.(smtpCfg, {
       to,
-      subject: subject || `Δελτίο Αποτελεσμάτων — ${s?.code || ''}`,
+      subject: subject || `${t('reports.email_subject_prefix', 'Δελτίο Αποτελεσμάτων — ')}${s?.code || ''}`,
       body,
       attachments: [{
         filename: `${s?.code || 'report'}.pdf`,
@@ -461,9 +466,9 @@
     });
 
     if (result?.success) {
-      App.toast('Email στάλθηκε επιτυχώς ✓', 'ok');
+      App.toast(t('reports.email_sent_ok', 'Email στάλθηκε επιτυχώς ✓'), 'ok');
     } else {
-      App.toast('Σφάλμα αποστολής: ' + (result?.error || ''), 'fail');
+      App.toast(t('reports.email_send_error', 'Σφάλμα αποστολής: ') + (result?.error || ''), 'fail');
     }
   }
 
@@ -473,7 +478,7 @@
 
   async function buildReportHTML({ sample, tests, specs, showChart, showStats }) {
     const s   = sample.sample;
-    const t   = sample.tests || {};
+    const td  = sample.tests || {};
     const lab     = await pyCall('get_lab_info') || {};
     // Η προεπισκόπηση ακολουθεί την ίδια γραμματοσειρά με το πραγματικό PDF (reportlab)
     document.documentElement.style.setProperty('--print-font', lab.pdf_font || 'IBMPlexSans');
@@ -486,11 +491,11 @@
 
     // Υπολογισμός συνολικού αριθμού σελίδων δυναμικά
     const pages = [];
-    if (tests.includes('sieve') && t.sieve_analysis?.data) pages.push('sieve-table');
-    if (tests.includes('sieve') && t.sieve_analysis?.data && showChart)  pages.push('sieve-chart');
-    if (tests.includes('flakiness') && t.flakiness)        pages.push('flakiness');
-    const hasSeOrMb = (tests.includes('se') && t.sand_equivalent) ||
-                      (tests.includes('mb') && t.methylene_blue);
+    if (tests.includes('sieve') && td.sieve_analysis?.data) pages.push('sieve-table');
+    if (tests.includes('sieve') && td.sieve_analysis?.data && showChart)  pages.push('sieve-chart');
+    if (tests.includes('flakiness') && td.flakiness)        pages.push('flakiness');
+    const hasSeOrMb = (tests.includes('se') && td.sand_equivalent) ||
+                      (tests.includes('mb') && td.methylene_blue);
     if (hasSeOrMb) pages.push('se-mb');
     const totalPages = pages.length;
 
@@ -508,7 +513,7 @@
           <div class="print-header-ce">
             <span class="print-header-ce-number">${esc(lab.ce_number || '')}</span>
             ${esc(lab.ce_body || '')}<br>
-            Ισχύς: ${esc(lab.ce_valid_from || '')} — ${esc(lab.ce_valid_to || '')}
+            ${t('pdf.common.validity', 'Ισχύς: {from_} — {to}').replace('{from_}', esc(lab.ce_valid_from || '')).replace('{to}', esc(lab.ce_valid_to || ''))}
           </div>
         </div>`;
     }
@@ -516,26 +521,26 @@
     // ── Στοιχεία δείγματος ─────────────────────────────────
     function sampleMetaHTML() {
       return `
-        <div class="print-doc-title">ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ</div>
+        <div class="print-doc-title">${t('pdf.common.title', 'ΔΕΛΤΙΟ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ΔΟΚΙΜΩΝ')}</div>
         <table class="print-meta-table">
           <tr>
-            <td class="meta-label">Κωδικός Δείγματος</td>
+            <td class="meta-label">${t('pdf.meta.sample_code', 'Κωδικός Δείγματος')}</td>
             <td class="meta-value"><strong>${esc(s.code)}</strong></td>
-            <td class="meta-label">Ημερομηνία Δειγματοληψίας</td>
+            <td class="meta-label">${t('pdf.preview.sampling_date', 'Ημερομηνία Δειγματοληψίας')}</td>
             <td class="meta-value">${App.formatDate(s.date)}</td>
           </tr>
           <tr>
-            <td class="meta-label">Προϊόν</td>
+            <td class="meta-label">${t('pdf.meta.product', 'Προϊόν')}</td>
             <td class="meta-value">${App.formatProduct(s)}</td>
-            <td class="meta-label">Τεχνικός</td>
+            <td class="meta-label">${t('pdf.meta.technician', 'Τεχνικός')}</td>
             <td class="meta-value">${esc(s.technician_name || '—')}</td>
           </tr>
           ${s.location ? `<tr>
-            <td class="meta-label">Σημείο Δειγματοληψίας</td>
+            <td class="meta-label">${t('pdf.preview.location', 'Σημείο Δειγματοληψίας')}</td>
             <td class="meta-value" colspan="3">${esc(s.location)}</td>
           </tr>` : ''}
           ${s.batch ? `<tr>
-            <td class="meta-label">Παρτίδα</td>
+            <td class="meta-label">${t('pdf.preview.batch', 'Παρτίδα')}</td>
             <td class="meta-value" colspan="3">${esc(s.batch)}</td>
           </tr>` : ''}
         </table>`;
@@ -544,15 +549,15 @@
     // ── Footer με αρίθμηση ─────────────────────────────────
     function footerHTML(pageNum) {
       const reportLine = labReportNumber
-        ? `<div class="print-footer-report">Έκθεση εξωτ. εργαστηρίου: ${esc(labReportNumber)}</div>`
+        ? `<div class="print-footer-report">${t('pdf.preview.external_report_label', 'Έκθεση εξωτ. εργαστηρίου: {report}').replace('{report}', esc(labReportNumber))}</div>`
         : '';
       return `
         <div class="print-footer-wrap">
           ${reportLine}
           <div class="print-footer">
-            <div>Ημερομηνία έκδοσης: ${new Date().toLocaleDateString('el-GR')}</div>
-            <div>Το παρόν δελτίο αφορά αποκλειστικά το ανωτέρω δείγμα.</div>
-            <div class="print-page-number">Σελίδα ${pageNum} από ${totalPages}</div>
+            <div>${t('pdf.common.issue_date', 'Ημερομηνία έκδοσης: {date}').replace('{date}', new Date().toLocaleDateString('el-GR'))}</div>
+            <div>${t('pdf.common.disclaimer', 'Το παρόν δελτίο αφορά αποκλειστικά το ανωτέρω δείγμα.')}</div>
+            <div class="print-page-number">${t('pdf.common.page_of', 'Σελίδα {page} από {total}').replace('{page}', pageNum).replace('{total}', totalPages)}</div>
           </div>
         </div>`;
     }
@@ -561,39 +566,39 @@
     let pageNum = 0;
 
     // ── Σελίδα 1: Πίνακας κόσκινων (portrait) ─────────────
-    if (tests.includes('sieve') && t.sieve_analysis?.data) {
+    if (tests.includes('sieve') && td.sieve_analysis?.data) {
       pageNum++;
       html += `
         <div class="print-page print-page--portrait" data-page="sieve-table">
           ${headerHTML()}
           ${sampleMetaHTML()}
-          ${buildSieveTableOnly(t.sieve_analysis.data, specs)}
+          ${buildSieveTableOnly(td.sieve_analysis.data, specs)}
           ${footerHTML(pageNum)}
         </div>`;
     }
 
     // ── Σελίδα 2: Διάγραμμα (landscape) ───────────────────
-    if (tests.includes('sieve') && t.sieve_analysis?.data && showChart) {
+    if (tests.includes('sieve') && td.sieve_analysis?.data && showChart) {
       pageNum++;
       html += `
         <div class="print-page print-page--landscape" data-page="sieve-chart">
           ${headerHTML(true)}
-          <div class="print-section-title">Κοκκομετρική Ανάλυση — EN 933-1 — Διάγραμμα</div>
+          <div class="print-section-title">${t('pdf.sieve.chart_section_title', 'Κοκκομετρική Ανάλυση — EN 933-1 — Διάγραμμα')}</div>
           <div class="print-chart-container">
-            ${buildSieveChart(t.sieve_analysis.data.results?.filter(r => r.sieve_mm > 0) || [], specs)}
+            ${buildSieveChart(td.sieve_analysis.data.results?.filter(r => r.sieve_mm > 0) || [], specs)}
           </div>
           ${footerHTML(pageNum)}
         </div>`;
     }
 
     // ── Σελίδα 3: Πλακοειδή (portrait) ────────────────────
-    if (tests.includes('flakiness') && t.flakiness) {
+    if (tests.includes('flakiness') && td.flakiness) {
       pageNum++;
       html += `
         <div class="print-page print-page--portrait" data-page="flakiness">
           ${headerHTML()}
           ${sampleMetaHTML()}
-          ${buildFlakinessSection(t.flakiness)}
+          ${buildFlakinessSection(td.flakiness)}
           ${footerHTML(pageNum)}
         </div>`;
     }
@@ -605,8 +610,8 @@
         <div class="print-page print-page--portrait" data-page="se-mb">
           ${headerHTML()}
           ${sampleMetaHTML()}
-          ${tests.includes('se') && t.sand_equivalent ? buildSESection(t.sand_equivalent) : ''}
-          ${tests.includes('mb') && t.methylene_blue  ? buildMBSection(t.methylene_blue)  : ''}
+          ${tests.includes('se') && td.sand_equivalent ? buildSESection(td.sand_equivalent) : ''}
+          ${tests.includes('mb') && td.methylene_blue  ? buildMBSection(td.methylene_blue)  : ''}
           ${footerHTML(pageNum)}
         </div>`;
     }
@@ -625,13 +630,13 @@
     const specNames = [...new Set(specs.map(s => s.spec_name))];
 
     let html = `
-      <div class="print-section-title">Κοκκομετρική Ανάλυση — EN 933-1</div>
+      <div class="print-section-title">${t('pdf.sieve.section_title', 'Κοκκομετρική Ανάλυση — EN 933-1')}</div>
       <table class="print-data-table">
         <thead>
           <tr>
-            <th>Κόσκινο (mm)</th>
-            <th>Βάρος Συγκρ. (g)</th>
-            <th>Διερχόμενο (%)</th>
+            <th>${t('pdf.preview.sieve_col_sieve', 'Κόσκινο (mm)')}</th>
+            <th>${t('pdf.preview.sieve_col_weight_retained', 'Βάρος Συγκρ. (g)')}</th>
+            <th>${t('pdf.preview.sieve_col_passing', 'Διερχόμενο (%)')}</th>
             ${specNames.map(n => `<th>${esc(n)}</th>`).join('')}
           </tr>
         </thead>
@@ -664,7 +669,7 @@
       html += `
         <tfoot>
           <tr class="row-total">
-            <td><strong>Τυφλό (Pan)</strong></td>
+            <td><strong>${t('pdf.preview.pan', 'Τυφλό (Pan)')}</strong></td>
             <td>${panResult.weight_retained?.toFixed(1) || '—'}</td>
             <td><strong>0.0%</strong></td>
             ${specNames.map(() => '<td>—</td>').join('')}
@@ -674,9 +679,9 @@
 
     html += `</table>
       <div style="font-size:10px;color:#555;margin-top:4px;display:flex;gap:20px;">
-        <span>Βάρος αρχικό: <strong>${analysis.weight_initial?.toFixed(1) || '—'}g</strong></span>
-        <span>Βάρος ξηρού: <strong>${analysis.weight_dry?.toFixed(1) || '—'}g</strong></span>
-        <span>Απώλεια πλύσης: <strong>${analysis.wash_loss_pct?.toFixed(2) || '—'}%</strong></span>
+        <span>${t('pdf.sieve.weight_initial', 'Βάρος αρχικό')}: <strong>${analysis.weight_initial?.toFixed(1) || '—'}g</strong></span>
+        <span>${t('pdf.sieve.weight_dry', 'Βάρος ξηρού')}: <strong>${analysis.weight_dry?.toFixed(1) || '—'}g</strong></span>
+        <span>${t('pdf.sieve.wash_loss', 'Απώλεια πλύσης')}: <strong>${analysis.wash_loss_pct?.toFixed(2) || '—'}%</strong></span>
       </div>`;
 
     return html;
@@ -829,17 +834,17 @@
 
     return `
       <div class="report-section">
-        <div class="report-section-title">Μπλε Μεθυλενίου — EN 933-9</div>
+        <div class="report-section-title">${t('pdf.mb.section_title', 'Μπλε Μεθυλενίου — EN 933-9')}</div>
         <table class="report-data-table">
           <tbody>
             <tr>
-              <td class="meta-label">Βάρος Δείγματος M1</td>
+              <td class="meta-label">${t('pdf.preview.mb_weight_sample', 'Βάρος Δείγματος M1')}</td>
               <td>${data.weight_sample || '—'}g</td>
-              <td class="meta-label">Τελικός Όγκος V1</td>
+              <td class="meta-label">${t('pdf.preview.mb_volume_final', 'Τελικός Όγκος V1')}</td>
               <td>${data.volume_final || '—'}ml</td>
             </tr>
             <tr class="report-row-total">
-              <td colspan="3"><strong>MB Τιμή</strong></td>
+              <td colspan="3"><strong>${t('pdf.mb.value_label', 'MB Τιμή')}</strong></td>
               <td><strong class="result-big ${mbClass}">${mbStr} g/kg</strong></td>
             </tr>
             ${buildLimitsLine(checks, 'g/kg')}
@@ -862,10 +867,10 @@
 
     return `
       <div class="report-section">
-        <div class="report-section-title">Ισοδύναμο Άμμου — EN 933-8</div>
+        <div class="report-section-title">${t('pdf.se.section_title', 'Ισοδύναμο Άμμου — EN 933-8')}</div>
         <table class="report-data-table">
           <thead>
-            <tr><th>Μέτρηση</th><th>h₁ (mm)</th><th>h₂ (mm)</th><th>SE%</th></tr>
+            <tr><th>${t('pdf.se.col_measurement', 'Μέτρηση')}</th><th>h₁ (mm)</th><th>h₂ (mm)</th><th>SE%</th></tr>
           </thead>
           <tbody>
             ${meas.map(m => `
@@ -877,7 +882,7 @@
               </tr>
             `).join('')}
             <tr class="report-row-total">
-              <td colspan="3"><strong>SE (Μέσος Όρος)</strong></td>
+              <td colspan="3"><strong>${t('pdf.preview.se_average', 'SE (Μέσος Όρος)')}</strong></td>
               <td><strong class="result-big ${seClass}">${seStr}%</strong></td>
             </tr>
             ${buildLimitsLine(checks, '%')}
@@ -908,10 +913,10 @@
         <table class="report-data-table" style="margin-bottom:10px;">
           <thead>
             <tr>
-              <th>Κόσκινο Rᵢ (mm)</th>
-              <th>Βάρος Κλάσματος (g)</th>
-              <th>Πλακοειδή mᵢ (g)</th>
-              <th>Πλακοειδή (%)</th>
+              <th>${t('pdf.preview.flakiness_col_class', 'Κόσκινο Rᵢ (mm)')}</th>
+              <th>${t('pdf.preview.flakiness_col_fraction_weight', 'Βάρος Κλάσματος (g)')}</th>
+              <th>${t('pdf.preview.flakiness_col_flaky_weight', 'Πλακοειδή mᵢ (g)')}</th>
+              <th>${t('pdf.preview.flakiness_col_flaky_pct', 'Πλακοειδή (%)')}</th>
             </tr>
           </thead>
           <tbody>
@@ -930,7 +935,7 @@
           </tbody>
           <tfoot>
             <tr class="report-row-total">
-              <td><strong>Σύνολο</strong></td>
+              <td><strong>${t('pdf.preview.total', 'Σύνολο')}</strong></td>
               <td><strong>${totalFrac.toFixed(1)}g</strong></td>
               <td><strong>${totalPass.toFixed(1)}g</strong></td>
               <td><strong>${totalPct !== '—' ? totalPct + '%' : '—'}</strong></td>
@@ -941,12 +946,12 @@
 
     return `
       <div class="report-section">
-        <div class="report-section-title">Δείκτης Πλακοειδούς — EN 933-3</div>
+        <div class="report-section-title">${t('pdf.preview.flakiness_section_title', 'Δείκτης Πλακοειδούς — EN 933-3')}</div>
         ${fractionsHTML}
         <table class="report-data-table">
           <tbody>
             <tr>
-              <td class="meta-label">FI (Δείκτης Πλακοειδούς)</td>
+              <td class="meta-label">${t('pdf.preview.flakiness_fi_label', 'FI (Δείκτης Πλακοειδούς)')}</td>
               <td><strong class="result-big ${fiClass}">${fiStr}%</strong></td>
             </tr>
             ${buildLimitsLine(checks, '%')}
@@ -1070,7 +1075,7 @@
     svg += `<text x="14" y="${margin.top + h/2}"
                   text-anchor="middle" fill="#6b7280"
                   font-size="11"
-                  transform="rotate(-90,14,${margin.top+h/2})">Διερχόμενο (%)</text>`;
+                  transform="rotate(-90,14,${margin.top+h/2})">${t('pdf.sieve.chart_y_label', 'Διερχόμενο (%)')}</text>`;
 
     // ─── Ζώνη προδιαγραφών (filled polygon) ───────────────
     const specNames  = [...new Set(specs.map(s => s.spec_name))];
@@ -1160,14 +1165,14 @@
     const legendY = margin.top + h + 54;
     svg += `<text x="${margin.left+w/2}" y="${margin.top+h+34}"
                   text-anchor="middle" fill="#374151"
-                  font-size="12">Άνοιγμα βροχίδας (mm)</text>`;    let   lx      = margin.left;
+                  font-size="12">${t('pdf.sieve.chart_x_label', 'Άνοιγμα βροχίδας (mm)')}</text>`;    let   lx      = margin.left;
 
     svg += `<line x1="${lx}" y1="${legendY}" x2="${lx+24}" y2="${legendY}"
                   stroke="#1d4ed8" stroke-width="2.5"/>`;
     svg += `<circle cx="${lx+12}" cy="${legendY}" r="4"
                     fill="#fff" stroke="#1d4ed8" stroke-width="2"/>`;
     svg += `<text x="${lx+30}" y="${legendY+4}"
-                  fill="#374151" font-size="10">Αποτέλεσμα</text>`;
+                  fill="#374151" font-size="10">${t('pdf.sieve.chart_legend_result', 'Αποτέλεσμα')}</text>`;
     lx += 110;
 
     specNames.forEach((name, idx) => {
@@ -1286,11 +1291,11 @@
   async function loadPeriodic() {
     const productId = parseInt(el('per-product')?.value) || null;
     if (!productId) {
-      App.toast('Επιλέξτε προϊόν για να δημιουργήσετε περιοδική αναφορά', 'warn');
+      App.toast(t('reports.periodic_select_product', 'Επιλέξτε προϊόν για να δημιουργήσετε περιοδική αναφορά'), 'warn');
       return;
     }
     if (!validatePeriodicDates()) {
-      App.toast('Οι ημερομηνίες είναι εκτός ορίων υποπεριόδου', 'warn');
+      App.toast(t('reports.periodic_dates_out_of_range', 'Οι ημερομηνίες είναι εκτός ορίων υποπεριόδου'), 'warn');
       return;
     }
     const sourceId  = parseInt(el('per-source')?.value)  || null;
@@ -1298,7 +1303,7 @@
     const from = _toISOLocal(el('per-from')?.value);
     const to   = _toISOLocal(el('per-to')?.value);
 
-    App.toast('Φόρτωση δεδομένων...', 'ok');
+    App.toast(t('reports.loading_data', 'Φόρτωση δεδομένων...'), 'ok');
 
     const samples = await pyCall('search_samples',
       productId, from, to, null, 500) || [];
@@ -1309,7 +1314,7 @@
       : samples;
 
     if (filtered.length === 0) {
-      App.toast('Δεν βρέθηκαν δείγματα για αυτή την περίοδο', 'warn');
+      App.toast(t('reports.periodic_no_samples', 'Δεν βρέθηκαν δείγματα για αυτή την περίοδο'), 'warn');
       return;
     }
 
@@ -1844,7 +1849,7 @@
 
   async function exportPeriodicPdf() {
     if (!state.periodicData) {
-      App.toast('Φορτώστε δεδομένα πρώτα', 'warn');
+      App.toast(t('reports.periodic_load_first', 'Φορτώστε δεδομένα πρώτα'), 'warn');
       return;
     }
     const { productId, from: fromDate, to: toDate } = state.periodicData;
@@ -1861,10 +1866,10 @@
       const toStr   = (to   || '').replace(/-/g, '');
       const fileName = `statistics_${productName}_${fromStr}_${toStr}.pdf`;
       const saved = await window.pyBridge?.['save-statistics']?.(result.path, fileName);
-      if (saved?.success) App.toast('Στατιστικά αποθηκεύτηκαν', 'ok');
-      else App.toast('Σφάλμα αποθήκευσης αρχείου', 'fail');
+      if (saved?.success) App.toast(t('reports.stats_saved', 'Στατιστικά αποθηκεύτηκαν'), 'ok');
+      else App.toast(t('reports.file_save_error', 'Σφάλμα αποθήκευσης αρχείου'), 'fail');
     } else {
-      App.toast('Σφάλμα παραγωγής PDF: ' + (result?.error || ''), 'fail');
+      App.toast(t('sampleModal.pdf_error', 'Σφάλμα παραγωγής PDF: ') + (result?.error || ''), 'fail');
     }
   }
 
@@ -1875,30 +1880,30 @@
   async function generatePdfLibrary(silent = false) {
     const cfg = await pyCall('get_init_status');
     if (!cfg?.can_pdf) {
-      App.toast('Απαιτείται ολοκλήρωση ρύθμισης', 'warn'); return null;
+      App.toast(t('reports.setup_required_short', 'Απαιτείται ολοκλήρωση ρύθμισης'), 'warn'); return null;
     }
     // Χρησιμοποιούμε get-data-folder που λαμβάνει υπόψη το archive mode
     const dfResult  = await window.pyBridge?.['get-data-folder']?.();
     const dataFolder = dfResult?.folder;
     if (!dataFolder) {
-      App.toast('Δεν βρέθηκε φάκελος δεδομένων', 'warn'); return null;
+      App.toast(t('reports.data_folder_not_found', 'Δεν βρέθηκε φάκελος δεδομένων'), 'warn'); return null;
     }
     const statusEl = document.getElementById('pdf-library-status');
     if (statusEl) {
       statusEl.style.display  = 'block';
       statusEl.style.borderColor = 'var(--border)';
-      statusEl.textContent    = '⏳ Παραγωγή PDF βιβλιοθήκης...';
+      statusEl.textContent    = t('reports.library_generating_status', '⏳ Παραγωγή PDF βιβλιοθήκης...');
     }
-    if (!silent) App.toast('Παραγωγή PDF βιβλιοθήκης...', 'info');
+    if (!silent) App.toast(t('reports.library_generating_toast', 'Παραγωγή PDF βιβλιοθήκης...'), 'info');
     const result = await window.pyBridge?.['generate-pdf-library']?.(dataFolder);
     if (result?.ok) {
-      const msg = '✅ Παρήχθησαν ' + result.generated + ' PDF' +
-                  (result.skipped > 0 ? ' · Παραλείφθηκαν ' + result.skipped : '');
+      const msg = t('reports.library_generated_prefix', '✅ Παρήχθησαν ') + result.generated + t('reports.library_generated_suffix', ' PDF') +
+                  (result.skipped > 0 ? t('reports.library_skipped_suffix', ' · Παραλείφθηκαν ') + result.skipped : '');
       if (statusEl) {
         statusEl.style.borderColor = 'rgba(22,101,52,.4)';
         let html = msg;
         if (result.errors?.length) {
-          html += '<br><span style="color:var(--text-muted);font-size:12px;">Παραλείφθηκαν:<br>' +
+          html += `<br><span style="color:var(--text-muted);font-size:12px;">${t('reports.library_skipped_list_label', 'Παραλείφθηκαν:')}<br>` +
                   result.errors.map(e => e).join('<br>') + '</span>';
         }
         statusEl.innerHTML = html;
@@ -1911,7 +1916,7 @@
       }
       window.pyBridge?.['cloud-sync']?.().catch(() => {});
     } else {
-      const err = 'Σφάλμα: ' + (result?.error || 'Άγνωστο');
+      const err = t('reports.generic_error_prefix', 'Σφάλμα: ') + (result?.error || t('reports.unknown_error', 'Άγνωστο'));
       if (statusEl) { statusEl.style.borderColor = 'rgba(185,28,28,.4)'; statusEl.textContent = err; }
       if (!silent) App.toast(err, 'fail');
     }
