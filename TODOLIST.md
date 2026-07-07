@@ -1,112 +1,30 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-07-07 (i18n per-page μετάφραση ΟΛΟΚΛΗΡΩΘΗΚΕ — μένει PDF content + language switcher)
+Τελευταία ενημέρωση: 2026-07-07
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
-(bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί).
-Τρέχουσα έκδοση: v1.1.32
+(bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί). Το τεχνικό ιστορικό
+του ESM redesign ζει στο `CHANGELOG-v2.md`.
+Branch ενεργής ανάπτυξης: `v2-esm-redesign` (worktree `C:/lab-galatista-v2`).
 
 ---
 
 ## ΜΙΚΡΕΣ / ΓΝΩΣΤΕΣ ΕΚΚΡΕΜΟΤΗΤΕΣ
 
-## ESM REDESIGN (εκκρεμότητα μεσαίου μεγέθους) — v2.0.0
-
-- [x] main.js → ESM (`import`/`export`), preload.js → preload.cjs
-      (ρητά CommonJS — το Electron 28 αποτυγχάνει σιωπηλά να εκτελέσει ESM
-      preload script, επαληθεύτηκε εμπειρικά), `"type": "module"` στο
-      package.json. Ολοκληρώθηκε 2026-07-05 (Φάση 1, βλ. CHANGELOG-v2.md).
-
-- [x] Modularization του main.js (προτάθηκε από code review, 2026-07-06)
-      — ολοκληρώθηκε 2026-07-05 (Φάση 2, βλ. CHANGELOG-v2.md). main.js:
-      1968 → 237 γραμμές. Domain λογική σε 9 νέα modules/ αρχεία:
-      state.js, python-bridge.js, config.js, cloud-sync.js, retention.js,
-      archive-mode.js, clean-start.js, update-check.js, ce-period.js,
-      pdf-generation.js, email.js, document-library.js (μένουν μόνο
-      createWindow, app lifecycle, window IPC, init-active-period-start,
-      guide window).
-
-- [x] State management (προτάθηκε από code review, 2026-07-06) — έγινε
-      μαζί με το modularization παραπάνω: `modules/state.js`, ενιαίο
-      mutable state object (`mainWindow`, `pyProcess`, `pyPending`,
-      `archiveMode`, κλπ) αντί για διάσπαρτες global μεταβλητές στο main.js
-      (το main-app.js είχε ήδη ενιαίο `AppState`, δεν χρειάστηκε αλλαγή
-      εκεί).
-
-- [x] `src/` (renderer) → ESM — ΠΛΗΡΩΣ ΟΛΟΚΛΗΡΩΘΗΚΕ 2026-07-05 (Φάση 3,
-      βλ. CHANGELOG-v2.md). Μετατράπηκαν όλα:
-      - `index.html`: `<script src="main-app.js">` →
-        `<script type="module" src="...">`.
-      - `main-app.js`: ρητή έκθεση στο `window` κάθε top-level
-        function/const που τα pages/inline `onclick` καλούν bare, ΚΑΙ
-        πραγματικά `export` για ό,τι τα converted pages εισάγουν ρητά
-        (`App`, `pyCall`, `pyCallStrict`, `AppState`, `navigateTo`,
-        `_esc`, `_formatCeDate`, `_toIsoDate`,
-        `_updateSidebarArchiveBanner`).
-      - `Pages.X.module = true` + `navigateTo()` φορτώνει module-σελίδες
-        με πραγματικό `<script type="module" src="...?v=timestamp">`
-        (cache-busting — απαραίτητο, ο browser κάνει cache τα modules
-        ανά URL, χωρίς αυτό δεν θα ξανάτρεχαν σε επόμενη πλοήγηση).
-      - Και οι 7 σελίδες: dashboard.js, samples.js, history.js,
-        library.js, tests.js, reports.js, settings.js — καθεμία πήρε
-        μόνο μία γραμμή `import {...} from '../../main-app.js';`, καμία
-        άλλη αλλαγή λογικής.
-      - Εντοπίστηκαν και διορθώθηκαν 2 πραγματικά bugs που θα έμεναν
-        σιωπηλά αν δεν γινόταν αυτή η προσεκτική εξαγωγή: `_esc`/
-        `_toIsoDate`/`_formatCeDate` καλούνταν bare χωρίς guard σε
-        library/settings/reports/tests (θα έσπαγαν με ReferenceError)·
-        `navigateTo`/`_updateSidebarArchiveBanner` καλούνταν bare ΜΕ
-        guard στο settings.js (θα απέτυχαν σιωπηλά — το backend switch
-        θα πετύχαινε αλλά το UI δεν θα ενημερωνόταν).
-      - Επαληθεύτηκε ζωντανά με playwright-core `_electron` σε κάθε
-        σελίδα ξεχωριστά (re-init σε επαναπλοήγηση, πραγματικά modals/
-        forms/υπολογισμοί/CRUD flows), 0 console errors παντού.
-
-- [x] Αναβάθμιση Electron 28→43 (Φάση 4, βλ. CHANGELOG-v2.md) —
-      ολοκληρώθηκε 2026-07-05. Το puppeteer **αφαιρέθηκε εντελώς** αντί
-      να αναβαθμιστεί: ήταν μόνο fallback στο `generate-report-pdf` (η
-      κύρια μέθοδος είναι Python/reportlab) και δεν συσκευαζόταν καν
-      στο installer (`!node_modules/puppeteer/**/*`) — άρα δεν δούλευε
-      ποτέ στην πραγματική εγκατάσταση, μόνο σε dev mode. Αντικαταστάθηκε
-      με κρυφό `BrowserWindow` + `webContents.printToPDF()` (μηδέν
-      επιπλέον dependency, δουλεύει και packaged). Αφαιρέθηκε επίσης το
-      ορφανό `puppeteer-core` (ποτέ δεν το import-άριζε ο κώδικας).
-      Βρέθηκε πραγματικό bug κατά την επαλήθευση: τα `margins` του
-      `printToPDF` είναι σε ίντσες, όχι pixels όπως λέει (λάθος) το
-      bundled `electron.d.ts` — διορθώθηκε.
-      **Branch**: `v2-esm-redesign` (δημιουργήθηκε 2026-07-05 από
-      master) — το master παίρνει bug fixes/features κανονικά (v1.x),
-      περνάνε περιοδικά με merge στο `v2-esm-redesign`· το αντίθετο ΟΧΙ
-      μέχρι να ολοκληρωθεί, οπότε γίνεται merge πίσω + tag v2.0.0.
-
-- [x] py-call whitelist auto-derived from Python (Φάση 5, βλ.
-      CHANGELOG-v2.md) — ολοκληρώθηκε 2026-07-06. Αντί να καταργηθεί ο
-      generic dispatcher (θα απαιτούσε 76+ νέα ρητά IPC endpoints, μεγάλη
-      αλλαγή), προστέθηκε whitelist: `backend/server.py`'s νέο
-      `RENDERER_METHODS` frozenset (76 μέθοδοι, επαληθευμένες μία-μία
-      έναντι πραγματικής χρήσης στο `src/`) + νέα introspection μέθοδος
-      `list_renderer_methods`. Το `modules/python-bridge.js`'s `py-call`
-      handler τη φορτώνει μία φορά στην εκκίνηση (auto-derived, όχι
-      hand-maintained αντίγραφο) και απορρίπτει οτιδήποτε άλλο πριν καν
-      φτάσει στην Python — fail-closed αν η φόρτωση αποτύχει. Τα
-      `vacuum_into`, `clean_start`, `switch_db`, `restore_db`,
-      `find_archive_db` κλπ παραμένουν προσβάσιμα ΜΟΝΟ από το main
-      process (`_pyCallMain`, ξεχωριστό μονοπάτι), όπως ήδη ήταν.
-      Επαληθεύτηκε ζωντανά: οι ευαίσθητες μέθοδοι μπλοκάρονται όταν
-      κληθούν απευθείας μέσω `window.pyBridge.call()` (ακριβώς όπως θα το
-      έκανε ένα XSS), η νόμιμη χρήση παραμένει αμετάβλητη σε όλες τις 7
-      σελίδες.
-
-**Με αυτό, ο ΠΛΗΡΗΣ επανασχεδιασμός ESM (Φάσεις 1-5) έχει ολοκληρωθεί.**
-Επόμενο βήμα: merge `v2-esm-redesign` → `master` + tag `v2.0.0`, όποτε
-αποφασιστεί το release (βλ. στρατηγική branch παραπάνω στη Φάση 4).
+- [ ] Merge `v2-esm-redesign` → `master` + tag `v2.0.0`, όποτε αποφασιστεί
+      το release. Ο πλήρης επανασχεδιασμός ESM (Φάσεις 1-5: ESM main.js/
+      preload, modularization main.js, state management, `src/` → ESM,
+      Electron 28→43, py-call whitelist) έχει ολοκληρωθεί — βλ.
+      `CHANGELOG-v2.md` για τεχνικές λεπτομέρειες.
 
 ## ΜΕΤΑ ΤΑ 2 ΜΕΓΑΛΑ UPDATE (ESM redesign v2.0.0 + i18n) — 2026-07-06
 
 Τρία ξεχωριστά items που ο χρήστης έχει αποφασίσει να ξεκινήσουν ΜΟΝΟ
 αφού ολοκληρωθούν και τα δύο μεγάλα updates παραπάνω (ESM redesign +
-i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται από αυτά (το i18n
-συγκεντρώνει strings σε resource αρχεία, θα έπρεπε ο οδηγός να γραφτεί
-πάνω σε αυτή τη δομή· η μετονομασία αγγίζει branding/strings παντού).
+i18n) — όχι πριν, γιατί επηρεάζονται από αυτά (το i18n συγκεντρώνει
+strings σε resource αρχεία, θα έπρεπε ο οδηγός να γραφτεί πάνω σε αυτή
+τη δομή· η μετονομασία αγγίζει branding/strings παντού). Το i18n είναι
+πλέον σε τελικό στάδιο (βλ. ROADMAP παρακάτω) — μένει μόνο το reports.js
+preview builder.
 
 - [ ] Οδηγός χρήσης της εφαρμογής — ενεργοποιείται πατώντας το icon
       της εφαρμογής στο Dashboard. Ο χρήστης σκέφτεται να είναι modular
@@ -121,8 +39,10 @@ i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται α
       από GitHub release). Χρειάζεται ξαναγράψιμο για Windows installer
       flow + πραγματικά προαπαιτούμενα (rclone setup, κλπ).
 
-- [ ] Μετονομασία εφαρμογής + αλλαγή icon — λεπτομέρειες δεν έχουν
-      συζητηθεί ακόμα.
+- [ ] Μετονομασία εφαρμογής σε "Aggregate Inspector Ai" + αλλαγή icon —
+      περιμένει να ολοκληρωθεί το i18n (μένει reports.js preview).
+      Λογότυπο ήδη σχεδιασμένο ως asset (βλ. memory), εκκρεμεί τελική
+      έγκριση χρήστη πριν το export σε icon.ico/logo.png/logo.svg.
 
 ## ROADMAP — ΕΓΚΕΚΡΙΜΕΝΑ ΓΙΑ ΤΟ ΜΕΛΛΟΝ (όχι τρέχουσα φάση)
 
@@ -163,81 +83,25 @@ i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται α
       μήνες), πιάνει σταδιακή ολίσθηση ποιότητας. Ο χρήστης το
       χαρακτήρισε "υπερβολή" προς το παρόν — χαμηλή προτεραιότητα.
 
-- [~] Εξωτερίκευση strings (i18n) — ένα από "τα 2 μεγάλα update" (μαζί
-      με το ESM redesign) πριν ξεκινήσουν ο οδηγός χρήσης και η
-      μετονομασία/icon (βλ. ενότητα παραπάνω). Προτάθηκε 2026-07-04.
-      **Ξεκίνησε 2026-07-06 (commit `f8e7355`):** νέα υποδομή
-      `src/i18n/i18n.js` (`initI18n`/`t`/`applyI18n`) + πρώτο resource
-      αρχείο `src/i18n/el.json`. Βήμα 1 μεταφέρθηκε: το στατικό markup
-      του index.html (sidebar nav, titlebar, splash, archive banner) —
-      verified live.
-      **Βήμα 2 (2026-07-07):** dashboard.js/dashboard.html πλήρως
-      μεταφρασμένα (στατικό markup με `data-i18n`, δυναμικά strings με
-      `t()` — νέα namespaces `common.*` για επαναχρησιμοποιήσιμα κουμπιά
-      (Κλείσιμο/Ακύρωση/Διαγραφή/Επεξεργασία/PDF/Φόρτωση) και
-      `dashboard.*` για ό,τι είναι page-specific). Προστέθηκε γενικό hook
-      `applyI18n()` στο `navigateTo()` (main-app.js) μετά την ένεση του
-      HTML κάθε σελίδας — θα ωφελήσει αυτόματα όλες τις επόμενες σελίδες
-      χωρίς επιπλέον καλωδίωση ανά σελίδα. Verified live (Playwright
-      `_electron`, isolated `--user-data-dir`): δείγμα χωρίς
-      πραγματικά δεδομένα, οπότε το modal δοκιμάστηκε ξεχωριστά
-      καλώντας `Dashboard._buildSampleView()` με mock δεδομένα — καμία
-      κονσόλα σφάλματος, όλες οι μεταφρασμένες ετικέτες σωστές.
-      **Βήμα 3 (2026-07-07):** samples.js/samples.html πλήρως
-      μεταφρασμένα (3-step wizard: στοιχεία δείγματος, πλάνο δοκιμών,
-      επιβεβαίωση, success screen, legacy-redirect). Προστέθηκαν νέα
-      namespaces `samples.*` + κοινόχρηστα `common.back`/`common.continue`/
-      `common.select_placeholder`/`common.page_tests`. Χρειάστηκε νέο
-      `data-i18n-placeholder` attribute στο `applyI18n()` (i18n.js) —
-      η πρώτη σελίδα με πραγματικά form inputs/placeholders. Δύο σημεία
-      με ενσωματωμένο `<em>`/`<strong>` μέσα σε παράγραφο χωρίστηκαν σε
-      ξεχωριστά `<span data-i18n>` γύρω από το tag (το applyI18n γράφει
-      σε textContent, θα έσπαγε το nested markup αν όλη η παράγραφος
-      ήταν ένα data-i18n). Verified live (Playwright `_electron`,
-      isolated `--user-data-dir`): στατικό markup + placeholder/title
-      attributes + το "Νέος Τεχνικός" modal (δυναμικό μέσω `t()`) όλα
-      σωστά μεταφρασμένα, καμία κονσόλα σφάλματος.
-      **Βήμα 4 (2026-07-07):** history.js/history.html πλήρως
-      μεταφρασμένα (φίλτρα αναζήτησης, πίνακας αποτελεσμάτων, badges
-      κατάστασης/κατηγορίας). Το sample-detail modal του history.js
-      είναι ΚΑΤΑ ΛΕΞΗ αντίγραφο του dashboard.js's (ίδιο
-      buildSampleView/buildTestSection/openSample/deleteSample/
-      confirmDelete/printSample) — αντί να διπλασιαστούν τα ίδια
-      ελληνικά strings σε δύο namespaces, οι σχετικές `dashboard.*`
-      κλειδιά (info_*/test_*/sieve_*/delete_*/pdf_generating/
-      pdf_error/sample_not_found) μετονομάστηκαν σε νέο κοινόχρηστο
-      namespace `sampleModal.*` και το dashboard.js ενημερώθηκε να τα
-      χρησιμοποιεί (μηχανικό rename, ίδιες τιμές/fallbacks — verified
-      ζωντανά ότι το dashboard's modal συνεχίζει να δουλεύει μετά το
-      rename). Νέο namespace `history.*` για ό,τι είναι page-specific
-      (φίλτρα, πίνακας, badges). Verified live (Playwright `_electron`).
-      **Βήματα 5-8 (2026-07-07):** reports.js, library.js, settings.js
-      (μεγαλύτερο αρχείο μέχρι στιγμής, 7 tabs), και τέλος tests.js
-      (φόρμες δοκιμών, modals επαναληπτικής/απόρριψης) μεταφράστηκαν
-      πλήρως. **Η per-page μετάφραση ΟΛΟΚΛΗΡΩΘΗΚΕ — και οι 8 σελίδες
-      δρομολογούν πλέον τα UI strings τους μέσω του el.json.**
-      **Εκκρεμεί ακόμα:**
-      - Το PDF content (in-browser preview στο reports.js +
-        backend/server.py's πραγματικό reportlab PDF) — κρατήθηκε
-        σκόπιμα ξεχωριστά σε όλα τα προηγούμενα βήματα γιατί είναι
-        επίσημο έγγραφο (δελτίο αποτελεσμάτων), όχι συνηθισμένο
-        page-UI string. Το backend χρειάζεται δική του απόφαση
-        αρχιτεκτονικής αφού τρέχει σε ξεχωριστή Python διεργασία χωρίς
-        πρόσβαση στο el.json — 3 επιλογές τέθηκαν στον χρήστη
-        2026-07-07 (δικό του Python dict / bundle το el.json στο
-        PyInstaller / προς το παρόν μόνο το JS preview), απόφαση
-        εκκρεμεί.
-      - **Language switcher στην εφαρμογή** — προτάθηκε 2026-07-07. Το
-        `initI18n('el')` είναι σήμερα hardcoded (`main-app.js:1334`) και
-        υπάρχει μόνο το `el.json`, οπότε δεν υπάρχει ακόμα λόγος για
-        πραγματικό επιλογέα γλώσσας στο UI (θα ήταν dropdown χωρίς
-        δεύτερη επιλογή). Καταγράφεται εδώ ως γνωστή μελλοντική
-        ανάγκη, να μην ξεχαστεί: όταν προστεθεί δεύτερο locale αρχείο,
-        θα χρειαστεί (α) dropdown επιλογής γλώσσας στις Ρυθμίσεις
-        (πιθανότατα tab Εργαστήριο), (β) αποθήκευση επιλογής στο ήδη
-        υπάρχον config σύστημα (`get-config`/`set-config`), (γ)
-        `initI18n(savedLocale)` αντί για το σημερινό hardcoded `'el'`.
-        Μικρή προσθήκη όταν έρθει η ώρα, δεν χρειάζεται να γίνει τώρα.
+- [~] Εξωτερίκευση strings (i18n) — ένα από "τα 2 μεγάλα update" πριν
+      ξεκινήσουν ο οδηγός χρήσης και η μετονομασία/icon (βλ. ενότητα
+      παραπάνω). Per-page μετάφραση (8 σελίδες: index shell, dashboard,
+      samples, history, reports, library, settings, tests) ΟΛΟΚΛΗΡΩΘΗΚΕ.
+      Backend PDF i18n (`backend/server.py`, reportlab) ΟΛΟΚΛΗΡΩΘΗΚΕ —
+      κοινό `src/i18n/el.json` bundled στο PyInstaller (Επιλογή Β),
+      νέος `backend/i18n.py` loader, build-time guard
+      (`scripts/check-spec-datas.js`) ώστε ξεχασμένο spec entry να
+      σταματάει το build αντί να σπάει σιωπηλά στον χειριστή (ίδια
+      κατηγορία bug με το v1.1.16).
+      **Μένει:** το in-browser PDF preview mirror στο `reports.js`
+      (`buildReportHTML` + helpers) — σε εξέλιξη.
+      **Language switcher στην εφαρμογή** — προτάθηκε 2026-07-07. Το
+      `initI18n('el')` είναι σήμερα hardcoded (`main-app.js:1334`) και
+      υπάρχει μόνο το `el.json`, οπότε δεν υπάρχει ακόμα λόγος για
+      πραγματικό επιλογέα γλώσσας στο UI. Όταν προστεθεί 2ο locale:
+      (α) dropdown επιλογής γλώσσας στις Ρυθμίσεις, (β) αποθήκευση στο
+      ήδη υπάρχον config σύστημα (`get-config`/`set-config`), (γ)
+      `initI18n(savedLocale)` αντί για το σημερινό hardcoded `'el'`.
 
 - [ ] Γρήγορη πρόσβαση σε έγγραφα CE από το sidebar (προτάθηκε
       2026-07-06) — κλικ στο CE badge κάτω-αριστερά (`#sidebar-ce-number`,
@@ -250,15 +114,6 @@ i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται α
       ανεβασμένο έγγραφο αντιστοιχεί σε καθεμία από τις 3 γρήγορες
       συντομεύσεις (π.χ. νέο πεδίο κατηγορίας/tag στο tbl_documents, ή
       match βάσει τίτλου).
-
-- [x] Δομημένο logging — προτάθηκε 2026-07-04 (code review), υλοποιήθηκε
-      στο crash-recovery hardening batch (`a744cc1`). Νέο
-      `modules/logger.js` (`initLogger()`): rotating `main.log` (5MB
-      όριο, 1 παλιό αντίγραφο `.old`) + `process.on('uncaughtException'
-      /'unhandledRejection')` handlers ώστε να καταγράφονται σφάλματα
-      που θα έσκαγαν σιωπηλά. Ξεχωριστό `python.log`
-      (RotatingFileHandler, backend/server.py) για το Python side. Δεν
-      χρειάστηκε νέα εξάρτηση (`electron-log`) — απλό fs-based rotation.
 
 ## ΜΕΓΑΛΕΣ / ΑΝΑΒΛΗΘΗΚΑΝ
 
