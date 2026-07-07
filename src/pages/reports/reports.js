@@ -17,6 +17,7 @@
 // ES module — φορτώνεται με πραγματικό <script type="module" src="...">
 // (βλ. main-app.js: Pages.reports.module + navigateTo()).
 import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
+import { t } from '../../i18n/i18n.js';
 
 (() => {
 
@@ -124,7 +125,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
     if (!container) return;
 
     if (results.length === 0) {
-      container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;margin-top:6px;">Δεν βρέθηκαν αποτελέσματα</p>';
+      container.innerHTML = `<p style="color:var(--text-muted);font-size:13px;margin-top:6px;">${t('reports.no_results', 'Δεν βρέθηκαν αποτελέσματα')}</p>`;
       return;
     }
 
@@ -155,7 +156,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
       await pyCall('get_required_tests', id),
     ];
 
-    if (!report) { App.toast('Σφάλμα φόρτωσης δείγματος', 'fail'); return; }
+    if (!report) { App.toast(t('reports.load_error', 'Σφάλμα φόρτωσης δείγματος'), 'fail'); return; }
 
     state.selectedSample = report;
     state.requiredTests  = Array.isArray(requiredTests) ? requiredTests : [];
@@ -220,7 +221,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
               <span class="plan-check-std">${esc(App.testStandard(tt))}</span>
             </div>
             <div class="plan-check-desc">
-              ${hasData ? '✓ Υπάρχουν αποτελέσματα' : 'Δεν έχει εκτελεστεί'}
+              ${hasData ? t('reports.test_has_data', '✓ Υπάρχουν αποτελέσματα') : t('reports.test_no_data', 'Δεν έχει εκτελεστεί')}
             </div>
           </div>
         </label>
@@ -242,7 +243,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
     // Μοναδικές spec_names
     const names = [...new Set(state.specs.map(s => s.spec_name))];
     if (names.length === 0) {
-      container.innerHTML = '<span style="color:var(--text-muted);font-size:12px;">Δεν υπάρχουν προδιαγραφές για αυτό το προϊόν</span>';
+      container.innerHTML = `<span style="color:var(--text-muted);font-size:12px;">${t('reports.no_specs', 'Δεν υπάρχουν προδιαγραφές για αυτό το προϊόν')}</span>`;
       return;
     }
 
@@ -265,7 +266,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
 
   async function previewSingle() {
     if (!state.selectedSample) {
-      App.toast('Επιλέξτε δείγμα πρώτα', 'warn');
+      App.toast(t('reports.select_sample_first', 'Επιλέξτε δείγμα πρώτα'), 'warn');
       return;
     }
 
@@ -320,14 +321,14 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
 
   async function _doGeneratePdf() {
     const s = state.selectedSample?.sample;
-    if (!s) { App.toast('Δεν υπάρχει επιλεγμένο δείγμα', 'warn'); return null; }
+    if (!s) { App.toast(t('reports.no_sample_selected', 'Δεν υπάρχει επιλεγμένο δείγμα'), 'warn'); return null; }
 
     // Τρέχουσες επιλογές δοκιμών
     const selectedTests = [...document.querySelectorAll(
       '#single-tests-checkboxes input[type="checkbox"]:checked'
     )].map(c => c.dataset.test).filter(Boolean);
 
-    App.toast('Δημιουργία PDF…', 'info');
+    App.toast(t('sampleModal.pdf_generating', 'Δημιουργία PDF…'), 'info');
     const opts   = { sampleId: s.id, sampleCode: s.code,
                      tests: selectedTests.length > 0
                             ? selectedTests
@@ -336,7 +337,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
     const result = await window.pyBridge?.['generate-report-pdf']?.(opts);
 
     if (!result?.success) {
-      App.toast('Σφάλμα παραγωγής PDF: ' + (result?.error || ''), 'fail');
+      App.toast(t('sampleModal.pdf_error', 'Σφάλμα παραγωγής PDF: ') + (result?.error || ''), 'fail');
       return null;
     }
     return result.path;
@@ -360,10 +361,10 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
   async function printReport() {
     const init = await pyCall('get_init_status');
     if (!init?.can_pdf) {
-      App.toast('Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις', 'warn'); return;
+      App.toast(t('reports.setup_required', 'Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις'), 'warn'); return;
     }
     const s = state.selectedSample?.sample;
-    if (!s) { App.toast('Δεν υπάρχει επιλεγμένο δείγμα', 'warn'); return; }
+    if (!s) { App.toast(t('reports.no_sample_selected', 'Δεν υπάρχει επιλεγμένο δείγμα'), 'warn'); return; }
     const pdfPath = await _generatePdf();
     if (!pdfPath) return;
     await window.pyBridge?.['open-pdf']?.(pdfPath);
@@ -372,7 +373,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
   async function saveReport() {
     const init = await pyCall('get_init_status');
     if (!init?.can_pdf) {
-      App.toast('Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις', 'warn'); return;
+      App.toast(t('reports.setup_required', 'Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις'), 'warn'); return;
     }
     if (!state.lastPdfPath) {
       state.lastPdfPath = await _generatePdf();
@@ -396,44 +397,44 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
     const subFolder     = activeSub?.pdf_subfolder ? `UP${activeSub.id}` : null;
     const saved = await window.pyBridge?.['save-pdf']?.(state.lastPdfPath, name, productFolder, subFolder);
     if (saved?.success) {
-      App.toast('PDF αποθηκεύτηκε', 'ok');
+      App.toast(t('reports.pdf_saved', 'PDF αποθηκεύτηκε'), 'ok');
     } else if (!saved?.canceled) {
-      App.toast('Σφάλμα αποθήκευσης PDF: ' + (saved?.error || ''), 'fail');
+      App.toast(t('reports.pdf_save_error', 'Σφάλμα αποθήκευσης PDF: ') + (saved?.error || ''), 'fail');
     }
   }
 
   async function emailReport() {
     const init = await pyCall('get_init_status');
     if (!init?.can_pdf) {
-      App.toast('Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις', 'warn'); return;
+      App.toast(t('reports.setup_required', 'Απαιτείται ολοκλήρωση ρύθμισης — μεταβείτε στις Ρυθμίσεις'), 'warn'); return;
     }
     if (!state.lastPdfPath) {
       state.lastPdfPath = await _generatePdf();
       if (!state.lastPdfPath) return;
     }
     const s = state.selectedSample?.sample;
-    App.showModal('Αποστολή Email', `
+    App.showModal(t('reports.email_modal_title', 'Αποστολή Email'), `
       <div class="form-grid">
         <div class="form-group full-width">
-          <label>Προς <span class="required">*</span></label>
-          <input type="email" id="email-to" placeholder="recipient@example.com"
+          <label>${t('reports.email_to_label', 'Προς')} <span class="required">*</span></label>
+          <input type="email" id="email-to" placeholder="${t('reports.email_placeholder', 'recipient@example.com')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Θέμα</label>
+          <label>${t('reports.email_subject_label', 'Θέμα')}</label>
           <input type="text" id="email-subject"
-                 value="Δελτίο Αποτελεσμάτων — ${esc(s?.code || '')}"
+                 value="${t('reports.email_subject_prefix', 'Δελτίο Αποτελεσμάτων — ')}${esc(s?.code || '')}"
                  style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
-          <label>Μήνυμα</label>
+          <label>${t('reports.email_body_label', 'Μήνυμα')}</label>
           <textarea id="email-body" rows="3"
-                    style="width:100%;margin-top:4px;">Επισυνάπτεται το δελτίο αποτελεσμάτων δείγματος ${esc(s?.code || '')}.</textarea>
+                    style="width:100%;margin-top:4px;">${t('reports.email_body_prefix', 'Επισυνάπτεται το δελτίο αποτελεσμάτων δείγματος ')}${esc(s?.code || '')}${t('reports.email_body_suffix', '.')}</textarea>
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '📧 Αποστολή', action: 'ReportsPage._sendEmail()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('reports.email_send_button', '📧 Αποστολή'), action: 'ReportsPage._sendEmail()' },
     ]);
   }
 
@@ -442,21 +443,21 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
     const subject = document.getElementById('email-subject')?.value?.trim();
     const body    = document.getElementById('email-body')?.value?.trim();
 
-    if (!to) { App.toast('Εισάγετε email παραλήπτη', 'warn'); return; }
+    if (!to) { App.toast(t('reports.email_missing_to', 'Εισάγετε email παραλήπτη'), 'warn'); return; }
     App.closeModal();
 
     // Φόρτωση SMTP config
     const smtpCfg = await pyCall('get_smtp_config');
     if (!smtpCfg?.host) {
-      App.toast('Ρυθμίστε πρώτα τις παραμέτρους email στις Ρυθμίσεις', 'warn');
+      App.toast(t('reports.email_smtp_missing', 'Ρυθμίστε πρώτα τις παραμέτρους email στις Ρυθμίσεις'), 'warn');
       return;
     }
 
-    App.toast('Αποστολή...', 'ok');
+    App.toast(t('reports.email_sending', 'Αποστολή...'), 'ok');
     const s = state.selectedSample?.sample;
     const result = await window.pyBridge?.['send-email']?.(smtpCfg, {
       to,
-      subject: subject || `Δελτίο Αποτελεσμάτων — ${s?.code || ''}`,
+      subject: subject || `${t('reports.email_subject_prefix', 'Δελτίο Αποτελεσμάτων — ')}${s?.code || ''}`,
       body,
       attachments: [{
         filename: `${s?.code || 'report'}.pdf`,
@@ -465,9 +466,9 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
     });
 
     if (result?.success) {
-      App.toast('Email στάλθηκε επιτυχώς ✓', 'ok');
+      App.toast(t('reports.email_sent_ok', 'Email στάλθηκε επιτυχώς ✓'), 'ok');
     } else {
-      App.toast('Σφάλμα αποστολής: ' + (result?.error || ''), 'fail');
+      App.toast(t('reports.email_send_error', 'Σφάλμα αποστολής: ') + (result?.error || ''), 'fail');
     }
   }
 
@@ -1290,11 +1291,11 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
   async function loadPeriodic() {
     const productId = parseInt(el('per-product')?.value) || null;
     if (!productId) {
-      App.toast('Επιλέξτε προϊόν για να δημιουργήσετε περιοδική αναφορά', 'warn');
+      App.toast(t('reports.periodic_select_product', 'Επιλέξτε προϊόν για να δημιουργήσετε περιοδική αναφορά'), 'warn');
       return;
     }
     if (!validatePeriodicDates()) {
-      App.toast('Οι ημερομηνίες είναι εκτός ορίων υποπεριόδου', 'warn');
+      App.toast(t('reports.periodic_dates_out_of_range', 'Οι ημερομηνίες είναι εκτός ορίων υποπεριόδου'), 'warn');
       return;
     }
     const sourceId  = parseInt(el('per-source')?.value)  || null;
@@ -1302,7 +1303,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
     const from = _toISOLocal(el('per-from')?.value);
     const to   = _toISOLocal(el('per-to')?.value);
 
-    App.toast('Φόρτωση δεδομένων...', 'ok');
+    App.toast(t('reports.loading_data', 'Φόρτωση δεδομένων...'), 'ok');
 
     const samples = await pyCall('search_samples',
       productId, from, to, null, 500) || [];
@@ -1313,7 +1314,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
       : samples;
 
     if (filtered.length === 0) {
-      App.toast('Δεν βρέθηκαν δείγματα για αυτή την περίοδο', 'warn');
+      App.toast(t('reports.periodic_no_samples', 'Δεν βρέθηκαν δείγματα για αυτή την περίοδο'), 'warn');
       return;
     }
 
@@ -1848,7 +1849,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
 
   async function exportPeriodicPdf() {
     if (!state.periodicData) {
-      App.toast('Φορτώστε δεδομένα πρώτα', 'warn');
+      App.toast(t('reports.periodic_load_first', 'Φορτώστε δεδομένα πρώτα'), 'warn');
       return;
     }
     const { productId, from: fromDate, to: toDate } = state.periodicData;
@@ -1865,10 +1866,10 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
       const toStr   = (to   || '').replace(/-/g, '');
       const fileName = `statistics_${productName}_${fromStr}_${toStr}.pdf`;
       const saved = await window.pyBridge?.['save-statistics']?.(result.path, fileName);
-      if (saved?.success) App.toast('Στατιστικά αποθηκεύτηκαν', 'ok');
-      else App.toast('Σφάλμα αποθήκευσης αρχείου', 'fail');
+      if (saved?.success) App.toast(t('reports.stats_saved', 'Στατιστικά αποθηκεύτηκαν'), 'ok');
+      else App.toast(t('reports.file_save_error', 'Σφάλμα αποθήκευσης αρχείου'), 'fail');
     } else {
-      App.toast('Σφάλμα παραγωγής PDF: ' + (result?.error || ''), 'fail');
+      App.toast(t('sampleModal.pdf_error', 'Σφάλμα παραγωγής PDF: ') + (result?.error || ''), 'fail');
     }
   }
 
@@ -1879,30 +1880,30 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
   async function generatePdfLibrary(silent = false) {
     const cfg = await pyCall('get_init_status');
     if (!cfg?.can_pdf) {
-      App.toast('Απαιτείται ολοκλήρωση ρύθμισης', 'warn'); return null;
+      App.toast(t('reports.setup_required_short', 'Απαιτείται ολοκλήρωση ρύθμισης'), 'warn'); return null;
     }
     // Χρησιμοποιούμε get-data-folder που λαμβάνει υπόψη το archive mode
     const dfResult  = await window.pyBridge?.['get-data-folder']?.();
     const dataFolder = dfResult?.folder;
     if (!dataFolder) {
-      App.toast('Δεν βρέθηκε φάκελος δεδομένων', 'warn'); return null;
+      App.toast(t('reports.data_folder_not_found', 'Δεν βρέθηκε φάκελος δεδομένων'), 'warn'); return null;
     }
     const statusEl = document.getElementById('pdf-library-status');
     if (statusEl) {
       statusEl.style.display  = 'block';
       statusEl.style.borderColor = 'var(--border)';
-      statusEl.textContent    = '⏳ Παραγωγή PDF βιβλιοθήκης...';
+      statusEl.textContent    = t('reports.library_generating_status', '⏳ Παραγωγή PDF βιβλιοθήκης...');
     }
-    if (!silent) App.toast('Παραγωγή PDF βιβλιοθήκης...', 'info');
+    if (!silent) App.toast(t('reports.library_generating_toast', 'Παραγωγή PDF βιβλιοθήκης...'), 'info');
     const result = await window.pyBridge?.['generate-pdf-library']?.(dataFolder);
     if (result?.ok) {
-      const msg = '✅ Παρήχθησαν ' + result.generated + ' PDF' +
-                  (result.skipped > 0 ? ' · Παραλείφθηκαν ' + result.skipped : '');
+      const msg = t('reports.library_generated_prefix', '✅ Παρήχθησαν ') + result.generated + t('reports.library_generated_suffix', ' PDF') +
+                  (result.skipped > 0 ? t('reports.library_skipped_suffix', ' · Παραλείφθηκαν ') + result.skipped : '');
       if (statusEl) {
         statusEl.style.borderColor = 'rgba(22,101,52,.4)';
         let html = msg;
         if (result.errors?.length) {
-          html += '<br><span style="color:var(--text-muted);font-size:12px;">Παραλείφθηκαν:<br>' +
+          html += `<br><span style="color:var(--text-muted);font-size:12px;">${t('reports.library_skipped_list_label', 'Παραλείφθηκαν:')}<br>` +
                   result.errors.map(e => e).join('<br>') + '</span>';
         }
         statusEl.innerHTML = html;
@@ -1915,7 +1916,7 @@ import { pyCall, App, AppState, _formatCeDate } from '../../main-app.js';
       }
       window.pyBridge?.['cloud-sync']?.().catch(() => {});
     } else {
-      const err = 'Σφάλμα: ' + (result?.error || 'Άγνωστο');
+      const err = t('reports.generic_error_prefix', 'Σφάλμα: ') + (result?.error || t('reports.unknown_error', 'Άγνωστο'));
       if (statusEl) { statusEl.style.borderColor = 'rgba(185,28,28,.4)'; statusEl.textContent = err; }
       if (!silent) App.toast(err, 'fail');
     }
