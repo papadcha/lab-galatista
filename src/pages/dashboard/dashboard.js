@@ -170,7 +170,7 @@ window.Dashboard = (() => {
 
   async function openSample(id) {
     const data = await pyCall('get_full_report', id);
-    if (!data) { App.toast(t('dashboard.sample_not_found', 'Δεν βρέθηκε το δείγμα'), 'fail'); return; }
+    if (!data) { App.toast(t('sampleModal.not_found', 'Δεν βρέθηκε το δείγμα'), 'fail'); return; }
 
     const s     = data.sample;
     const tests = data.tests || {};
@@ -191,25 +191,25 @@ window.Dashboard = (() => {
     return `
       <!-- Στοιχεία δείγματος -->
       <div class="sample-info-grid">
-        <div><span class="info-label">${t('dashboard.info_date', 'Ημερομηνία')}</span> ${App.formatDate(s.date)}</div>
-        <div><span class="info-label">${t('dashboard.info_source', 'Προέλευση')}</span> ${s.source_name || '—'}</div>
-        <div><span class="info-label">${t('dashboard.info_technician', 'Τεχνικός')}</span> ${s.technician_name || '—'}</div>
-        <div><span class="info-label">${t('dashboard.info_batch', 'Παρτίδα')}</span> ${App.formatBatch(s.batch)}</div>
-        <div><span class="info-label">${t('dashboard.info_location', 'Σημείο')}</span> ${s.location || '—'}</div>
+        <div><span class="info-label">${t('sampleModal.info_date', 'Ημερομηνία')}</span> ${App.formatDate(s.date)}</div>
+        <div><span class="info-label">${t('sampleModal.info_source', 'Προέλευση')}</span> ${s.source_name || '—'}</div>
+        <div><span class="info-label">${t('sampleModal.info_technician', 'Τεχνικός')}</span> ${s.technician_name || '—'}</div>
+        <div><span class="info-label">${t('sampleModal.info_batch', 'Παρτίδα')}</span> ${App.formatBatch(s.batch)}</div>
+        <div><span class="info-label">${t('sampleModal.info_location', 'Σημείο')}</span> ${s.location || '—'}</div>
         ${s.comments ? `<div class="full-width">
-          <span class="info-label">${t('dashboard.info_comments', 'Σχόλια')}</span> ${s.comments}
+          <span class="info-label">${t('sampleModal.info_comments', 'Σχόλια')}</span> ${s.comments}
         </div>` : ''}
       </div>
 
       <!-- Δοκιμές — 2 columns: αριστερά κοκκομετρία, δεξιά οι 3 -->
       <div class="tests-grid-2col">
         <div class="tests-col-left">
-          ${buildTestSection(t('dashboard.test_sieve', 'Κοκκομετρία EN 933-1'), tests.sieve_analysis, 'sieve')}
+          ${buildTestSection(t('sampleModal.test_sieve', 'Κοκκομετρία EN 933-1'), tests.sieve_analysis, 'sieve')}
         </div>
         <div class="tests-col-right">
-          ${(s.category === 'ΧΟΝΔΡΟΚΟΚΚΟ' || s.category === 'ALL_IN') ? buildTestSection(t('dashboard.test_flakiness', 'Πλακοειδή EN 933-3'), tests.flakiness,       'fi') : ''}
-          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection(t('dashboard.test_se', 'Ισοδύναμο Άμμου EN 933-8'),  tests.sand_equivalent, 'se') : ''}
-          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection(t('dashboard.test_mb', 'Μπλε Μεθυλενίου EN 933-9'),  tests.methylene_blue,  'mb') : ''}
+          ${(s.category === 'ΧΟΝΔΡΟΚΟΚΚΟ' || s.category === 'ALL_IN') ? buildTestSection(t('sampleModal.test_flakiness', 'Πλακοειδή EN 933-3'), tests.flakiness,       'fi') : ''}
+          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection(t('sampleModal.test_se', 'Ισοδύναμο Άμμου EN 933-8'),  tests.sand_equivalent, 'se') : ''}
+          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection(t('sampleModal.test_mb', 'Μπλε Μεθυλενίου EN 933-9'),  tests.methylene_blue,  'mb') : ''}
         </div>
       </div>
     `;
@@ -220,7 +220,7 @@ window.Dashboard = (() => {
     if (!testData) return `
       <div class="test-section test-empty">
         <div class="test-section-title">${title}</div>
-        <div class="test-section-empty">${t('dashboard.test_empty', 'Δεν έχει καταχωρηθεί')}</div>
+        <div class="test-section-empty">${t('sampleModal.test_empty', 'Δεν έχει καταχωρηθεί')}</div>
       </div>`;
 
     let content = '';
@@ -231,16 +231,16 @@ window.Dashboard = (() => {
       const d = testData.characteristic_diameters || {};
       content = `
         <div class="test-weights">
-          <span class="badge badge-none">${t('dashboard.sieve_weight', 'Βάρος')}: ${an?.weight_initial || '—'}g</span>
-          <span class="badge badge-none">${t('dashboard.sieve_dry', 'Ξηρό')}: ${an?.weight_dry || '—'}g</span>
-          <span class="badge badge-none">${t('dashboard.sieve_washed', 'Πλυμένο')}: ${an?.weight_washed || '—'}g</span>
-          <span class="badge badge-none">${t('dashboard.sieve_loss', 'Απώλεια')}: ${an?.wash_loss_pct || '—'}%</span>
+          <span class="badge badge-none">${t('sampleModal.sieve_weight', 'Βάρος')}: ${an?.weight_initial || '—'}g</span>
+          <span class="badge badge-none">${t('sampleModal.sieve_dry', 'Ξηρό')}: ${an?.weight_dry || '—'}g</span>
+          <span class="badge badge-none">${t('sampleModal.sieve_washed', 'Πλυμένο')}: ${an?.weight_washed || '—'}g</span>
+          <span class="badge badge-none">${t('sampleModal.sieve_loss', 'Απώλεια')}: ${an?.wash_loss_pct || '—'}%</span>
         </div>
         <table class="mini-table">
           <thead><tr>
-            <th>${t('dashboard.sieve_col_sieve', 'Κόσκινο')}</th>
-            <th style="text-align:right">${t('dashboard.sieve_col_retained', 'Συγκρ.(g)')}</th>
-            <th style="text-align:right">${t('dashboard.sieve_col_passing', 'Διερχ.(%)')}</th>
+            <th>${t('sampleModal.sieve_col_sieve', 'Κόσκινο')}</th>
+            <th style="text-align:right">${t('sampleModal.sieve_col_retained', 'Συγκρ.(g)')}</th>
+            <th style="text-align:right">${t('sampleModal.sieve_col_passing', 'Διερχ.(%)')}</th>
           </tr></thead>
           <tbody>
             ${results.map(r => `
@@ -319,9 +319,9 @@ window.Dashboard = (() => {
   async function deleteSample(id) {
     App.closeModal();
     App.showModal(
-      t('dashboard.delete_title', 'Διαγραφή Δείγματος'),
-      `<p style="color:var(--fail);">${t('dashboard.delete_warning', '⚠ Η διαγραφή είναι μη αναστρέψιμη.<br>Θα διαγραφούν και όλες οι δοκιμές του δείγματος.')}</p>` +
-      `<p>${t('dashboard.delete_confirm', 'Είστε σίγουροι;')}</p>`,
+      t('sampleModal.delete_title', 'Διαγραφή Δείγματος'),
+      `<p style="color:var(--fail);">${t('sampleModal.delete_warning', '⚠ Η διαγραφή είναι μη αναστρέψιμη.<br>Θα διαγραφούν και όλες οι δοκιμές του δείγματος.')}</p>` +
+      `<p>${t('sampleModal.delete_confirm', 'Είστε σίγουροι;')}</p>`,
       [
         { label: t('common.cancel', 'Ακύρωση'),   action: 'App.closeModal()', secondary: true },
         { label: t('common.delete', '🗑 Διαγραφή'), action: `Dashboard.confirmDelete(${id})`, danger: true },
@@ -333,11 +333,11 @@ window.Dashboard = (() => {
     App.closeModal();
     const ok = await pyCall('delete_sample', id);
     if (ok) {
-      App.toast(t('dashboard.delete_success', 'Το δείγμα διαγράφηκε'), 'ok');
+      App.toast(t('sampleModal.delete_success', 'Το δείγμα διαγράφηκε'), 'ok');
       await loadStats();
       await loadTable(currentFilter);
     } else {
-      App.toast(t('dashboard.delete_error', 'Σφάλμα κατά τη διαγραφή'), 'fail');
+      App.toast(t('sampleModal.delete_error', 'Σφάλμα κατά τη διαγραφή'), 'fail');
     }
   }
 
@@ -346,11 +346,11 @@ window.Dashboard = (() => {
     if (_printInFlight) return; // αποτροπή διπλού-κλικ ενόσω παράγεται ήδη PDF
     _printInFlight = true;
     try {
-      App.toast(t('dashboard.pdf_generating', 'Δημιουργία PDF…'), 'info');
+      App.toast(t('sampleModal.pdf_generating', 'Δημιουργία PDF…'), 'info');
       const opts = { sampleId: id, tests: ['sieve', 'flakiness', 'se', 'mb'] };
       const result = await window.pyBridge?.['generate-report-pdf']?.(opts);
       if (!result?.success) {
-        App.toast(t('dashboard.pdf_error', 'Σφάλμα παραγωγής PDF: ') + (result?.error || ''), 'fail');
+        App.toast(t('sampleModal.pdf_error', 'Σφάλμα παραγωγής PDF: ') + (result?.error || ''), 'fail');
         return;
       }
       await window.pyBridge?.['open-pdf']?.(result.path);

@@ -10,8 +10,8 @@
 <div class="page">
 
   <div class="page-header">
-    <h1>Ιστορικό Δειγμάτων</h1>
-    <p class="page-subtitle">
+    <h1 data-i18n="history.title">Ιστορικό Δειγμάτων</h1>
+    <p class="page-subtitle" data-i18n="history.subtitle">
       Αναζήτηση και πρόσβαση σε δείγματα. Κάντε κλικ σε δείγμα
       για να ανοίξετε τις δοκιμές του.
     </p>
@@ -28,51 +28,51 @@
 <div class="filter-bar">
 
       <div class="filter-group">
-        <label>Κωδικός</label>
-        <input type="text" id="h-code" placeholder="πχ ΓΑΛ-2026..."
+        <label data-i18n="history.filter_code_label">Κωδικός</label>
+        <input type="text" id="h-code" placeholder="πχ ΓΑΛ-2026..." data-i18n-placeholder="history.filter_code_placeholder"
                onkeydown="if(event.key==='Enter') HistoryPage.search()">
       </div>
 
       <div class="filter-group">
-        <label>Προϊόν</label>
+        <label data-i18n="history.filter_product_label">Προϊόν</label>
         <select id="h-product">
-          <option value="">Όλα τα προϊόντα</option>
+          <option value="" data-i18n="history.filter_product_all">Όλα τα προϊόντα</option>
         </select>
       </div>
 
       <div class="filter-group">
-        <label>Κατηγορία</label>
+        <label data-i18n="history.filter_category_label">Κατηγορία</label>
         <select id="h-category">
-          <option value="">Όλες</option>
-          <option value="ΛΕΠΤΟΚΟΚΚΟ">Λεπτόκοκκο</option>
-          <option value="ΧΟΝΔΡΟΚΟΚΚΟ">Χονδρόκοκκο</option>
-          <option value="ALL_IN">All-in</option>
+          <option value="" data-i18n="history.filter_category_all">Όλες</option>
+          <option value="ΛΕΠΤΟΚΟΚΚΟ" data-i18n="history.filter_category_fine">Λεπτόκοκκο</option>
+          <option value="ΧΟΝΔΡΟΚΟΚΚΟ" data-i18n="history.filter_category_coarse">Χονδρόκοκκο</option>
+          <option value="ALL_IN" data-i18n="history.filter_category_allin">All-in</option>
         </select>
       </div>
 
       <div class="filter-group">
-        <label>Από</label>
-        <input type="text" id="h-from" placeholder="ηη/μμ/εεεε" title="Μορφή: ημέρα/μήνας/έτος πχ 23/05/2026" maxlength="10" style="width:110px;letter-spacing:1px;" oninput="this.value=this.value.replace(/[^0-9\/]/g,'')">
+        <label data-i18n="history.filter_from_label">Από</label>
+        <input type="text" id="h-from" placeholder="ηη/μμ/εεεε" data-i18n-placeholder="samples.date_placeholder" title="Μορφή: ημέρα/μήνας/έτος πχ 23/05/2026" data-i18n-title="samples.date_format_hint" maxlength="10" style="width:110px;letter-spacing:1px;" oninput="this.value=this.value.replace(/[^0-9\/]/g,'')">
       </div>
 
       <div class="filter-group">
-        <label>Έως</label>
-        <input type="text" id="h-to" placeholder="ηη/μμ/εεεε" title="Μορφή: ημέρα/μήνας/έτος πχ 23/05/2026" maxlength="10" style="width:110px;letter-spacing:1px;" oninput="this.value=this.value.replace(/[^0-9\/]/g,'')">
+        <label data-i18n="history.filter_to_label">Έως</label>
+        <input type="text" id="h-to" placeholder="ηη/μμ/εεεε" data-i18n-placeholder="samples.date_placeholder" title="Μορφή: ημέρα/μήνας/έτος πχ 23/05/2026" data-i18n-title="samples.date_format_hint" maxlength="10" style="width:110px;letter-spacing:1px;" oninput="this.value=this.value.replace(/[^0-9\/]/g,'')">
       </div>
 
       <div class="filter-group filter-group-status">
-        <label>Κατάσταση</label>
+        <label data-i18n="history.filter_status_label">Κατάσταση</label>
         <select id="h-status">
-          <option value="">Όλα</option>
-          <option value="pending">Εκκρεμή</option>
-          <option value="complete">Ολοκληρωμένα</option>
+          <option value="" data-i18n="history.filter_status_all">Όλα</option>
+          <option value="pending" data-i18n="history.filter_status_pending">Εκκρεμή</option>
+          <option value="complete" data-i18n="history.filter_status_complete">Ολοκληρωμένα</option>
         </select>
       </div>
 
-      <button class="btn-primary" onclick="HistoryPage.search()">
+      <button class="btn-primary" onclick="HistoryPage.search()" data-i18n="history.search_button">
         🔍 Αναζήτηση
       </button>
-      <button class="btn-secondary" onclick="HistoryPage.reset()">
+      <button class="btn-secondary" onclick="HistoryPage.reset()" data-i18n="history.reset_button">
         ✕ Καθαρισμός
       </button>
 
@@ -87,17 +87,17 @@
     <table class="data-table full-width">
       <thead>
         <tr>
-          <th>Κωδικός</th>
-          <th>Ημερομηνία</th>
-          <th>Προϊόν</th>
-          <th>Κατηγορία</th>
-          <th>Δοκιμές</th>
-          <th>Κατάσταση</th>
+          <th data-i18n="history.col_code">Κωδικός</th>
+          <th data-i18n="history.col_date">Ημερομηνία</th>
+          <th data-i18n="history.col_product">Προϊόν</th>
+          <th data-i18n="history.col_category">Κατηγορία</th>
+          <th data-i18n="history.col_tests">Δοκιμές</th>
+          <th data-i18n="history.col_status">Κατάσταση</th>
         </tr>
       </thead>
       <tbody id="h-results">
         <tr>
-          <td colspan="6" class="empty-msg">
+          <td colspan="6" class="empty-msg" data-i18n="history.empty_hint">
             Χρησιμοποιήστε τα φίλτρα για αναζήτηση
           </td>
         </tr>

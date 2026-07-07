@@ -8,6 +8,7 @@
 // ES module — φορτώνεται με πραγματικό <script type="module" src="...">
 // (βλ. main-app.js: Pages.history.module + navigateTo()).
 import { pyCall, App, AppState } from '../../main-app.js';
+import { t } from '../../i18n/i18n.js';
 
 (() => {
 
@@ -90,8 +91,8 @@ import { pyCall, App, AppState } from '../../main-app.js';
     }
     const from = toISO(el('h-from')?.value);
     const to   = toISO(el('h-to')?.value);
-    if (from && !isValidDate(from)) { App.toast('Μη έγκυρη ημερομηνία "Από"', 'warn'); return; }
-    if (to   && !isValidDate(to))   { App.toast('Μη έγκυρη ημερομηνία "Έως"', 'warn'); return; }
+    if (from && !isValidDate(from)) { App.toast(t('history.invalid_date_from', 'Μη έγκυρη ημερομηνία "Από"'), 'warn'); return; }
+    if (to   && !isValidDate(to))   { App.toast(t('history.invalid_date_to', 'Μη έγκυρη ημερομηνία "Έως"'), 'warn'); return; }
 
     const results = await pyCall('search_samples',
       product, from, to, code, 200
@@ -149,14 +150,14 @@ import { pyCall, App, AppState } from '../../main-app.js';
 
     if (count) {
       count.textContent = results.length === 0
-        ? 'Δεν βρέθηκαν αποτελέσματα'
-        : `${results.length} δείγματ${results.length === 1 ? 'ο' : 'α'}`;
+        ? t('history.no_results', 'Δεν βρέθηκαν αποτελέσματα')
+        : `${results.length} ${results.length === 1 ? t('history.result_count_one', 'δείγμα') : t('history.result_count_many', 'δείγματα')}`;
     }
 
     if (results.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="empty-msg">Δεν βρέθηκαν αποτελέσματα</td>
+          <td colspan="7" class="empty-msg">${t('history.no_results', 'Δεν βρέθηκαν αποτελέσματα')}</td>
         </tr>`;
       return;
     }
@@ -165,19 +166,19 @@ import { pyCall, App, AppState } from '../../main-app.js';
       const pending     = App.pendingTests(s);
       const isComplete  = pending.length === 0;
       const statusBadge = isComplete
-        ? '<span class="badge badge-ok">✓ Ολοκλ.</span>'
-        : `<span class="badge badge-warn">⏳ ${pending.length} εκκρ.</span>`;
+        ? `<span class="badge badge-ok">${t('history.status_complete', '✓ Ολοκλ.')}</span>`
+        : `<span class="badge badge-warn">${t('history.status_pending_prefix', '⏳')} ${pending.length} ${t('history.status_pending_suffix', 'εκκρ.')}</span>`;
 
       const catBadge = {
-        'ΛΕΠΤΟΚΟΚΚΟ':  '<span class="badge badge-cat-fine">ΛΕΠΤ.</span>',
-        'ΧΟΝΔΡΟΚΟΚΚΟ': '<span class="badge badge-cat-coarse">ΧΟΝΔΡ.</span>',
-        'ALL_IN':       '<span class="badge badge-cat-allin">ALL-IN</span>',
+        'ΛΕΠΤΟΚΟΚΚΟ':  `<span class="badge badge-cat-fine">${t('history.cat_fine', 'ΛΕΠΤ.')}</span>`,
+        'ΧΟΝΔΡΟΚΟΚΚΟ': `<span class="badge badge-cat-coarse">${t('history.cat_coarse', 'ΧΟΝΔΡ.')}</span>`,
+        'ALL_IN':       `<span class="badge badge-cat-allin">${t('history.cat_allin', 'ALL-IN')}</span>`,
       }[s.category] || '<span class="badge badge-none">—</span>';
 
       return `
         <tr class="clickable-row" style="cursor:pointer;"
             onclick="HistoryPage.openSample(${s.id})"
-            title="Διπλό κλικ για άνοιγμα">
+            title="${t('history.row_hint', 'Διπλό κλικ για άνοιγμα')}">
           <td><span class="sample-code">${esc(s.code)}</span></td>
           <td>${App.formatDate(s.date)}</td>
           <td>
@@ -199,25 +200,25 @@ import { pyCall, App, AppState } from '../../main-app.js';
     return `
       <!-- Στοιχεία δείγματος -->
       <div class="sample-info-grid">
-        <div><span class="info-label">Ημερομηνία</span> ${App.formatDate(s.date)}</div>
-        <div><span class="info-label">Προέλευση</span> ${s.source_name || '—'}</div>
-        <div><span class="info-label">Τεχνικός</span> ${s.technician_name || '—'}</div>
-        <div><span class="info-label">Παρτίδα</span> ${App.formatBatch(s.batch)}</div>
-        <div><span class="info-label">Σημείο</span> ${s.location || '—'}</div>
+        <div><span class="info-label">${t('sampleModal.info_date', 'Ημερομηνία')}</span> ${App.formatDate(s.date)}</div>
+        <div><span class="info-label">${t('sampleModal.info_source', 'Προέλευση')}</span> ${s.source_name || '—'}</div>
+        <div><span class="info-label">${t('sampleModal.info_technician', 'Τεχνικός')}</span> ${s.technician_name || '—'}</div>
+        <div><span class="info-label">${t('sampleModal.info_batch', 'Παρτίδα')}</span> ${App.formatBatch(s.batch)}</div>
+        <div><span class="info-label">${t('sampleModal.info_location', 'Σημείο')}</span> ${s.location || '—'}</div>
         ${s.comments ? `<div class="full-width">
-          <span class="info-label">Σχόλια</span> ${s.comments}
+          <span class="info-label">${t('sampleModal.info_comments', 'Σχόλια')}</span> ${s.comments}
         </div>` : ''}
       </div>
 
       <!-- Δοκιμές — 2 columns: αριστερά κοκκομετρία, δεξιά οι 3 -->
       <div class="tests-grid-2col">
         <div class="tests-col-left">
-          ${buildTestSection('Κοκκομετρία EN 933-1', tests.sieve_analysis, 'sieve')}
+          ${buildTestSection(t('sampleModal.test_sieve', 'Κοκκομετρία EN 933-1'), tests.sieve_analysis, 'sieve')}
         </div>
         <div class="tests-col-right">
-          ${(s.category === 'ΧΟΝΔΡΟΚΟΚΚΟ' || s.category === 'ALL_IN') ? buildTestSection('Πλακοειδή EN 933-3',        tests.flakiness,       'fi') : ''}
-          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection('Ισοδύναμο Άμμου EN 933-8',  tests.sand_equivalent, 'se') : ''}
-          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection('Μπλε Μεθυλενίου EN 933-9',  tests.methylene_blue,  'mb') : ''}
+          ${(s.category === 'ΧΟΝΔΡΟΚΟΚΚΟ' || s.category === 'ALL_IN') ? buildTestSection(t('sampleModal.test_flakiness', 'Πλακοειδή EN 933-3'), tests.flakiness,       'fi') : ''}
+          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection(t('sampleModal.test_se', 'Ισοδύναμο Άμμου EN 933-8'),  tests.sand_equivalent, 'se') : ''}
+          ${(s.category === 'ΛΕΠΤΟΚΟΚΚΟ'  || s.category === 'ALL_IN') ? buildTestSection(t('sampleModal.test_mb', 'Μπλε Μεθυλενίου EN 933-9'),  tests.methylene_blue,  'mb') : ''}
         </div>
       </div>
     `;
@@ -227,7 +228,7 @@ import { pyCall, App, AppState } from '../../main-app.js';
     if (!testData) return `
       <div class="test-section test-empty">
         <div class="test-section-title">${title}</div>
-        <div class="test-section-empty">Δεν έχει καταχωρηθεί</div>
+        <div class="test-section-empty">${t('sampleModal.test_empty', 'Δεν έχει καταχωρηθεί')}</div>
       </div>`;
 
     let content = '';
@@ -238,16 +239,16 @@ import { pyCall, App, AppState } from '../../main-app.js';
       const d = testData.characteristic_diameters || {};
       content = `
         <div class="test-weights">
-          <span class="badge badge-none">Βάρος: ${an?.weight_initial || '—'}g</span>
-          <span class="badge badge-none">Ξηρό: ${an?.weight_dry || '—'}g</span>
-          <span class="badge badge-none">Πλυμένο: ${an?.weight_washed || '—'}g</span>
-          <span class="badge badge-none">Απώλεια: ${an?.wash_loss_pct || '—'}%</span>
+          <span class="badge badge-none">${t('sampleModal.sieve_weight', 'Βάρος')}: ${an?.weight_initial || '—'}g</span>
+          <span class="badge badge-none">${t('sampleModal.sieve_dry', 'Ξηρό')}: ${an?.weight_dry || '—'}g</span>
+          <span class="badge badge-none">${t('sampleModal.sieve_washed', 'Πλυμένο')}: ${an?.weight_washed || '—'}g</span>
+          <span class="badge badge-none">${t('sampleModal.sieve_loss', 'Απώλεια')}: ${an?.wash_loss_pct || '—'}%</span>
         </div>
         <table class="mini-table">
           <thead><tr>
-            <th>Κόσκινο</th>
-            <th style="text-align:right">Συγκρ.(g)</th>
-            <th style="text-align:right">Διερχ.(%)</th>
+            <th>${t('sampleModal.sieve_col_sieve', 'Κόσκινο')}</th>
+            <th style="text-align:right">${t('sampleModal.sieve_col_retained', 'Συγκρ.(g)')}</th>
+            <th style="text-align:right">${t('sampleModal.sieve_col_passing', 'Διερχ.(%)')}</th>
           </tr></thead>
           <tbody>
             ${results.map(r => `
@@ -317,7 +318,7 @@ import { pyCall, App, AppState } from '../../main-app.js';
 
   async function openSample(id) {
     const data = await pyCall('get_full_report', id);
-    if (!data) { App.toast('Δεν βρέθηκε το δείγμα', 'fail'); return; }
+    if (!data) { App.toast(t('sampleModal.not_found', 'Δεν βρέθηκε το δείγμα'), 'fail'); return; }
 
     const s     = data.sample;
     const tests = data.tests || {};
@@ -326,10 +327,10 @@ import { pyCall, App, AppState } from '../../main-app.js';
       `${s.code} — ${App.formatProduct(s)}`,
       buildSampleView(s, tests),
       [
-        { label: 'Κλείσιμο',      action: 'App.closeModal()', secondary: true },
-        { label: '🗑 Διαγραφή',   action: `HistoryPage.deleteSample(${id})`, danger: true },
-        { label: '▤ PDF',         action: `HistoryPage.printSample(${id})` },
-        { label: '✎ Επεξεργασία', action: `HistoryPage.editSample(${id})` },
+        { label: t('common.close', 'Κλείσιμο'),  action: 'App.closeModal()', secondary: true },
+        { label: t('common.delete', '🗑 Διαγραφή'), action: `HistoryPage.deleteSample(${id})`, danger: true },
+        { label: t('common.pdf', '▤ PDF'),       action: `HistoryPage.printSample(${id})` },
+        { label: t('common.edit', '✎ Επεξεργασία'), action: `HistoryPage.editSample(${id})` },
       ]
     );
   }
@@ -344,13 +345,12 @@ import { pyCall, App, AppState } from '../../main-app.js';
   async function deleteSample(id) {
     App.closeModal();
     App.showModal(
-      'Διαγραφή Δείγματος',
-      '<p style="color:var(--fail);">⚠ Η διαγραφή είναι μη αναστρέψιμη.<br>' +
-      'Θα διαγραφούν και όλες οι δοκιμές του δείγματος.</p>' +
-      '<p>Είστε σίγουροι;</p>',
+      t('sampleModal.delete_title', 'Διαγραφή Δείγματος'),
+      `<p style="color:var(--fail);">${t('sampleModal.delete_warning', '⚠ Η διαγραφή είναι μη αναστρέψιμη.<br>Θα διαγραφούν και όλες οι δοκιμές του δείγματος.')}</p>` +
+      `<p>${t('sampleModal.delete_confirm', 'Είστε σίγουροι;')}</p>`,
       [
-        { label: 'Ακύρωση',       action: 'App.closeModal()', secondary: true },
-        { label: '🗑 Διαγραφή',   action: `HistoryPage.confirmDelete(${id})`, danger: true },
+        { label: t('common.cancel', 'Ακύρωση'),       action: 'App.closeModal()', secondary: true },
+        { label: t('common.delete', '🗑 Διαγραφή'),   action: `HistoryPage.confirmDelete(${id})`, danger: true },
       ]
     );
   }
@@ -359,19 +359,19 @@ import { pyCall, App, AppState } from '../../main-app.js';
     App.closeModal();
     const ok = await pyCall('delete_sample', id);
     if (ok) {
-      App.toast('Το δείγμα διαγράφηκε', 'ok');
+      App.toast(t('sampleModal.delete_success', 'Το δείγμα διαγράφηκε'), 'ok');
       await search();
     } else {
-      App.toast('Σφάλμα κατά τη διαγραφή', 'fail');
+      App.toast(t('sampleModal.delete_error', 'Σφάλμα κατά τη διαγραφή'), 'fail');
     }
   }
 
   async function printSample(id) {
-    App.toast('Δημιουργία PDF…', 'info');
+    App.toast(t('sampleModal.pdf_generating', 'Δημιουργία PDF…'), 'info');
     const opts = { sampleId: id, tests: ['sieve', 'flakiness', 'se', 'mb'] };
     const result = await window.pyBridge?.['generate-report-pdf']?.(opts);
     if (!result?.success) {
-      App.toast('Σφάλμα παραγωγής PDF: ' + (result?.error || ''), 'fail');
+      App.toast(t('sampleModal.pdf_error', 'Σφάλμα παραγωγής PDF: ') + (result?.error || ''), 'fail');
       return;
     }
     await window.pyBridge?.['open-pdf']?.(result.path);

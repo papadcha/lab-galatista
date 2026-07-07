@@ -197,9 +197,23 @@ i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται α
       isolated `--user-data-dir`): στατικό markup + placeholder/title
       attributes + το "Νέος Τεχνικός" modal (δυναμικό μέσω `t()`) όλα
       σωστά μεταφρασμένα, καμία κονσόλα σφάλματος.
-      **Εκκρεμεί ακόμα:** τα strings μέσα στα υπόλοιπα 5 page scripts
-      (history.js, reports.js, library.js, settings.js, tests.js) + το
-      PDF generation στο backend/server.py — θα μεταναστεύσει σταδιακά
+      **Βήμα 4 (2026-07-07):** history.js/history.html πλήρως
+      μεταφρασμένα (φίλτρα αναζήτησης, πίνακας αποτελεσμάτων, badges
+      κατάστασης/κατηγορίας). Το sample-detail modal του history.js
+      είναι ΚΑΤΑ ΛΕΞΗ αντίγραφο του dashboard.js's (ίδιο
+      buildSampleView/buildTestSection/openSample/deleteSample/
+      confirmDelete/printSample) — αντί να διπλασιαστούν τα ίδια
+      ελληνικά strings σε δύο namespaces, οι σχετικές `dashboard.*`
+      κλειδιά (info_*/test_*/sieve_*/delete_*/pdf_generating/
+      pdf_error/sample_not_found) μετονομάστηκαν σε νέο κοινόχρηστο
+      namespace `sampleModal.*` και το dashboard.js ενημερώθηκε να τα
+      χρησιμοποιεί (μηχανικό rename, ίδιες τιμές/fallbacks — verified
+      ζωντανά ότι το dashboard's modal συνεχίζει να δουλεύει μετά το
+      rename). Νέο namespace `history.*` για ό,τι είναι page-specific
+      (φίλτρα, πίνακας, badges). Verified live (Playwright `_electron`).
+      **Εκκρεμεί ακόμα:** τα strings μέσα στα υπόλοιπα 4 page scripts
+      (reports.js, library.js, settings.js, tests.js) + το PDF
+      generation στο backend/server.py — θα μεταναστεύσει σταδιακά
       σελίδα-σελίδα σε επόμενα passes.
 
 - [ ] Γρήγορη πρόσβαση σε έγγραφα CE από το sidebar (προτάθηκε
