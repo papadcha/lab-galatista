@@ -183,10 +183,24 @@ i18n, βλ. ROADMAP) — όχι πριν, γιατί επηρεάζονται α
       πραγματικά δεδομένα, οπότε το modal δοκιμάστηκε ξεχωριστά
       καλώντας `Dashboard._buildSampleView()` με mock δεδομένα — καμία
       κονσόλα σφάλματος, όλες οι μεταφρασμένες ετικέτες σωστές.
-      **Εκκρεμεί ακόμα:** τα strings μέσα στα υπόλοιπα 6 page scripts
-      (samples.js, history.js, reports.js, library.js, settings.js,
-      tests.js) + το PDF generation στο backend/server.py — θα
-      μεταναστεύσει σταδιακά σελίδα-σελίδα σε επόμενα passes.
+      **Βήμα 3 (2026-07-07):** samples.js/samples.html πλήρως
+      μεταφρασμένα (3-step wizard: στοιχεία δείγματος, πλάνο δοκιμών,
+      επιβεβαίωση, success screen, legacy-redirect). Προστέθηκαν νέα
+      namespaces `samples.*` + κοινόχρηστα `common.back`/`common.continue`/
+      `common.select_placeholder`/`common.page_tests`. Χρειάστηκε νέο
+      `data-i18n-placeholder` attribute στο `applyI18n()` (i18n.js) —
+      η πρώτη σελίδα με πραγματικά form inputs/placeholders. Δύο σημεία
+      με ενσωματωμένο `<em>`/`<strong>` μέσα σε παράγραφο χωρίστηκαν σε
+      ξεχωριστά `<span data-i18n>` γύρω από το tag (το applyI18n γράφει
+      σε textContent, θα έσπαγε το nested markup αν όλη η παράγραφος
+      ήταν ένα data-i18n). Verified live (Playwright `_electron`,
+      isolated `--user-data-dir`): στατικό markup + placeholder/title
+      attributes + το "Νέος Τεχνικός" modal (δυναμικό μέσω `t()`) όλα
+      σωστά μεταφρασμένα, καμία κονσόλα σφάλματος.
+      **Εκκρεμεί ακόμα:** τα strings μέσα στα υπόλοιπα 5 page scripts
+      (history.js, reports.js, library.js, settings.js, tests.js) + το
+      PDF generation στο backend/server.py — θα μεταναστεύσει σταδιακά
+      σελίδα-σελίδα σε επόμενα passes.
 
 - [ ] Γρήγορη πρόσβαση σε έγγραφα CE από το sidebar (προτάθηκε
       2026-07-06) — κλικ στο CE badge κάτω-αριστερά (`#sidebar-ce-number`,

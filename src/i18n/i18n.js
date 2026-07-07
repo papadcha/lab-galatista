@@ -1,11 +1,12 @@
 /**
- * i18n.js — πρώτο βήμα εξωτερίκευσης strings (βλ. TODOLIST.md).
+ * i18n.js — εξωτερίκευση strings (βλ. TODOLIST.md), μεταναστεύει
+ * σταδιακά σελίδα-σελίδα.
  *
- * Πεδίο εφαρμογής ΑΥΤΟΥ του πρώτου βήματος: μόνο το στατικό markup που
- * ζει στο index.html (sidebar/titlebar/splash) — ό,τι φέρει
- * data-i18n/data-i18n-title attribute. Τα strings μέσα στα 7 page
- * scripts (dashboard.js, samples.js, ...) ΔΕΝ έχουν μεταφερθεί ακόμα σε
- * αυτό το πέρασμα· θα μεταναστεύσουν σταδιακά, σελίδα-σελίδα.
+ * Στατικό markup: data-i18n / data-i18n-title / data-i18n-placeholder
+ * attributes, εφαρμόζονται μέσω applyI18n() — μία φορά στο αρχικό
+ * DOMContentLoaded (index.html) και ξανά μετά από κάθε navigateTo()
+ * (main-app.js) ώστε να καλύπτει και το per-page HTML.
+ * Δυναμικά strings μέσα σε page scripts: t(key, fallback) calls.
  *
  * Resource αρχεία: src/i18n/<locale>.json (σήμερα μόνο el.json).
  */
@@ -62,5 +63,9 @@ export function applyI18n(root = document) {
   root.querySelectorAll('[data-i18n-title]').forEach(el => {
     const key = el.getAttribute('data-i18n-title');
     el.title = t(key, el.title);
+  });
+  root.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = t(key, el.placeholder);
   });
 }

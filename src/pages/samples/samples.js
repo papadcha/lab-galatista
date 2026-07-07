@@ -8,6 +8,7 @@
 // ES module — φορτώνεται με πραγματικό <script type="module" src="...">
 // (βλ. main-app.js: Pages.samples.module + navigateTo()).
 import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
+import { t } from '../../i18n/i18n.js';
 
 (() => {
 
@@ -221,14 +222,14 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
   }
 
   async function addTechnician() {
-    App.showModal('Νέος Τεχνικός', `
+    App.showModal(t('samples.new_tech_modal_title', 'Νέος Τεχνικός'), `
       <div class="form-group">
-        <label>Όνομα</label>
-        <input type="text" id="new-tech-name" placeholder="Όνομα τεχνικού" autofocus>
+        <label>${t('samples.new_tech_name_label', 'Όνομα')}</label>
+        <input type="text" id="new-tech-name" placeholder="${t('samples.new_tech_name_placeholder', 'Όνομα τεχνικού')}" autofocus>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: '+ Προσθήκη', action: 'SamplesPage._doAddTechnician()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('samples.add_button', '+ Προσθήκη'), action: 'SamplesPage._doAddTechnician()' },
     ]);
     setTimeout(() => document.getElementById('new-tech-name')?.focus(), 100);
   }
@@ -239,7 +240,7 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
     if (!name) return;
     const id = await pyCall('add_technician', name);
     if (!id) {
-      App.toast('Σφάλμα προσθήκης τεχνικού', 'fail');
+      App.toast(t('samples.tech_add_error', 'Σφάλμα προσθήκης τεχνικού'), 'fail');
       return;
     }
     // Ενημέρωση cache + dropdown
@@ -250,7 +251,7 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
     opt.textContent = name.trim();
     opt.selected = true;
     sel.appendChild(opt);
-    App.toast('Ο τεχνικός προστέθηκε', 'ok');
+    App.toast(t('samples.tech_add_success', 'Ο τεχνικός προστέθηκε'), 'ok');
   }
 
   // ============================================================
@@ -267,9 +268,8 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
     if (n === 3) {
       if (state.requiredTests.size === 0) {
         App.confirm(
-          'Κανένα πλάνο δοκιμών',
-          'Δεν έχετε επιλέξει καμία δοκιμή. Μπορείτε να τις ορίσετε ' +
-          'αργότερα από τη σελίδα Δοκιμές. Θέλετε να συνεχίσετε;',
+          t('samples.no_plan_title', 'Κανένα πλάνο δοκιμών'),
+          t('samples.no_plan_body', 'Δεν έχετε επιλέξει καμία δοκιμή. Μπορείτε να τις ορίσετε αργότερα από τη σελίδα Δοκιμές. Θέλετε να συνεχίσετε;'),
           () => { buildConfirmation(); _commitStep(n); }
         );
         return;
@@ -292,27 +292,27 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
     const pid     = parseInt(el('new-product').value);
 
     if (!code) {
-      App.toast('Συμπληρώστε τον κωδικό δείγματος', 'fail');
+      App.toast(t('samples.err_missing_code', 'Συμπληρώστε τον κωδικό δείγματος'), 'fail');
       el('new-code').focus();
       return false;
     }
     if (!rawDate) {
-      App.toast('Συμπληρώστε ημερομηνία δειγματοληψίας', 'fail');
+      App.toast(t('samples.err_missing_date', 'Συμπληρώστε ημερομηνία δειγματοληψίας'), 'fail');
       el('new-date').focus();
       return false;
     }
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(rawDate) && !/^\d{8}$/.test(rawDate.replace(/\//g,''))) {
-      App.toast('Ημερομηνία σε μορφή ηη/μμ/εεεε (πχ 23/05/2026)', 'warn');
+      App.toast(t('samples.err_date_format', 'Ημερομηνία σε μορφή ηη/μμ/εεεε (πχ 23/05/2026)'), 'warn');
       el('new-date').focus();
       return false;
     }
     if (!pid) {
-      App.toast('Επιλέξτε προϊόν', 'fail');
+      App.toast(t('samples.err_missing_product', 'Επιλέξτε προϊόν'), 'fail');
       el('new-product').focus();
       return false;
     }
     if (!state.selectedProduct?.category) {
-      App.toast('Το προϊόν δεν έχει κατηγορία — έλεγξε τις Ρυθμίσεις', 'fail');
+      App.toast(t('samples.err_no_category', 'Το προϊόν δεν έχει κατηγορία — έλεγξε τις Ρυθμίσεις'), 'fail');
       return false;
     }
     return true;
@@ -332,16 +332,16 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
     // Σύνοψη
     summary.innerHTML = `
       <div class="plan-summary-row">
-        <span class="plan-label">Προϊόν:</span>
+        <span class="plan-label">${t('samples.plan_product_label', 'Προϊόν:')}</span>
         <span class="plan-value">${escapeHTML(state.selectedProduct.name)}
               mm</span>
       </div>
       <div class="plan-summary-row">
-        <span class="plan-label">Κατηγορία:</span>
+        <span class="plan-label">${t('samples.plan_category_label', 'Κατηγορία:')}</span>
         <span class="plan-value badge ${App.catBadgeClass(cat)}">${escapeHTML(cat)}</span>
       </div>
       <div class="plan-summary-row">
-        <span class="plan-label">Διαθέσιμες δοκιμές:</span>
+        <span class="plan-label">${t('samples.plan_available_label', 'Διαθέσιμες δοκιμές:')}</span>
         <span class="plan-value">${allowed.length}</span>
       </div>
     `;
@@ -387,10 +387,10 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
 
   function describeTest(testType) {
     return ({
-      sieve:     'Κοκκομετρική κατανομή με υγρό κοσκίνισμα.',
-      flakiness: 'Έλεγχος πλακοειδών κόκκων.',
-      mb:        'Δοκιμή μπλε μεθυλενίου για πρόσμικτα.',
-      se:        'Ισοδύναμο άμμου — έλεγχος καθαρότητας.',
+      sieve:     t('samples.desc_sieve', 'Κοκκομετρική κατανομή με υγρό κοσκίνισμα.'),
+      flakiness: t('samples.desc_flakiness', 'Έλεγχος πλακοειδών κόκκων.'),
+      mb:        t('samples.desc_mb', 'Δοκιμή μπλε μεθυλενίου για πρόσμικτα.'),
+      se:        t('samples.desc_se', 'Ισοδύναμο άμμου — έλεγχος καθαρότητας.'),
     })[testType] || '';
   }
 
@@ -408,28 +408,28 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
     const com  = el('new-comments').value.trim() || '';
 
     el('confirm-info').innerHTML = `
-      <h3 class="confirm-title">Στοιχεία Δείγματος</h3>
+      <h3 class="confirm-title">${t('samples.step1_title', 'Στοιχεία Δείγματος')}</h3>
       <div class="confirm-grid">
-        <div><span class="lbl">Κωδικός:</span> <code>${escapeHTML(code)}</code></div>
-        <div><span class="lbl">Ημερομηνία:</span> ${App.formatDate(date)}</div>
-        <div><span class="lbl">Προϊόν:</span> ${escapeHTML(state.selectedProduct.name)}
+        <div><span class="lbl">${t('samples.confirm_code_label', 'Κωδικός:')}</span> <code>${escapeHTML(code)}</code></div>
+        <div><span class="lbl">${t('samples.confirm_date_label', 'Ημερομηνία:')}</span> ${App.formatDate(date)}</div>
+        <div><span class="lbl">${t('samples.plan_product_label', 'Προϊόν:')}</span> ${escapeHTML(state.selectedProduct.name)}
              mm</div>
-        <div><span class="lbl">Κατηγορία:</span> ${escapeHTML(state.selectedProduct.category)}</div>
-        <div><span class="lbl">Τεχνικός:</span> ${escapeHTML(techName)}</div>
-        <div><span class="lbl">Σημείο:</span> ${escapeHTML(loc)}</div>
-        <div><span class="lbl">Παρτίδα:</span> ${escapeHTML(bat)}</div>
+        <div><span class="lbl">${t('samples.plan_category_label', 'Κατηγορία:')}</span> ${escapeHTML(state.selectedProduct.category)}</div>
+        <div><span class="lbl">${t('samples.confirm_tech_label', 'Τεχνικός:')}</span> ${escapeHTML(techName)}</div>
+        <div><span class="lbl">${t('samples.confirm_location_label', 'Σημείο:')}</span> ${escapeHTML(loc)}</div>
+        <div><span class="lbl">${t('samples.confirm_batch_label', 'Παρτίδα:')}</span> ${escapeHTML(bat)}</div>
         ${com ? `<div class="confirm-grid-full">
-                  <span class="lbl">Σχόλια:</span> ${escapeHTML(com)}
+                  <span class="lbl">${t('samples.confirm_comments_label', 'Σχόλια:')}</span> ${escapeHTML(com)}
                 </div>` : ''}
       </div>
     `;
 
     const planList = [...state.requiredTests];
     el('confirm-plan').innerHTML = `
-      <h3 class="confirm-title">Πλάνο Δοκιμών (${planList.length})</h3>
+      <h3 class="confirm-title">${t('samples.confirm_plan_title', 'Πλάνο Δοκιμών')} (${planList.length})</h3>
       <div class="confirm-plan-list">
         ${planList.length === 0
-          ? '<em class="text-muted">Καμία δοκιμή — μπορεί να οριστεί αργότερα.</em>'
+          ? `<em class="text-muted">${t('samples.confirm_plan_empty', 'Καμία δοκιμή — μπορεί να οριστεί αργότερα.')}</em>`
           : planList.map(tt => `
               <span class="badge badge-info">
                 ${escapeHTML(App.testLabel(tt))}
@@ -447,7 +447,7 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
   async function saveSample() {
     const btn = el('btn-save');
     btn.disabled    = true;
-    btn.textContent = 'Αποθήκευση...';
+    btn.textContent = t('samples.saving_button', 'Αποθήκευση...');
 
     try {
       const code = el('new-code').value.trim();
@@ -472,27 +472,27 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
       );
 
       if (!sampleId) {
-        throw new Error('Δεν επιστράφηκε id');
+        throw new Error(t('samples.err_no_id', 'Δεν επιστράφηκε id'));
       }
 
       state.savedSampleId   = sampleId;
       state.savedSampleCode = code;
 
       el('success-message').innerHTML = `
-        Το δείγμα <code>${escapeHTML(code)}</code> καταχωρήθηκε
+        ${t('samples.success_prefix', 'Το δείγμα')} <code>${escapeHTML(code)}</code> ${t('samples.success_registered', 'καταχωρήθηκε')}
         ${plan.length > 0
-            ? `με <strong>${plan.length}</strong> δοκιμές στο πλάνο.`
-            : 'χωρίς δοκιμές στο πλάνο.'}
+            ? `${t('samples.success_with_count_pre', 'με')} <strong>${plan.length}</strong> ${t('samples.success_with_count_post', 'δοκιμές στο πλάνο.')}`
+            : t('samples.success_no_plan', 'χωρίς δοκιμές στο πλάνο.')}
       `;
 
       showOnly('step-success');
       updateBreadcrumb(3);  // κρατάμε ως completed
-      App.toast('Δείγμα δημιουργήθηκε επιτυχώς', 'ok');
+      App.toast(t('samples.success_toast', 'Δείγμα δημιουργήθηκε επιτυχώς'), 'ok');
 
     } catch (err) {
-      App.toast('Σφάλμα: ' + err.message, 'fail');
+      App.toast(t('samples.save_error_prefix', 'Σφάλμα: ') + err.message, 'fail');
       btn.disabled    = false;
-      btn.textContent = '✓ Αποθήκευση Δείγματος';
+      btn.textContent = t('samples.save_button', '✓ Αποθήκευση Δείγματος');
     }
   }
 
@@ -525,7 +525,7 @@ import { pyCall, pyCallStrict, App, AppState } from '../../main-app.js';
 
   function goToTests() {
     if (!state.savedSampleId) {
-      App.toast('Δεν υπάρχει αποθηκευμένο δείγμα', 'warn');
+      App.toast(t('samples.no_saved_sample_toast', 'Δεν υπάρχει αποθηκευμένο δείγμα'), 'warn');
       return;
     }
     window._currentSampleId = state.savedSampleId;

@@ -26,10 +26,10 @@
        Header
        ============================================================ -->
   <div class="page-header">
-    <h1>Νέα Καταχώρηση Δείγματος</h1>
+    <h1 data-i18n="samples.title">Νέα Καταχώρηση Δείγματος</h1>
     <p class="page-subtitle">
-      Καταχωρείτε νέο δείγμα και ορίζετε ποιες δοκιμές θα εκτελεστούν.
-      Οι ίδιες οι δοκιμές γίνονται από τη σελίδα <em>Δοκιμές</em>.
+      <span data-i18n="samples.subtitle_pre">Καταχωρείτε νέο δείγμα και ορίζετε ποιες δοκιμές θα εκτελεστούν.
+      Οι ίδιες οι δοκιμές γίνονται από τη σελίδα </span><em data-i18n="common.page_tests">Δοκιμές</em>.
     </p>
   </div>
 
@@ -38,11 +38,11 @@
        ============================================================ -->
   <div class="breadcrumb-bar">
     <div class="breadcrumb">
-      <span class="bc-step active" id="bc-1">① Στοιχεία</span>
+      <span class="bc-step active" id="bc-1" data-i18n="samples.bc_info">① Στοιχεία</span>
       <span class="bc-arrow">›</span>
-      <span class="bc-step"        id="bc-2">② Πλάνο Δοκιμών</span>
+      <span class="bc-step"        id="bc-2" data-i18n="samples.bc_plan">② Πλάνο Δοκιμών</span>
       <span class="bc-arrow">›</span>
-      <span class="bc-step"        id="bc-3">③ Επιβεβαίωση</span>
+      <span class="bc-step"        id="bc-3" data-i18n="samples.bc_confirm">③ Επιβεβαίωση</span>
     </div>
   </div>
 
@@ -51,74 +51,74 @@
        ============================================================ -->
   <div id="step-1" class="form-step active">
     <div class="form-card">
-      <h2>Στοιχεία Δείγματος</h2>
+      <h2 data-i18n="samples.step1_title">Στοιχεία Δείγματος</h2>
 
       <div class="form-grid">
 
         <div class="form-group required">
-          <label>Κωδικός Δείγματος</label>
+          <label data-i18n="samples.code_label">Κωδικός Δείγματος</label>
           <div class="input-with-action">
-            <input type="text" id="new-code" placeholder="ΓΑΛ-2026-XXXX" />
+            <input type="text" id="new-code" placeholder="ΓΑΛ-2026-XXXX" data-i18n-placeholder="samples.code_placeholder" />
             <button class="icon-btn" onclick="SamplesPage.regenerateCode()"
-                    title="Αυτόματος κωδικός">↺</button>
+                    title="Αυτόματος κωδικός" data-i18n-title="samples.auto_code_title">↺</button>
           </div>
         </div>
 
         <div class="form-group required">
-          <label>Ημερομηνία Δειγματοληψίας</label>
-          <input type="text" id="new-date" placeholder="ηη/μμ/εεεε" title="Μορφή: ημέρα/μήνας/έτος πχ 23/05/2026" maxlength="10" style="width:130px;letter-spacing:1px;" />
+          <label data-i18n="samples.date_label">Ημερομηνία Δειγματοληψίας</label>
+          <input type="text" id="new-date" placeholder="ηη/μμ/εεεε" data-i18n-placeholder="samples.date_placeholder" title="Μορφή: ημέρα/μήνας/έτος πχ 23/05/2026" data-i18n-title="samples.date_format_hint" maxlength="10" style="width:130px;letter-spacing:1px;" />
         </div>
 
         <div class="form-group required">
-          <label>Προέλευση Υλικού</label>
+          <label data-i18n="samples.source_label">Προέλευση Υλικού</label>
           <select id="new-source">
-            <option value="">— Επιλέξτε —</option>
+            <option value="" data-i18n="common.select_placeholder">— Επιλέξτε —</option>
           </select>
         </div>
 
         <div class="form-group required">
-          <label>Προϊόν</label>
+          <label data-i18n="samples.product_label">Προϊόν</label>
           <select id="new-product">
-            <option value="">— Επιλέξτε προϊόν —</option>
+            <option value="" data-i18n="samples.product_placeholder">— Επιλέξτε προϊόν —</option>
           </select>
           <small id="product-info" class="form-hint"></small>
         </div>
 
         <div class="form-group">
-          <label>Τεχνικός</label>
+          <label data-i18n="samples.technician_label">Τεχνικός</label>
           <div class="input-with-action">
             <select id="new-technician">
-              <option value="">— Επιλέξτε —</option>
+              <option value="" data-i18n="common.select_placeholder">— Επιλέξτε —</option>
             </select>
             <button class="icon-btn" onclick="SamplesPage.addTechnician()"
-                    title="Νέος τεχνικός">+</button>
+                    title="Νέος τεχνικός" data-i18n-title="samples.new_technician_title">+</button>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Σημείο Δειγματοληψίας</label>
-          <input type="text" id="new-location" placeholder="πχ Σωρός Β, στοίβα 3" />
+          <label data-i18n="samples.location_label">Σημείο Δειγματοληψίας</label>
+          <input type="text" id="new-location" placeholder="πχ Σωρός Β, στοίβα 3" data-i18n-placeholder="samples.location_placeholder" />
         </div>
 
         <div class="form-group">
-          <label>Παρτίδα</label>
-          <input type="text" id="new-batch" placeholder="πχ 2026-05-Α" />
+          <label data-i18n="samples.batch_label">Παρτίδα</label>
+          <input type="text" id="new-batch" placeholder="πχ 2026-05-Α" data-i18n-placeholder="samples.batch_placeholder" />
         </div>
 
         <div class="form-group full-width">
-          <label>Σχόλια</label>
+          <label data-i18n="samples.comments_label">Σχόλια</label>
           <textarea id="new-comments" rows="2"
-                    placeholder="Προαιρετικές σημειώσεις"></textarea>
+                    placeholder="Προαιρετικές σημειώσεις" data-i18n-placeholder="samples.comments_placeholder"></textarea>
         </div>
 
       </div>
 
       <div class="form-actions">
-        <button class="btn-secondary" onclick="App.go('dashboard')">
+        <button class="btn-secondary" onclick="App.go('dashboard')" data-i18n="samples.cancel_button">
           ← Ακύρωση
         </button>
         <button class="btn-primary" id="btn-step1-next"
-                onclick="SamplesPage.goToStep(2)">
+                onclick="SamplesPage.goToStep(2)" data-i18n="common.continue">
           Συνέχεια →
         </button>
       </div>
@@ -130,9 +130,9 @@
        ============================================================ -->
   <div id="step-2" class="form-step hidden">
     <div class="form-card">
-      <h2>Πλάνο Δοκιμών</h2>
+      <h2 data-i18n="samples.step2_title">Πλάνο Δοκιμών</h2>
 
-      <p class="form-card-intro">
+      <p class="form-card-intro" data-i18n="samples.step2_intro">
         Επιλέξτε ποιες δοκιμές θα εκτελεστούν. Οι προτεινόμενες είναι ήδη
         επιλεγμένες βάσει της κατηγορίας του προϊόντος.
         Το πλάνο μπορεί να τροποποιηθεί αργότερα από τη σελίδα Δοκιμές.
@@ -145,10 +145,10 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn-secondary" onclick="SamplesPage.goToStep(1)">
+        <button class="btn-secondary" onclick="SamplesPage.goToStep(1)" data-i18n="common.back">
           ← Πίσω
         </button>
-        <button class="btn-primary" onclick="SamplesPage.goToStep(3)">
+        <button class="btn-primary" onclick="SamplesPage.goToStep(3)" data-i18n="common.continue">
           Συνέχεια →
         </button>
       </div>
@@ -160,8 +160,8 @@
        ============================================================ -->
   <div id="step-3" class="form-step hidden">
     <div class="form-card">
-      <h2>Επιβεβαίωση Στοιχείων</h2>
-      <p class="form-card-intro">
+      <h2 data-i18n="samples.step3_title">Επιβεβαίωση Στοιχείων</h2>
+      <p class="form-card-intro" data-i18n="samples.step3_intro">
         Ελέγξτε τα στοιχεία πριν την αποθήκευση.
       </p>
 
@@ -169,11 +169,11 @@
       <div id="confirm-plan" class="confirm-block"></div>
 
       <div class="form-actions">
-        <button class="btn-secondary" onclick="SamplesPage.goToStep(2)">
+        <button class="btn-secondary" onclick="SamplesPage.goToStep(2)" data-i18n="common.back">
           ← Πίσω
         </button>
         <button class="btn-primary" id="btn-save"
-                onclick="SamplesPage.saveSample()">
+                onclick="SamplesPage.saveSample()" data-i18n="samples.save_button">
           ✓ Αποθήκευση Δείγματος
         </button>
       </div>
@@ -186,17 +186,17 @@
   <div id="step-success" class="form-step hidden">
     <div class="form-card success-card">
       <div class="success-icon">✓</div>
-      <h2>Το δείγμα δημιουργήθηκε</h2>
+      <h2 data-i18n="samples.success_title">Το δείγμα δημιουργήθηκε</h2>
       <p id="success-message" class="form-card-intro"></p>
 
       <div class="form-actions">
-        <button class="btn-secondary" onclick="SamplesPage.startNewSample()">
+        <button class="btn-secondary" onclick="SamplesPage.startNewSample()" data-i18n="samples.new_sample_button">
           + Νέο Δείγμα
         </button>
-        <button class="btn-secondary" onclick="App.go('dashboard')">
+        <button class="btn-secondary" onclick="App.go('dashboard')" data-i18n="samples.dashboard_button">
           🏠 Dashboard
         </button>
-        <button class="btn-primary" onclick="SamplesPage.goToTests()">
+        <button class="btn-primary" onclick="SamplesPage.goToTests()" data-i18n="samples.goto_tests_button">
           Δοκιμές →
         </button>
       </div>
@@ -209,16 +209,16 @@
        ============================================================ -->
   <div id="legacy-redirect" class="form-step hidden">
     <div class="form-card">
-      <h2>Η σελίδα Δοκιμές βρίσκεται υπό κατασκευή</h2>
+      <h2 data-i18n="samples.legacy_title">Η σελίδα Δοκιμές βρίσκεται υπό κατασκευή</h2>
       <p class="form-card-intro">
-        Η διαχείριση δοκιμών για υπάρχοντα δείγματα θα γίνεται από τη
-        νέα σελίδα <strong>Δοκιμές</strong> που υλοποιείται στο επόμενο βήμα.
+        <span data-i18n="samples.legacy_body_pre">Η διαχείριση δοκιμών για υπάρχοντα δείγματα θα γίνεται από τη
+        νέα σελίδα </span><strong data-i18n="common.page_tests">Δοκιμές</strong><span data-i18n="samples.legacy_body_post"> που υλοποιείται στο επόμενο βήμα.</span>
       </p>
-      <p class="form-card-intro">
+      <p class="form-card-intro" data-i18n="samples.legacy_hint">
         Προς το παρόν, μπορείτε να επιστρέψετε στο Dashboard.
       </p>
       <div class="form-actions">
-        <button class="btn-primary" onclick="App.go('dashboard')">
+        <button class="btn-primary" onclick="App.go('dashboard')" data-i18n="samples.legacy_return_button">
           🏠 Επιστροφή στο Dashboard
         </button>
       </div>
