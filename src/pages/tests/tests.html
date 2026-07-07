@@ -25,15 +25,15 @@
       </div>
       <div class="header-actions">
         <button class="btn-secondary btn-sm"
-                onclick="TestsPage.editInfo()">
+                onclick="TestsPage.editInfo()" data-i18n="tests.info_button">
           ✎ Στοιχεία
         </button>
         <button class="btn-secondary btn-sm"
-                onclick="TestsPage.editPlan()">
+                onclick="TestsPage.editPlan()" data-i18n="tests.plan_button">
           ⊞ Πλάνο
         </button>
         <button class="btn-secondary btn-sm"
-                onclick="App.go('dashboard')">
+                onclick="App.go('dashboard')" data-i18n="tests.dashboard_button">
           ← Dashboard
         </button>
       </div>
@@ -47,7 +47,7 @@
 
   <!-- Loading state -->
   <div id="tests-loading" class="form-card" style="text-align:center;padding:40px;">
-    <div style="color:var(--text-muted);">Φόρτωση δείγματος...</div>
+    <div style="color:var(--text-muted);" data-i18n="tests.loading_sample">Φόρτωση δείγματος...</div>
   </div>
 
   <!-- Κύριο περιεχόμενο (κρυμμένο μέχρι φόρτωση) -->
@@ -72,7 +72,7 @@
           <span id="tests-guide-title"></span>
           <button id="tests-guide-close"
                   onclick="TestsPage.closeGuidePanel()"
-                  title="Κλείσιμο οδηγού">✕</button>
+                  title="Κλείσιμο οδηγού" data-i18n-title="tests.close_guide_tooltip">✕</button>
         </div>
         <iframe id="tests-guide-iframe" src="" frameborder="0"></iframe>
       </div>
@@ -84,10 +84,10 @@
   <!-- Empty state: κανένα πλάνο -->
   <div id="tests-empty" class="hidden">
     <div class="form-card" style="text-align:center; padding:40px;">
-      <p style="color:var(--text-muted); margin-bottom:16px;">
+      <p style="color:var(--text-muted); margin-bottom:16px;" data-i18n="tests.empty_plan_hint">
         Δεν υπάρχουν δοκιμές στο πλάνο αυτού του δείγματος.
       </p>
-      <button class="btn-primary" onclick="TestsPage.editPlan()">
+      <button class="btn-primary" onclick="TestsPage.editPlan()" data-i18n="tests.set_plan_button">
         + Ορισμός Πλάνου
       </button>
     </div>

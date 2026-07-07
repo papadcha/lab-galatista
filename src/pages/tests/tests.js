@@ -8,6 +8,7 @@
 // ES module — φορτώνεται με πραγματικό <script type="module" src="...">
 // (βλ. main-app.js: Pages.tests.module + navigateTo()).
 import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
+import { t } from '../../i18n/i18n.js';
 
 (() => {
 
@@ -51,7 +52,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
   async function init() {
     const id = window._currentSampleId;
     if (!id) {
-      App.toast('Δεν ορίστηκε δείγμα', 'fail');
+      App.toast(t('tests.no_sample_set', 'Δεν ορίστηκε δείγμα'), 'fail');
       setTimeout(() => { if (stillOnPage()) App.go('dashboard'); }, 1200);
       return;
     }
@@ -74,7 +75,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     hide('tests-loading');
 
     if (!report) {
-      App.toast('Δεν βρέθηκε το δείγμα', 'fail');
+      App.toast(t('tests.sample_not_found', 'Δεν βρέθηκε το δείγμα'), 'fail');
       if (stillOnPage()) App.go('dashboard');
       return;
     }
@@ -143,7 +144,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
       `${App.formatDate(s.date)}` +
       (s.technician_name ? ` · ${s.technician_name}` : '') +
       (s.location        ? ` · ${s.location}`        : '') +
-      (s.batch           ? ` · Παρτίδα: ${s.batch}`  : '')
+      (s.batch           ? ` · ${t('settings.batch_label', 'Παρτίδα:')} ${s.batch}`  : '')
     );
 
     const infoBar = el('tests-info-bar');
@@ -173,9 +174,9 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
       const statusClass = isDone   ? 'done'
                         : isActive ? 'selected'
                         :            '';
-      const statusText  = isDone   ? '✓ Ολοκληρώθηκε'
-                        : isActive ? '● Σε εξέλιξη'
-                        :            'Εκκρεμεί';
+      const statusText  = isDone   ? '✓ ' + t('tests.status_done', 'Ολοκληρώθηκε')
+                        : isActive ? '● ' + t('tests.status_active', 'Σε εξέλιξη')
+                        :            t('tests.status_pending', 'Εκκρεμεί');
       const statusCls   = isDone   ? 'status-done'
                         : isActive ? 'status-active'
                         :            'status-pending';
@@ -196,7 +197,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
           </div>
           ${isDone && runCount > 1 ? `
             <div class="history-peek">
-              ${runCount - 1} προηγ. εκτέλεση${runCount - 1 > 1 ? 'εις' : ''}
+              ${runCount - 1} ${runCount - 1 > 1 ? t('tests.previous_runs_plural', 'προηγ. εκτελέσεις') : t('tests.previous_run_singular', 'προηγ. εκτέλεση')}
             </div>` : ''}
         </div>
       `;
@@ -226,16 +227,16 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
       strip.innerHTML = `
         <button class="history-toggle"
                 onclick="TestsPage.toggleHistory('${tt}')">
-          📜 ${rejected.length} προηγ. εκτέλεση${rejected.length > 1 ? 'εις' : ''} ▾
+          📜 ${rejected.length} ${rejected.length > 1 ? t('tests.previous_runs_plural', 'προηγ. εκτελέσεις') : t('tests.previous_run_singular', 'προηγ. εκτέλεση')} ▾
         </button>
         <div class="history-table hidden" id="history-table-${tt}">
           <table class="sieve-table" style="margin-top:8px;">
             <thead>
               <tr>
                 <th>Run</th>
-                <th>Ημερομηνία</th>
-                <th>Αποτέλεσμα</th>
-                <th>Λόγος Απόρριψης</th>
+                <th>${t('tests.date_col', 'Ημερομηνία')}</th>
+                <th>${t('tests.result_col', 'Αποτέλεσμα')}</th>
+                <th>${t('tests.rejection_reason_col', 'Λόγος Απόρριψης')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -276,7 +277,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     if (tt === 'se')   return run.se_final    ? `SE = ${run.se_final}%`     : '—';
     if (tt === 'flakiness') return run.fi_index ? `FI = ${run.fi_index}%`  : '—';
     if (tt === 'sieve') return run.wash_loss_pct != null
-      ? `Απώλεια: ${run.wash_loss_pct}%` : '—';
+      ? `${t('tests.loss_label', 'Απώλεια:')} ${run.wash_loss_pct}%` : '—';
     return '—';
   }
 
@@ -339,10 +340,10 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
   const _guideDismissed = new Set();
 
   const GUIDE_TITLES = {
-    'se':        'Οδηγός — Ισοδύναμο Άμμου (SE)',
-    'mb':        'Οδηγός — Μπλε Μεθυλενίου (MB)',
-    'sieve':     'Οδηγός — Κοκκομετρία / ΔΙ',
-    'flakiness': 'Οδηγός — Κοκκομετρία / ΔΙ',
+    get 'se'()        { return t('tests.guide_title_se', 'Οδηγός — Ισοδύναμο Άμμου (SE)'); },
+    get 'mb'()        { return t('tests.guide_title_mb', 'Οδηγός — Μπλε Μεθυλενίου (MB)'); },
+    get 'sieve'()     { return t('tests.guide_title_sieve', 'Οδηγός — Κοκκομετρία / ΔΙ'); },
+    get 'flakiness'() { return t('tests.guide_title_sieve', 'Οδηγός — Κοκκομετρία / ΔΙ'); },
   };
 
   function showTestGuide(tt) {
@@ -355,7 +356,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     const src = GUIDE_FILES[tt];
     if (!src) return;
 
-    title.textContent   = GUIDE_TITLES[tt] || 'Οδηγός';
+    title.textContent   = GUIDE_TITLES[tt] || t('tests.guide_word', 'Οδηγός');
     iframe.src          = src;
     panel.classList.remove('hidden');
     split.classList.add('guide-open');
@@ -393,7 +394,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     // Container: tests-form-area (πάντα υπάρχει)
     const container = el('tests-form-area');
     if (!container) return;
-    container.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Φόρτωση...</div>';
+    container.innerHTML = `<div style="padding:20px;color:var(--text-muted);">${t('common.loading', 'Φόρτωση...')}</div>`;
 
     const report  = state.sample;
     const history = state.history[tt] || [];
@@ -416,7 +417,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     state.se3rdAdded = false;
     await new Promise(r => setTimeout(r, 0)); // microtask flush
 
-    container.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Φόρτωση νέας φόρμας...</div>';
+    container.innerHTML = `<div style="padding:20px;color:var(--text-muted);">${t('tests.loading_new_form', 'Φόρτωση νέας φόρμας...')}</div>`;
 
     switch (tt) {
       case 'sieve':     await buildSieveForm(container, null);     break;
@@ -434,26 +435,26 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
     container.innerHTML = `
       <div class="form-card">
-        <h2>Κοκκομετρική Ανάλυση — EN 933-1
+        <h2>${t('tests.sieve_analysis_title', 'Κοκκομετρική Ανάλυση — EN 933-1')}
           <small style="font-weight:400;color:var(--text-muted);margin-left:10px;">
             ${esc(state.product?.name)}mm
           </small>
         </h2>
         <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px;">
           <div class="form-group">
-            <label>Βάρος Δείγματος (g)</label>
+            <label>${t('tests.sample_weight_label', 'Βάρος Δείγματος (g)')}</label>
             <input type="number" id="w-initial" step="0.1"
                    value="${an?.weight_initial || ''}" placeholder="0.0"
                    onchange="TestsPage.calcWashLoss()">
           </div>
           <div class="form-group">
-            <label>Βάρος Ξηρού (g)</label>
+            <label>${t('tests.dry_weight_label', 'Βάρος Ξηρού (g)')}</label>
             <input type="number" id="w-dry" step="0.1"
                    value="${an?.weight_dry || ''}" placeholder="0.0"
                    onchange="TestsPage.calcWashLoss()">
           </div>
           <div class="form-group">
-            <label>Βάρος Πλυμένου (g)</label>
+            <label>${t('tests.washed_weight_label', 'Βάρος Πλυμένου (g)')}</label>
             <input type="number" id="w-washed" step="0.1"
                    value="${an?.weight_washed || ''}" placeholder="0.0"
                    onchange="TestsPage.calcPassing()">
@@ -461,16 +462,16 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
         </div>
         <div id="wash-loss-display" style="margin-bottom:12px;
              ${an ? '' : 'display:none'}">
-          <span class="badge badge-none">Απώλεια πλύσης:
+          <span class="badge badge-none">${t('tests.wash_loss_label', 'Απώλεια πλύσης:')}
             <strong id="wash-loss-val">${an?.wash_loss_pct || '0.00'}</strong>%
           </span>
         </div>
         <table class="sieve-table">
           <thead>
             <tr>
-              <th>Κόσκινο (mm)</th>
-              <th>Βάρος Συγκρ. (g)</th>
-              <th>Διερχόμενο (%)</th>
+              <th>${t('settings.sieve_mm_col', 'Κόσκινο (mm)')}</th>
+              <th>${t('tests.weight_retained_col', 'Βάρος Συγκρ. (g)')}</th>
+              <th>${t('tests.passing_col', 'Διερχόμενο (%)')}</th>
             </tr>
           </thead>
           <tbody id="sieve-tbody">
@@ -501,7 +502,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
               return `
                 <tr id="sieve-row-pan" style="background:var(--bg-input);">
                   <td class="sieve-label" style="font-weight:700;">
-                    Τυφλό (Pan)
+                    ${t('tests.pan_label', 'Τυφλό (Pan)')}
                   </td>
                   <td>
                     <input type="number" id="sieve-ret-pan"
@@ -613,7 +614,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
     if (checkEl) {
       if (panManual === null) {
-        checkEl.textContent = `Υπολ.: ${panCalc.toFixed(1)}g`;
+        checkEl.textContent = `${t('tests.calc_abbrev', 'Υπολ.:')} ${panCalc.toFixed(1)}g`;
         checkEl.style.color = 'var(--text-muted)';
       } else {
         const diff = Math.abs(panManual - panCalc);
@@ -621,7 +622,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
           checkEl.textContent = `✓ ${panCalc.toFixed(1)}g`;
           checkEl.style.color = 'var(--ok-light)';
         } else {
-          checkEl.textContent = `⚠ Υπολ.: ${panCalc.toFixed(1)}g (Δ=${diff.toFixed(1)}g)`;
+          checkEl.textContent = `⚠ ${t('tests.calc_abbrev', 'Υπολ.:')} ${panCalc.toFixed(1)}g (Δ=${diff.toFixed(1)}g)`;
           checkEl.style.color = 'var(--warn)';
         }
       }
@@ -633,7 +634,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     const wDry     = parseFloat(el('w-dry')?.value)     || 0;
     const wWashed  = parseFloat(el('w-washed')?.value)  || 0;
 
-    if (!wWashed) { App.toast('Συμπληρώστε το βάρος πλυμένου', 'warn'); return; }
+    if (!wWashed) { App.toast(t('tests.fill_washed_weight', 'Συμπληρώστε το βάρος πλυμένου'), 'warn'); return; }
 
     const results = state.sieves.map((s, i) => ({
       sieve_mm:        s,
@@ -670,7 +671,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
     container.innerHTML = `
       <div class="form-card">
-        <h2>Μπλε Μεθυλενίου — EN 933-9
+        <h2>${t('tests.mb_title', 'Μπλε Μεθυλενίου — EN 933-9')}
           <small style="font-weight:400;color:var(--text-muted);margin-left:10px;">
             ${esc(state.product?.name)}mm
           </small>
@@ -678,21 +679,21 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
         <div class="form-grid" style="grid-template-columns:1fr 1fr;">
           <div class="form-group">
-            <label>Βάρος Δείγματος M₁ (g)
-              <span style="font-size:10px;color:var(--text-muted);">— ξηρό, 110°C</span>
+            <label>${t('tests.mb_weight_label', 'Βάρος Δείγματος M₁ (g)')}
+              <span style="font-size:10px;color:var(--text-muted);">— ${t('tests.mb_weight_note', 'ξηρό, 110°C')}</span>
             </label>
             <input type="number" id="mb-weight"
                    value="${mb?.weight_sample || ''}" step="0.1" min="200" placeholder="≥200"
                    onchange="TestsPage.calcMB()">
-            <small class="form-hint">Κλάσμα 0/2mm, σταθερή μάζα</small>
+            <small class="form-hint">${t('tests.mb_fraction_hint', 'Κλάσμα 0/2mm, σταθερή μάζα')}</small>
           </div>
           <div class="form-group">
-            <label>Όγκος Νερού (ml)</label>
+            <label>${t('tests.mb_water_volume_label', 'Όγκος Νερού (ml)')}</label>
             <input type="number" id="mb-water"
                    value="${mb?.water_volume || 500}" step="1">
           </div>
           <div class="form-group">
-            <label>Αρχικός Όγκος (ml)</label>
+            <label>${t('tests.mb_initial_volume_label', 'Αρχικός Όγκος (ml)')}</label>
             <input type="number" id="mb-v-initial"
                    value="${mb?.volume_initial ?? suggestion?.volume ?? 0}"
                    step="5" min="0"
@@ -700,11 +701,11 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
                    onchange="TestsPage.checkMbWarning()">
             ${suggestion?.is_suggestion && !mb ? `
               <div class="volume-warning">
-                ⚠ Πρόταση από τελευταία δοκιμή (V1=${suggestion.based_on}ml)
+                ⚠ ${t('tests.mb_suggestion_prefix', 'Πρόταση από τελευταία δοκιμή')} (V1=${suggestion.based_on}ml)
               </div>` : ''}
           </div>
           <div class="form-group">
-            <label>Τελικός Όγκος V1 (ml)</label>
+            <label>${t('tests.mb_final_volume_label', 'Τελικός Όγκος V1 (ml)')}</label>
             <input type="number" id="mb-v-final"
                    value="${mb?.volume_final || ''}"
                    step="5" min="0" placeholder="0"
@@ -720,7 +721,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
           <div id="mb-formula" style="font-size:12px;color:var(--text-muted)">MB = (V1 / M1) × 10</div>
         </div>
         <div class="form-group" style="margin-top:16px;">
-          <label>Σχόλια</label>
+          <label>${t('tests.comments_label', 'Σχόλια')}</label>
           <input type="text" id="mb-comments" value="${mb?.comments || ''}">
         </div>
         ${renderFormActions('mb', !!existing)}
@@ -751,8 +752,8 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     const vInit  = parseFloat(el('mb-v-initial')?.value) || 0;
     const vFinal = parseFloat(el('mb-v-final')?.value)   || 0;
 
-    if (!weight) { App.toast('Συμπληρώστε το βάρος δείγματος M₁', 'warn'); return; }
-    if (!vFinal) { App.toast('Συμπληρώστε τον τελικό όγκο V1', 'warn'); return; }
+    if (!weight) { App.toast(t('tests.fill_mb_weight', 'Συμπληρώστε το βάρος δείγματος M₁'), 'warn'); return; }
+    if (!vFinal) { App.toast(t('tests.fill_mb_final_volume', 'Συμπληρώστε τον τελικό όγκο V1'), 'warn'); return; }
 
     await doSave('mb', async (asNewRun, reason) => {
       await pyCallStrict('save_methylene_blue',
@@ -772,12 +773,12 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
     container.innerHTML = `
       <div class="form-card">
-        <h2>Ισοδύναμο Άμμου — EN 933-8</h2>
+        <h2>${t('tests.se_title', 'Ισοδύναμο Άμμου — EN 933-8')}</h2>
         <div class="se-measurements" id="se-measurements">
           ${[1,2].map(i => seRowHTML(i, measurements[i-1])).join('')}
         </div>
         <div class="se-diff-warning" id="se-diff-warning">
-          ⚠ Διαφορά &gt; 4 μονάδες — Η δοκιμή πρέπει να επαναληφθεί (EN 933-8 §9)
+          ⚠ ${t('tests.se_diff_warning', 'Διαφορά > 4 μονάδες — Η δοκιμή πρέπει να επαναληφθεί (EN 933-8 §9)')}
         </div>
         <div id="se-3rd-container"></div>
         <div class="mb-result" id="se-result"
@@ -794,7 +795,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
           </div>
         </div>
         <div class="form-group" style="margin-top:16px;">
-          <label>Σχόλια</label>
+          <label>${t('tests.comments_label', 'Σχόλια')}</label>
           <input type="text" id="se-comments" value="${existing?.comments || ''}">
         </div>
         ${renderFormActions('se', !!existing)}
@@ -811,24 +812,24 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
   function seRowHTML(i, data = null, isWarning = false) {
     return `
       <div class="se-row ${isWarning ? 'warning-row' : ''}" id="se-row-${i}">
-        <div class="se-row-label">Μέτρηση ${i}</div>
+        <div class="se-row-label">${t('tests.measurement_word', 'Μέτρηση')} ${i}</div>
         <div class="form-group">
-          <label title="Ύψος αιωρήματος αργίλου — διαβάζεται αμέσως μετά τα 20 λεπτά ιζηματοποίησης, χωρίς ράβδο">
-            h1 — Άργιλος (mm)
+          <label title="${t('tests.se_h1_tooltip', 'Ύψος αιωρήματος αργίλου — διαβάζεται αμέσως μετά τα 20 λεπτά ιζηματοποίησης, χωρίς ράβδο')}">
+            h1 — ${t('tests.clay_word', 'Άργιλος')} (mm)
           </label>
           <input type="number" id="se-h1-${i}"
                  value="${data?.h1 || ''}" step="0.5" min="0" placeholder="0.0"
                  onchange="TestsPage.calcSE()">
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">📏 Κορυφή αιωρήματος αργίλου</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">📏 ${t('tests.se_h1_hint', 'Κορυφή αιωρήματος αργίλου')}</div>
         </div>
         <div class="form-group">
-          <label title="Ύψος ιζήματος άμμου — διαβάζεται αφού κατεβεί η ράβδος πίεσης και ακουμπήσει στην άμμο">
-            h2 — Άμμος (mm)
+          <label title="${t('tests.se_h2_tooltip', 'Ύψος ιζήματος άμμου — διαβάζεται αφού κατεβεί η ράβδος πίεσης και ακουμπήσει στην άμμο')}">
+            h2 — ${t('tests.sand_word', 'Άμμος')} (mm)
           </label>
           <input type="number" id="se-h2-${i}"
                  value="${data?.h2 || ''}" step="0.5" min="0" placeholder="0.0"
                  onchange="TestsPage.calcSE()">
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">📏 Κορυφή ιζήματος άμμου (με ράβδο πίεσης)</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">📏 ${t('tests.se_h2_hint', 'Κορυφή ιζήματος άμμου (με ράβδο πίεσης)')}</div>
         </div>
         <div>
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">SE%</div>
@@ -888,13 +889,13 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
       if (h1 > 0 && h2 > 0) measurements.push({h1, h2});
     }
     if (measurements.length < 2) {
-      App.toast('Συμπληρώστε και τις 2 μετρήσεις', 'warn');
+      App.toast(t('tests.fill_both_measurements', 'Συμπληρώστε και τις 2 μετρήσεις'), 'warn');
       return;
     }
     // EN 933-8 §9: αν διαφορά > 4, δεν επιτρέπεται αποθήκευση
     const seVals = measurements.map(m => m.h1 > 0 ? m.h2 / m.h1 * 100 : 0);
     if (Math.abs(seVals[0] - seVals[1]) > 4) {
-      App.toast('Διαφορά > 4 μονάδες — Επαναλάβετε τη δοκιμή (EN 933-8 §9)', 'error');
+      App.toast(t('tests.se_repeat_warning', 'Διαφορά > 4 μονάδες — Επαναλάβετε τη δοκιμή (EN 933-8 §9)'), 'error');
       return;
     }
     await doSave('se', async (asNewRun, reason) => {
@@ -928,22 +929,22 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
     container.innerHTML = `
       <div class="form-card">
-        <h2>Πλακοειδή — EN 933-3
+        <h2>${t('tests.flakiness_title', 'Πλακοειδή — EN 933-3')}
           <small style="font-weight:400;color:var(--text-muted);margin-left:10px;">
             ${esc(state.product?.name)}mm
           </small>
         </h2>
         ${!hasSieve ? `
           <div class="volume-warning" style="margin-bottom:12px;">
-            ⚠ Δεν βρέθηκε κοκκομετρία — εισάγετε χειροκίνητα τα βάρη κλασμάτων
+            ⚠ ${t('tests.no_sieve_analysis_found', 'Δεν βρέθηκε κοκκομετρία — εισάγετε χειροκίνητα τα βάρη κλασμάτων')}
           </div>` : `
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">
-            ✓ Βάρη κλασμάτων (Rᵢ) από κοκκομετρία — εισάγετε μόνο το Βάρος Ραβδωτού (mᵢ)
+            ✓ ${t('tests.fraction_weights_from_sieve', 'Βάρη κλασμάτων (Rᵢ) από κοκκομετρία — εισάγετε μόνο το Βάρος Ραβδωτού (mᵢ)')}
           </div>`}
         <div class="form-group" style="margin-bottom:12px;">
-          <label>Βάρος Δείγματος M₀ (g)
+          <label>${t('tests.fl_m0_label', 'Βάρος Δείγματος M₀ (g)')}
             <span style="font-size:11px;color:var(--text-muted);font-weight:400;">
-              — για έλεγχο ισοζυγίου ±1% (EN 933-3 §8)
+              — ${t('tests.fl_m0_note', 'για έλεγχο ισοζυγίου ±1% (EN 933-3 §8)')}
             </span>
           </label>
           <input type="number" id="fl-m0" step="0.1" min="0" placeholder="0.0"
@@ -953,9 +954,9 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
         <table class="sieve-table">
           <thead>
             <tr>
-              <th>Κλάσμα (mm)</th>
-              <th>Rᵢ — Βάρος Κλάσματος (g)</th>
-              <th>mᵢ — Βάρος Ραβδωτού (g)</th>
+              <th>${t('tests.fraction_col', 'Κλάσμα (mm)')}</th>
+              <th>${t('tests.fraction_weight_col', 'Rᵢ — Βάρος Κλάσματος (g)')}</th>
+              <th>${t('tests.flaky_weight_col', 'mᵢ — Βάρος Ραβδωτού (g)')}</th>
             </tr>
           </thead>
           <tbody>
@@ -974,7 +975,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
                     <input type="number" id="fl-frac-${i}"
                            value="${fracVal}" step="0.1" min="0"
                            data-sieve="${s}" placeholder="0.0"
-                           ${fracRO ? 'readonly style="background:var(--ok-bg);border-color:var(--ok);color:var(--text-muted);" title="Από κοκκομετρία"' : ''}
+                           ${fracRO ? `readonly style="background:var(--ok-bg);border-color:var(--ok);color:var(--text-muted);" title="${t('tests.from_sieve_analysis_tooltip', 'Από κοκκομετρία')}"` : ''}
                            onchange="TestsPage.calcFI()">
                   </td>
                   <td>
@@ -989,7 +990,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
           </tbody>
         </table>
         <div class="se-diff-warning" id="fi-balance-warning">
-          ⚠ Ισοζύγιο &gt; 1% — Η δοκιμή πρέπει να επαναληφθεί με νέο δείγμα (EN 933-3 §8)
+          ⚠ ${t('tests.fi_balance_warning', 'Ισοζύγιο > 1% — Η δοκιμή πρέπει να επαναληφθεί με νέο δείγμα (EN 933-3 §8)')}
         </div>
         <div class="mb-result" id="fi-result" style="${existing ? '' : 'display:none'}">
           <div>
@@ -1000,7 +1001,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
           <div id="fi-formula" style="font-size:12px;color:var(--text-muted)"></div>
         </div>
         <div class="form-group" style="margin-top:16px;">
-          <label>Σχόλια</label>
+          <label>${t('tests.comments_label', 'Σχόλια')}</label>
           <input type="text" id="fl-comments" value="${existing?.comments || ''}">
         </div>
         ${renderFormActions('flakiness', !!existing)}
@@ -1051,7 +1052,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
       i++;
     }
     if (fractions.length === 0) {
-      App.toast('Συμπληρώστε τουλάχιστον ένα κλάσμα', 'warn');
+      App.toast(t('tests.fill_at_least_one_fraction', 'Συμπληρώστε τουλάχιστον ένα κλάσμα'), 'warn');
       return;
     }
     // Έλεγχος ισοζυγίου 1% (EN 933-3 §8)
@@ -1060,7 +1061,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     if (m0 > 0) {
       const balancePct = Math.abs(m0 - totalFrac) / m0 * 100;
       if (balancePct > 1) {
-        App.toast(`Ισοζύγιο ${balancePct.toFixed(1)}% > 1% — Επαναλάβετε με νέο δείγμα (EN 933-3 §8)`, 'error');
+        App.toast(`${t('tests.balance_word', 'Ισοζύγιο')} ${balancePct.toFixed(1)}% > 1% — ${t('tests.repeat_with_new_sample', 'Επαναλάβετε με νέο δείγμα (EN 933-3 §8)')}`, 'error');
         return;
       }
     }
@@ -1083,7 +1084,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     // Αν είμαστε σε νέο run: «Αποθήκευση» και κρύβουμε το «Επαναληπτική»
     // Αν edit υπάρχοντος: «Ενημέρωση» + κουμπί «Επαναληπτική»
     // Αν νέο: «Αποθήκευση» χωρίς «Επαναληπτική»
-    const saveLabel = (hasExisting && !isPendingNewRun) ? 'Ενημέρωση ✓' : 'Αποθήκευση ✓';
+    const saveLabel = (hasExisting && !isPendingNewRun) ? t('tests.update_button', 'Ενημέρωση ✓') : t('tests.save_button', 'Αποθήκευση ✓');
     const showRepeat = hasExisting && !isPendingNewRun;
     const saveFn    = {
       sieve: 'saveSieve', mb: 'saveMB', se: 'saveSE', flakiness: 'saveFlakiness'
@@ -1093,17 +1094,17 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
       <div class="form-actions">
         <button class="btn-secondary"
                 onclick="TestsPage.closeForm()">
-          ← Πίσω
+          ${t('common.back', '← Πίσω')}
         </button>
         ${showRepeat ? `
           <button class="btn-secondary"
                   onclick="TestsPage.startNewRun('${tt}')">
-            ↺ Επαναληπτική
+            ↺ ${t('tests.repeat_button', 'Επαναληπτική')}
           </button>
         ` : ''}
         ${isPendingNewRun ? `
           <div style="font-size:12px;color:var(--accent);align-self:center;">
-            ● Νέα εκτέλεση — συμπληρώστε και αποθηκεύστε
+            ● ${t('tests.new_run_hint', 'Νέα εκτέλεση — συμπληρώστε και αποθηκεύστε')}
           </div>
         ` : ''}
         <button class="btn-primary"
@@ -1119,7 +1120,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     if (state._pendingNewRun) {
       delete state._pendingNewRun;
       delete state._pendingRejectReason;
-      App.toast('Η επαναληπτική ακυρώθηκε', 'warn');
+      App.toast(t('tests.repeat_canceled', 'Η επαναληπτική ακυρώθηκε'), 'warn');
     }
     state.activeTest = null;
     state.se3rdAdded = false;
@@ -1134,22 +1135,22 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
    */
   function startNewRun(tt) {
     App.showModal(
-      `Επαναληπτική Εκτέλεση — ${App.testLabel(tt)}`,
+      `${t('tests.repeat_run_title_prefix', 'Επαναληπτική Εκτέλεση —')} ${App.testLabel(tt)}`,
       `
         <p style="color:var(--text-muted);margin-bottom:12px;">
-          Η τρέχουσα επίσημη εκτέλεση θα μαρκαριστεί ως
-          <strong>απορριφθείσα</strong> και θα αποθηκευτεί νέα.
+          ${t('tests.repeat_run_body_pre', 'Η τρέχουσα επίσημη εκτέλεση θα μαρκαριστεί ως')}
+          <strong>${t('tests.rejected_word', 'απορριφθείσα')}</strong> ${t('tests.repeat_run_body_post', 'και θα αποθηκευτεί νέα.')}
         </p>
         <div class="form-group">
-          <label>Λόγος Επαναληπτικής <span class="required">*</span></label>
+          <label>${t('tests.repeat_reason_label', 'Λόγος Επαναληπτικής')} <span class="required">*</span></label>
           <textarea id="reject-reason-input" rows="3"
-                    placeholder="πχ Λάθος ζύγισμα, εκ παραδρομής λάθος κόσκινο..."
+                    placeholder="${t('tests.repeat_reason_placeholder', 'πχ Λάθος ζύγισμα, εκ παραδρομής λάθος κόσκινο...')}"
                     style="width:100%;margin-top:6px;"></textarea>
         </div>
       `,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: 'Επιβεβαίωση',
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('tests.confirm_button', 'Επιβεβαίωση'),
           action: `TestsPage._confirmNewRun('${tt}')` },
       ]
     );
@@ -1162,7 +1163,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
       || document.querySelector('#modal-content textarea');
     const reason = textarea?.value?.trim();
     if (!reason) {
-      App.toast('Ο λόγος είναι υποχρεωτικός', 'warn');
+      App.toast(t('tests.reason_required', 'Ο λόγος είναι υποχρεωτικός'), 'warn');
       return;
     }
     App.closeModal();
@@ -1178,7 +1179,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     buildTestFormEmpty(tt);
 
     // Visual feedback
-    App.toast(`Συμπληρώστε τις νέες μετρήσεις και πατήστε Αποθήκευση`, 'ok');
+    App.toast(t('tests.fill_new_measurements_hint', 'Συμπληρώστε τις νέες μετρήσεις και πατήστε Αποθήκευση'), 'ok');
 
     // Scroll στη φόρμα
     setTimeout(() => {
@@ -1198,7 +1199,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     // Disable save buttons
     document.querySelectorAll('#tests-form-area .btn-primary').forEach(b => {
       b.disabled = true;
-      b.textContent = 'Αποθήκευση...';
+      b.textContent = t('tests.saving_ellipsis', 'Αποθήκευση...');
     });
 
     const asNewRun = !!state._pendingNewRun;
@@ -1210,14 +1211,14 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
     try {
       await saveFn(asNewRun, reason);
-      App.toast(`${App.testLabel(tt)} αποθηκεύτηκε ✓`, 'ok');
+      App.toast(`${App.testLabel(tt)} ${t('tests.saved_suffix', 'αποθηκεύτηκε')} ✓`, 'ok');
       await reloadAfterSave(tt);
     } catch (e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
       // Re-enable αν αποτύχει
       document.querySelectorAll('#tests-form-area .btn-primary').forEach(b => {
         b.disabled = false;
-        b.textContent = 'Αποθήκευση ✓';
+        b.textContent = t('tests.save_button', 'Αποθήκευση ✓');
       });
     } finally {
       state._saving = false;
@@ -1242,18 +1243,18 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
   function editReason(tt, runId) {
     App.showModal(
-      'Επεξεργασία Λόγου Απόρριψης',
+      t('tests.edit_rejection_reason_title', 'Επεξεργασία Λόγου Απόρριψης'),
       `
         <div class="form-group">
-          <label>Νέος Λόγος</label>
+          <label>${t('tests.new_reason_label', 'Νέος Λόγος')}</label>
           <textarea id="edit-reason-input" rows="3"
                     style="width:100%;margin-top:6px;"
-                    placeholder="Λόγος απόρριψης..."></textarea>
+                    placeholder="${t('tests.rejection_reason_placeholder', 'Λόγος απόρριψης...')}"></textarea>
         </div>
       `,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: 'Αποθήκευση',
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('settings.save_word', 'Αποθήκευση'),
           action: `TestsPage._saveEditReason('${tt}', ${runId})` },
       ]
     );
@@ -1261,36 +1262,35 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
   async function _saveEditReason(tt, runId) {
     const reason = el('edit-reason-input')?.value?.trim();
-    if (!reason) { App.toast('Ο λόγος δεν μπορεί να είναι κενός', 'warn'); return; }
+    if (!reason) { App.toast(t('tests.reason_cannot_be_empty', 'Ο λόγος δεν μπορεί να είναι κενός'), 'warn'); return; }
     App.closeModal();
     try {
       await pyCallStrict('update_rejected_reason', tt, runId, reason);
-      App.toast('Λόγος ενημερώθηκε', 'ok');
+      App.toast(t('tests.reason_updated_toast', 'Λόγος ενημερώθηκε'), 'ok');
       state.history[tt] = await pyCall('get_test_history', tt, state.sampleId) || [];
       renderCards();
     } catch (e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
   function promoteRun(tt, runId) {
     App.showModal(
-      'Επαναφορά ως Επίσημη Εκτέλεση',
+      t('tests.restore_as_official_title', 'Επαναφορά ως Επίσημη Εκτέλεση'),
       `
         <p style="color:var(--text-muted);margin-bottom:12px;">
-          Η τρέχουσα επίσημη εκτέλεση θα γίνει απορριφθείσα.
-          Η επιλεγμένη θα γίνει η νέα επίσημη.
+          ${t('tests.promote_run_body', 'Η τρέχουσα επίσημη εκτέλεση θα γίνει απορριφθείσα. Η επιλεγμένη θα γίνει η νέα επίσημη.')}
         </p>
         <div class="form-group">
-          <label>Λόγος υποβάθμισης της τρέχουσας <span class="required">*</span></label>
+          <label>${t('tests.demote_reason_label', 'Λόγος υποβάθμισης της τρέχουσας')} <span class="required">*</span></label>
           <textarea id="demote-reason-input" rows="3"
                     style="width:100%;margin-top:6px;"
-                    placeholder="πχ Αποδείχθηκε ότι η νεότερη είχε σφάλμα..."></textarea>
+                    placeholder="${t('tests.demote_reason_placeholder', 'πχ Αποδείχθηκε ότι η νεότερη είχε σφάλμα...')}"></textarea>
         </div>
       `,
       [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: 'Επιβεβαίωση',
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('tests.confirm_button', 'Επιβεβαίωση'),
           action: `TestsPage._promoteRun('${tt}', ${runId})` },
       ]
     );
@@ -1298,16 +1298,16 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
   async function _promoteRun(tt, runId) {
     const reason = el('demote-reason-input')?.value?.trim();
-    if (!reason) { App.toast('Ο λόγος είναι υποχρεωτικός', 'warn'); return; }
+    if (!reason) { App.toast(t('tests.reason_required', 'Ο λόγος είναι υποχρεωτικός'), 'warn'); return; }
     App.closeModal();
     try {
       await pyCallStrict('promote_run_to_official', tt, runId, reason);
-      App.toast('Η εκτέλεση επαναφέρθηκε ως επίσημη', 'ok');
+      App.toast(t('tests.run_restored_official', 'Η εκτέλεση επαναφέρθηκε ως επίσημη'), 'ok');
       state.history[tt] = await pyCall('get_test_history', tt, state.sampleId) || [];
       state.sample = await pyCall('get_full_report', state.sampleId) || state.sample;
       renderCards();
     } catch (e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -1320,42 +1320,42 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     const techOptions = (AppState.technicians || [])
       .map(t => `<option value="${t.id}" ${t.id === s.technician_id ? 'selected' : ''}>${esc(t.name)}</option>`)
       .join('');
-    App.showModal('Επεξεργασία Στοιχείων', `
+    App.showModal(t('tests.edit_info_title', 'Επεξεργασία Στοιχείων'), `
       <div class="form-grid">
         <div class="form-group">
-          <label>Κωδικός</label>
+          <label>${t('settings.code_label', 'Κωδικός')}</label>
           <input type="text" id="edit-code" value="${esc(s.code)}">
         </div>
         <div class="form-group">
-          <label>Ημερομηνία</label>
+          <label>${t('tests.date_col', 'Ημερομηνία')}</label>
           <input type="date" id="edit-date" value="${s.date}">
         </div>
         <div class="form-group">
-          <label>Τεχνικός</label>
+          <label>${t('tests.technician_label', 'Τεχνικός')}</label>
           <div class="input-with-action">
             <select id="edit-technician">
-              <option value="">— Χωρίς —</option>
+              <option value="">${t('tests.no_technician_option', '— Χωρίς —')}</option>
               ${techOptions}
             </select>
-            <button class="icon-btn" onclick="TestsPage._addTechnicianInline()" title="Νέος τεχνικός">+</button>
+            <button class="icon-btn" onclick="TestsPage._addTechnicianInline()" title="${t('tests.new_technician_tooltip', 'Νέος τεχνικός')}">+</button>
           </div>
         </div>
         <div class="form-group">
-          <label>Σημείο</label>
+          <label>${t('tests.location_label', 'Σημείο')}</label>
           <input type="text" id="edit-location" value="${esc(s.location || '')}">
         </div>
         <div class="form-group">
-          <label>Παρτίδα</label>
+          <label>${t('tests.batch_label_bare', 'Παρτίδα')}</label>
           <input type="text" id="edit-batch" value="${esc(s.batch || '')}">
         </div>
         <div class="form-group full-width">
-          <label>Σχόλια</label>
+          <label>${t('tests.comments_label', 'Σχόλια')}</label>
           <textarea id="edit-comments" rows="2">${esc(s.comments || '')}</textarea>
         </div>
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: 'Αποθήκευση', action: 'TestsPage._saveInfo()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_word', 'Αποθήκευση'), action: 'TestsPage._saveInfo()' },
     ]);
   }
 
@@ -1377,11 +1377,11 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
         newBatch,
         newComments,
       );
-      App.toast('Στοιχεία ενημερώθηκαν', 'ok');
+      App.toast(t('tests.info_updated_toast', 'Στοιχεία ενημερώθηκαν'), 'ok');
       state.sample = await pyCall('get_full_report', state.sampleId) || state.sample;
       renderHeader();
     } catch (e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
@@ -1397,10 +1397,9 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     const cat     = state.product?.category || '';
     const allowed = App.allowedTestsFor(cat);
 
-    App.showModal('Τροποποίηση Πλάνου Δοκιμών', `
+    App.showModal(t('tests.edit_plan_title', 'Τροποποίηση Πλάνου Δοκιμών'), `
       <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px;">
-        Δεν μπορεί να αφαιρεθεί δοκιμή που έχει ήδη εκτελέσεις.
-        Μπορείτε μόνο να προσθέσετε.
+        ${t('tests.edit_plan_intro', 'Δεν μπορεί να αφαιρεθεί δοκιμή που έχει ήδη εκτελέσεις. Μπορείτε μόνο να προσθέσετε.')}
       </p>
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${allowed.map(tt => {
@@ -1420,7 +1419,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
                 <div style="font-weight:600;">${esc(App.testLabel(tt))}</div>
                 <div style="font-size:11px;color:var(--text-muted);">
                   ${esc(App.testStandard(tt))}
-                  ${locked ? ' · <em>Έχει εκτελέσεις — δεν αφαιρείται</em>' : ''}
+                  ${locked ? ` · <em>${t('tests.has_runs_locked', 'Έχει εκτελέσεις — δεν αφαιρείται')}</em>` : ''}
                 </div>
               </div>
             </label>
@@ -1428,8 +1427,8 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
         }).join('')}
       </div>
     `, [
-      { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-      { label: 'Αποθήκευση', action: 'TestsPage._savePlan()' },
+      { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+      { label: t('settings.save_word', 'Αποθήκευση'), action: 'TestsPage._savePlan()' },
     ]);
   }
 
@@ -1449,7 +1448,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
 
     try {
       await pyCallStrict('set_required_tests', state.sampleId, newPlan);
-      App.toast('Πλάνο ενημερώθηκε', 'ok');
+      App.toast(t('tests.plan_updated_toast', 'Πλάνο ενημερώθηκε'), 'ok');
       state.requiredTests = newPlan;
       // Φόρτωση history για τυχόν νέες δοκιμές — σειριακά
       for (const tt of newPlan.filter(tt2 => !state.history[tt2])) {
@@ -1462,20 +1461,20 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
         renderCards();
       }
     } catch (e) {
-      App.toast('Σφάλμα: ' + e.message, 'fail');
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
   }
 
   async function _addTechnicianInline() {
     const name = await new Promise(resolve => {
-      App.showModal('Νέος Τεχνικός', `
+      App.showModal(t('settings.add_technician_title', 'Νέος Τεχνικός'), `
         <div class="form-group">
-          <label>Όνομα</label>
-          <input type="text" id="inline-tech-name" placeholder="Όνομα τεχνικού">
+          <label>${t('tests.name_label', 'Όνομα')}</label>
+          <input type="text" id="inline-tech-name" placeholder="${t('tests.technician_name_placeholder', 'Όνομα τεχνικού')}">
         </div>
       `, [
-        { label: 'Ακύρωση', action: 'App.closeModal()', secondary: true },
-        { label: '+ Προσθήκη', action: 'TestsPage._doAddTechnicianInline()' },
+        { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
+        { label: t('settings.add_button_short', '+ Προσθήκη'), action: 'TestsPage._doAddTechnicianInline()' },
       ]);
       setTimeout(() => document.getElementById('inline-tech-name')?.focus(), 100);
     });
@@ -1486,7 +1485,7 @@ import { pyCall, pyCallStrict, App, AppState, _esc } from '../../main-app.js';
     App.closeModal();
     if (!name) return;
     const id = await pyCall('add_technician', name);
-    if (!id) { App.toast('Σφάλμα προσθήκης τεχνικού', 'fail'); return; }
+    if (!id) { App.toast(t('tests.add_technician_error', 'Σφάλμα προσθήκης τεχνικού'), 'fail'); return; }
     // Ενημέρωση AppState
     AppState.technicians = AppState.technicians || [];
     AppState.technicians.push({ id, name, active: 1 });
