@@ -177,11 +177,10 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
 }
 
 .logo-img {
-  width: 140px;
+  width: 90px;
   height: auto;
   object-fit: contain;
   flex-shrink: 0;
-  filter: invert(1) brightness(0.55);
 }
 
 /* --- Nav Menu --- */

@@ -1183,7 +1183,7 @@ def _generate_pdf_report(sample_id: int, tests: list, output_path: str) -> dict:
         _logo_base = getattr(_sys_logo, '_MEIPASS', ROOT)
         LOGO_PATH = os.path.join(_logo_base, 'src', 'assets', 'logopage.png')
         ML = 14*mm; MT = 31*mm; MB = 16*mm
-        LOGO_W, LOGO_H = 160*mm, 19*mm
+        LOGO_W, LOGO_H = 102*mm, 19*mm
 
         def fmt_date(v):
             if not v: return '—'
@@ -1753,7 +1753,7 @@ def _generate_periodic_pdf_report(product_id: int, from_date: str, to_date: str,
             if os.path.exists(LOGO_PATH):
                 try:
                     c.drawImage(LOGO_PATH, ML, top_y - 19*mm,
-                                width=160*mm, height=19*mm,
+                                width=102*mm, height=19*mm,
                                 preserveAspectRatio=True, mask='auto')
                 except: pass
             cx = W - ML
