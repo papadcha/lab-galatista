@@ -1,5 +1,5 @@
 {
-  "_comment": "Χειροκίνητα συντηρούμενο αρχείο — ενημερώνεται σε κάθε release, ή εκτάκτως αν μια έκδοση αποδειχτεί προβληματική (βλ. TODOLIST.md). latestRecommendedVersion μπορεί να είναι ΠΙΣΩ από την τελευταία GitHub release αν αυτή έχει γνωστό πρόβλημα.",
+  "_comment": "Manifest ΜΟΝΟ για τη γραμμή v1.x (Εργαστήριο Γαλάτιστας, πριν το ESM redesign) — οι ήδη εγκατεστημένες v1.x εφαρμογές το διαβάζουν ζωντανά από εδώ και δεν πρέπει να επηρεαστούν από την ανάπτυξη του v2.x. Η γραμμή v2.x (ΔAiγμα LiMS) έχει δικό της ξεχωριστό allowed-versions-v2.json. Χειροκίνητα συντηρούμενο αρχείο — ενημερώνεται σε κάθε v1.x release (βλ. branch v1-maintenance), ή εκτάκτως αν μια έκδοση αποδειχτεί προβληματική (βλ. TODOLIST.md). latestRecommendedVersion μπορεί να είναι ΠΙΣΩ από την τελευταία GitHub release αν αυτή έχει γνωστό πρόβλημα.",
   "latestRecommendedVersion": "1.1.33",
   "safeDowngradeFloor": "1.1.33",
   "notice": null,

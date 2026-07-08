@@ -1,7 +1,12 @@
-// Έλεγχος ενημερώσεων: allowed-versions.json manifest από GitHub raw,
+// Έλεγχος ενημερώσεων: allowed-versions-v2.json manifest από GitHub raw,
 // σύγκριση semantic version, update/rollback banner στο renderer, και
 // η ροή αναφοράς προβλήματος έκδοσης (report-version-issue) που δημιουργεί
 // GitHub issue μέσω fine-grained PAT.
+//
+// Ξεχωριστό αρχείο manifest από το v1.x's allowed-versions.json (το οποίο
+// παραμένει αμετάβλητο σε αυτή τη θέση, ώστε οι ήδη εγκατεστημένες v1.x
+// εφαρμογές — που εξακολουθούν να το fetch-άρουν από το master branch —
+// να μην επηρεαστούν από συστάσεις της γραμμής v2.x.
 import { app, shell, net, ipcMain } from 'electron';
 import fs from 'fs';
 import os from 'os';
@@ -40,7 +45,7 @@ function _fetchJsonViaNet(url, headers = {}) {
   });
 }
 
-// allowed-versions.json — χειροκίνητα συντηρούμενο αρχείο στο GitHub. Δεν
+// allowed-versions-v2.json — χειροκίνητα συντηρούμενο αρχείο στο GitHub. Δεν
 // συμπίπτει απαραίτητα με το τελευταίο release: αν μια έκδοση αποδειχτεί
 // προβληματική, το latestRecommendedVersion παραμένει εσκεμμένα πίσω μέχρι
 // να διορθωθεί (βλ. TODOLIST.md).
@@ -48,7 +53,7 @@ async function _fetchAllowedVersions() {
   try {
     // Ίδιο cache-busting τέχνασμα με πριν — μοναδικό URL ανά κλήση.
     return await _fetchJsonViaNet(
-      `https://raw.githubusercontent.com/papadcha/lab-galatista/master/allowed-versions.json?_=${Date.now()}`,
+      `https://raw.githubusercontent.com/papadcha/lab-galatista/master/allowed-versions-v2.json?_=${Date.now()}`,
       { 'User-Agent': 'lab-galatista-updater' }
     );
   } catch(e) {
@@ -136,7 +141,7 @@ function _loadGithubToken() {
 // Δημιουργεί GitHub issue (όχι αλλαγή αρχείου) — το token έχει δικαίωμα
 // ΜΟΝΟ "Issues: write" στο συγκεκριμένο repo, τίποτα άλλο. Ένας άνθρωπος
 // (εγώ) βλέπει το issue και αποφασίζει αν θα ενημερωθεί το
-// allowed-versions.json — δεν αλλάζει τίποτα αυτόματα.
+// allowed-versions-v2.json — δεν αλλάζει τίποτα αυτόματα.
 ipcMain.handle('report-version-issue', async (event, lastGoodVersion, description) => {
   const token = _loadGithubToken();
   if (!token) return { ok: false, error: 'Η αναφορά δεν είναι διαθέσιμη σε αυτή την εγκατάσταση' };
