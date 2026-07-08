@@ -1331,7 +1331,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // i18n: εφαρμόζεται πρώτο, ανεξάρτητο από τον Python backend (μόνο
   // στατικό markup — sidebar/titlebar/splash σήμερα, βλ. src/i18n/i18n.js).
-  await initI18n('el');
+  // get-config είναι Electron-side (lab-config.json), όχι Python — ασφαλές
+  // να διαβαστεί εδώ πριν καν ελεγχθεί αν ο Python backend είναι έτοιμος.
+  const _savedLocale = (await window.pyBridge?.['get-config']?.())?.locale || 'el';
+  await initI18n(_savedLocale);
 
   // Περιμένω τον Python backend να είναι έτοιμος ΠΡΙΝ κάνω οποιαδήποτε
   // κλήση δεδομένων παρακάτω (get_products κλπ) — αλλιώς σε αργή εκκίνηση

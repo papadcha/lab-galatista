@@ -141,6 +141,18 @@
         </small>
       </div>
 
+      <h3 style="margin:20px 0 12px;font-size:14px;color:var(--text-muted);
+                 text-transform:uppercase;letter-spacing:0.5px;" data-i18n="settings.language_title">
+        Γλώσσα
+      </h3>
+      <div class="form-group">
+        <label data-i18n="settings.language_label">Γλώσσα Εφαρμογής</label>
+        <select id="lab-locale" onchange="SettingsPage.saveLocale(this.value)"
+                style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
+          <option value="el">Ελληνικά</option>
+        </select>
+      </div>
+
       <div class="form-actions">
         <button class="btn-primary" onclick="SettingsPage.saveLab()" data-i18n="settings.save_button">
           ✓ Αποθήκευση

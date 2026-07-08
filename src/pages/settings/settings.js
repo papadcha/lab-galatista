@@ -15,7 +15,7 @@ import {
   pyCall, pyCallStrict, App, AppState,
   navigateTo, _esc, _formatCeDate, _toIsoDate, _updateSidebarArchiveBanner,
 } from '../../main-app.js';
-import { t } from '../../i18n/i18n.js';
+import { t, initI18n } from '../../i18n/i18n.js';
 
 (() => {
 
@@ -180,6 +180,9 @@ import { t } from '../../i18n/i18n.js';
     const cb = el('lab-guide-enabled');
     if (cb) cb.checked = guideEnabled !== false;
     if (typeof AppState !== 'undefined') AppState.guideEnabled = guideEnabled !== false;
+    const cfg = await window.pyBridge?.['get-config']?.();
+    const localeSel = el('lab-locale');
+    if (localeSel) localeSel.value = cfg?.locale || 'el';
   }
 
   async function saveGuideEnabled(enabled) {
@@ -187,6 +190,19 @@ import { t } from '../../i18n/i18n.js';
       await pyCallStrict('set_guide_enabled', enabled ? 1 : 0);
       if (typeof AppState !== 'undefined') AppState.guideEnabled = enabled;
       App.toast(enabled ? t('settings.guide_enabled_toast', 'Οδηγός ενεργοποιήθηκε') : t('settings.guide_disabled_toast', 'Οδηγός απενεργοποιήθηκε'), 'ok');
+    } catch(e) {
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
+    }
+  }
+
+  // Μόνο 'el' διαθέσιμο σήμερα (βλ. TODOLIST.md) — το dropdown/save flow
+  // είναι έτοιμο ώστε ένα 2ο locale να χρειάζεται μόνο νέο src/i18n/<locale>.json
+  // + μία ακόμα <option>, χωρίς άλλη συρματολόγηση.
+  async function saveLocale(locale) {
+    try {
+      await window.pyBridge?.['set-config']?.({ locale });
+      await initI18n(locale);
+      App.toast(t('settings.locale_saved_toast', 'Η γλώσσα αποθηκεύτηκε'), 'ok');
     } catch(e) {
       App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
@@ -3075,6 +3091,7 @@ import { t } from '../../i18n/i18n.js';
     // Lab
     saveLab,
     saveGuideEnabled,
+    saveLocale,
     // Materials
     showAddProduct, _saveNewProduct,
     _materialTypeInput, _selectMaterialType,

@@ -358,6 +358,8 @@
   "settings.pdf_font_hint": "Χρησιμοποιείται σε όλα τα PDF δελτία αποτελεσμάτων.",
   "settings.guide_checkbox_label": "Εμφάνιση οδηγού βημάτων κατά την έναρξη δοκιμής",
   "settings.guide_hint": "Ο οδηγός εμφανίζει τα βήματα της διαδικασίας πριν τη φόρμα καταχώρησης.\n          Μπορεί να απενεργοποιηθεί για έμπειρους χρήστες.",
+  "settings.language_title": "Γλώσσα",
+  "settings.language_label": "Γλώσσα Εφαρμογής",
 
   "settings.materials_title": "Είδη Αδρανών",
   "settings.materials_hint": "Κάντε κλικ σε είδος για διαχείριση κόσκινων",
@@ -459,6 +461,7 @@
   "settings.generic_error_prefix": "Σφάλμα: ",
   "settings.guide_enabled_toast": "Οδηγός ενεργοποιήθηκε",
   "settings.guide_disabled_toast": "Οδηγός απενεργοποιήθηκε",
+  "settings.locale_saved_toast": "Η γλώσσα αποθηκεύτηκε",
   "settings.lab_name_required": "Η επωνυμία είναι υποχρεωτική",
   "settings.lab_saved_toast": "Στοιχεία εργαστηρίου αποθηκεύτηκαν",
 

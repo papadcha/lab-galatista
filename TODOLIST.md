@@ -68,15 +68,13 @@ i18n + icon/logo/letterhead) ολοκληρώθηκε επίσης 2026-07-08.
       μήνες), πιάνει σταδιακή ολίσθηση ποιότητας. Ο χρήστης το
       χαρακτήρισε "υπερβολή" προς το παρόν — χαμηλή προτεραιότητα.
 
-- [ ] Language switcher στην εφαρμογή — προτάθηκε 2026-07-07, μετά την
-      ολοκλήρωση του i18n (per-page + backend PDF + reports.js preview,
-      όλα done). Το `initI18n('el')` είναι σήμερα hardcoded
-      (`main-app.js:1334`) και υπάρχει μόνο το `el.json`, οπότε δεν
-      υπάρχει ακόμα λόγος για πραγματικό επιλογέα γλώσσας στο UI. Όταν
-      προστεθεί 2ο locale:
-      (α) dropdown επιλογής γλώσσας στις Ρυθμίσεις, (β) αποθήκευση στο
-      ήδη υπάρχον config σύστημα (`get-config`/`set-config`), (γ)
-      `initI18n(savedLocale)` αντί για το σημερινό hardcoded `'el'`.
+- [ ] Language switcher — η υποδομή έγινε 2026-07-08 (dropdown στις
+      Ρυθμίσεις `#lab-locale`/`SettingsPage.saveLocale()`, αποθήκευση
+      στο `get-config`/`set-config`, `initI18n(savedLocale)` στο
+      `main-app.js` αντί για hardcoded `'el'` — επαληθεύτηκε ζωντανά με
+      Playwright `_electron`). Μένει μόνο ένα 2ο locale ώστε το dropdown
+      να έχει πραγματικό νόημα: νέο `src/i18n/<locale>.json` + μία
+      ακόμα `<option>` στο `settings.html`, καμία άλλη συρματολόγηση.
 
 - [ ] Γρήγορη πρόσβαση σε έγγραφα CE από το sidebar (προτάθηκε
       2026-07-06) — κλικ στο CE badge κάτω-αριστερά (`#sidebar-ce-number`,
