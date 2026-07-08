@@ -9,6 +9,7 @@
     "test:crash-recovery": "electron scripts/test-crash-recovery.js",
     "prebuild:backend": "node scripts/check-spec-datas.js",
     "build:backend": "pyinstaller --clean --noconfirm lab-backend.spec",
+    "prebuild:installer": "node scripts/check-builder-files.js",
     "build:installer": "electron-builder --win --x64",
     "dist": "npm run build:backend && npm run build:installer"
   },
