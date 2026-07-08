@@ -2,7 +2,7 @@
   "name": "lab-galatista",
   "version": "2.0.0",
   "type": "module",
-  "description": "Εργαστήριο Λατομείων Γαλάτιστας — Σύστημα Ποιοτικού Ελέγχου",
+  "description": "ΔAiγμα LiMS — Σύστημα Ποιοτικού Ελέγχου",
   "main": "main.js",
   "scripts": {
     "start": "npx electron .",
@@ -29,7 +29,7 @@
   },
   "build": {
     "appId": "gr.galatista.lab",
-    "productName": "Εργαστήριο Γαλάτιστας",
+    "productName": "ΔAiγμα LiMS",
     "copyright": "© 2026 Λατομεία Γαλάτιστας ΑΕ",
     "directories": {
       "output": "dist-installer"
@@ -85,7 +85,7 @@
       "installerHeaderIcon": "src/assets/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Εργαστήριο Γαλάτιστας",
+      "shortcutName": "ΔAiγμα LiMS",
       "license": "LICENSE.txt"
     }
   }

@@ -36,7 +36,7 @@ function createWindow() {
     height: 800,
     minWidth:  1024,
     minHeight: 640,
-    title: 'Εργαστήριο Λατομείων Γαλάτιστας',
+    title: 'ΔAiγμα LiMS',
     frame: false,
     webPreferences: {
       nodeIntegration:     false,

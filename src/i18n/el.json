@@ -1,5 +1,5 @@
 {
-  "app.title": "Εργαστήριο Λατομείων Γαλάτιστας",
+  "app.title": "ΔAiγμα LiMS",
 
   "nav.dashboard": "Αρχική",
   "nav.samples": "Καταχώρηση",
@@ -401,7 +401,7 @@
   "settings.email_intro": "Χρησιμοποιείται για αποστολή αναφορών μέσω email.\n        Δοκιμάστε τη σύνδεση πριν αποθηκεύσετε.",
   "settings.email_gmail_hint": "Για Gmail: χρησιμοποιήστε App Password",
   "settings.email_from_name_label": "Εμφανιζόμενο Όνομα Αποστολέα",
-  "settings.email_from_name_placeholder": "πχ Εργαστήριο Λατομείων Γαλάτιστας",
+  "settings.email_from_name_placeholder": "πχ Λατομεία Γαλάτιστας ΑΕ",
   "settings.email_test_button": "🔌 Δοκιμή Σύνδεσης",
 
   "settings.storage_folder_title": "📁 Φάκελος Δεδομένων",
