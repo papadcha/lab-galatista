@@ -11,17 +11,6 @@
 
 ## ΜΙΚΡΕΣ / ΓΝΩΣΤΕΣ ΕΚΚΡΕΜΟΤΗΤΕΣ
 
-- [ ] Guard script για το electron-builder `files` whitelist —
-      ίδιο μοτίβο με `scripts/check-spec-datas.js` (backend/PyInstaller
-      side) αλλά για την πλευρά του Electron packaging. Να ελέγχει ότι
-      κάθε top-level φάκελος/αρχείο που χρειάζεται στο runtime (π.χ.
-      `modules/`) υπάρχει στο `package.json`'s `build.files` array.
-      Προτάθηκε μετά το bug 2026-07-08 όπου το `modules/**/*` έλειπε
-      από εκεί και το packaged installer crash-άριζε αμέσως στο άνοιγμα
-      (`ERR_MODULE_NOT_FOUND`) — bug αόρατο σε dev-mode/Playwright
-      tests, φάνηκε μόνο σε πραγματικό installer build+run. Βλ.
-      memory [[project_esm_redesign]] για πλήρες ιστορικό/root cause.
-
 - [ ] Το in-app Version History modal (κλικ στον αριθμό έκδοσης στο
       sidebar footer, `showVersionHistory()` στο `src/main-app.js`,
       διαβάζει bundled `VERSIONS.md`) να ΜΗΝ δείχνει πλέον τις παλιές
