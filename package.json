@@ -40,6 +40,7 @@
       "standards.json",
       "VERSIONS.md",
       "github-token.json",
+      "modules/**/*",
       "src/**/*",
       "fonts/**/*",
       "node_modules/**/*",
