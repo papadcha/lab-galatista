@@ -707,6 +707,34 @@ if (window.pyBridge?.['on-data-folder-mismatch']) {
   });
 }
 
+// Listener για crash της προηγούμενης εκτέλεσης (main.js detectPreviousCrash)
+if (window.pyBridge?.['on-previous-crash']) {
+  window.pyBridge['on-previous-crash']((tail) => {
+    App.showModal('Η εφαρμογή έκλεισε απροσδόκητα',
+      `<p style="color:var(--text-muted);margin-bottom:10px;">
+         Η προηγούμενη εκτέλεση της εφαρμογής τερμάτισε απροσδόκητα.
+         Θέλετε να σταλεί αυτόματη αναφορά (με τις τελευταίες γραμμές
+         του log) στον developer;
+       </p>`,
+      [
+        { label: 'Όχι', action: 'App.closeModal()', secondary: true },
+        { label: 'Ναι, στείλε', action: 'App._sendCrashReport()' },
+      ]);
+  });
+}
+
+async function _sendCrashReport() {
+  App.closeModal();
+  const result = await window.pyBridge?.['report-crash']?.();
+  const githubOk = !!result?.github?.ok;
+  const emailOk  = !!result?.email?.success;
+  App.toast(
+    `Αναφορά crash: GitHub ${githubOk ? '✓' : '✗'} · Email ${emailOk ? '✓' : '✗'}`,
+    (githubOk || emailOk) ? 'ok' : 'fail'
+  );
+}
+App._sendCrashReport = _sendCrashReport;
+
 function _dismissDataFolderToast() {
   document.getElementById('data-folder-toast')?.remove();
 }
@@ -919,6 +947,19 @@ async function showVersionHistory() {
       <button class="btn-secondary btn-sm" id="report-issue-btn"
               onclick="App._submitVersionIssueReport()">Αποστολή Αναφοράς</button>
     </div>
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px;">📋 Αναφορά Σφάλματος (με log)</div>
+      <p class="form-hint" style="margin-bottom:8px;">
+        Στέλνει περιγραφή + τις τελευταίες γραμμές του log προς τον
+        developer (GitHub + email, ό,τι είναι διαθέσιμο σε αυτή την
+        εγκατάσταση).
+      </p>
+      <textarea id="problem-report-description" rows="3"
+                placeholder="Τι παρατηρήσατε; (προαιρετικό)"
+                style="margin-bottom:8px;"></textarea>
+      <button class="btn-secondary btn-sm" id="problem-report-btn"
+              onclick="App._submitProblemReport()">Αποστολή</button>
+    </div>
   `;
 
   App.showModal('Ιστορικό Εκδόσεων', content, [
@@ -947,6 +988,26 @@ async function _submitVersionIssueReport() {
   }
 }
 App._submitVersionIssueReport = _submitVersionIssueReport;
+
+async function _submitProblemReport() {
+  const desc = document.getElementById('problem-report-description')?.value?.trim();
+  const btn  = document.getElementById('problem-report-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const result = await window.pyBridge?.['report-problem']?.(desc);
+    const githubOk = !!result?.github?.ok;
+    const emailOk  = !!result?.email?.success;
+    const parts = [
+      `GitHub: ${githubOk ? '✓' : '✗ ' + (result?.github?.error || '')}`,
+      `Email: ${emailOk ? '✓' : '✗ ' + (result?.email?.error || '')}`,
+    ];
+    App.toast(parts.join(' · '), (githubOk || emailOk) ? 'ok' : 'fail');
+    if (githubOk || emailOk) App.closeModal();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+App._submitProblemReport = _submitProblemReport;
 
 // ============================================================
 // ΑΡΧΙΚΟΠΟΙΗΣΗ — Banner + Wizard

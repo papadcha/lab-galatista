@@ -182,6 +182,9 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'get-version-history':     ()                  => ipcRenderer.invoke('get-version-history'),
   'get-allowed-versions':    ()                  => ipcRenderer.invoke('get-allowed-versions'),
   'report-version-issue':    (lastGood, desc)    => ipcRenderer.invoke('report-version-issue', lastGood, desc),
+  'report-problem':         (desc)              => ipcRenderer.invoke('report-problem', desc),
+  'report-crash':           ()                  => ipcRenderer.invoke('report-crash'),
+  'on-previous-crash':       (cb)                => ipcRenderer.on('previous-crash-detected', (_e, tail) => cb(tail)),
 
   'generate-pdf-library':    (folder)            => ipcRenderer.invoke('generate-pdf-library', folder),
   'upload-document':         (opts)              => ipcRenderer.invoke('upload-document', opts),

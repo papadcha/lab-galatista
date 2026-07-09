@@ -13,6 +13,7 @@ import { reconcileCleanStart } from './modules/clean-start.js'; // side-effect: 
 import { checkForUpdates } from './modules/update-check.js'; // side-effect: ipcMain.handle('open-update-url'/'get-allowed-versions'/'report-version-issue'/'get-app-version'/'get-version-history', ...)
 import { checkCeExpiryAndNotify, checkDataFolderMismatch } from './modules/ce-period.js'; // side-effect: ipcMain.handle('data-folder-notify-snooze'/'ce-notify-*'/'ce-get-suggested-folder'/'ce-select-folder', ...)
 import { checkAndSendPeriodicEmail } from './modules/periodic-email.js';
+import { markCleanShutdown, detectPreviousCrash } from './modules/problem-report.js'; // side-effect: ipcMain.handle('report-problem'/'report-crash', ...)
 import './modules/pdf-generation.js'; // side-effect: ipcMain.handle('generate-report-pdf'/'print-to-pdf'/'generate-periodic-pdf'/'save-pdf'/'save-statistics'/'open-pdf'/'print-pdf', ...)
 import './modules/email.js'; // side-effect: ipcMain.handle('send-email'/'test-smtp', ...)
 import './modules/document-library.js'; // side-effect: ipcMain.handle('upload-document'/'open-document'/'delete-document-cloud'/'generate-pdf-library'/'force-quit', ...)
@@ -23,6 +24,12 @@ import './modules/document-library.js'; // side-effect: ipcMain.handle('upload-d
 // ipcMain.handle() registration στο evaluation τους, καμία πραγματική
 // κλήση console.log δεν συμβαίνει πριν αυτά τα handlers κληθούν αργότερα.
 initLogger();
+// Ελέγχεται εδώ, αμέσως μετά το initLogger(), πριν προλάβει η ίδια αυτή
+// εκκίνηση να προσθέσει δικές της γραμμές log — reflect μόνο την κατάσταση
+// στην οποία έμεινε η ΠΡΟΗΓΟΥΜΕΝΗ εκτέλεση.
+const _previousCrash = detectPreviousCrash();
+
+app.on('before-quit', markCleanShutdown);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -129,6 +136,11 @@ app.whenReady().then(() => {
 
     // ── Περιοδική ενημέρωση email ──────────────────────────
     await checkAndSendPeriodicEmail();
+
+    // ── Ανίχνευση crash προηγούμενης εκτέλεσης ─────────────
+    if (_previousCrash.crashed && state.mainWindow && !state.mainWindow.isDestroyed()) {
+      state.mainWindow.webContents.send('previous-crash-detected', _previousCrash.tail);
+    }
 
     // ── Έλεγχος νέας έκδοσης ──────────────────────────────
     checkForUpdates().catch(e => console.log('[Update] Σφάλμα:', e.message));

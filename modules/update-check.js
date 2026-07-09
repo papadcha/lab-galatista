@@ -1,7 +1,8 @@
 // Έλεγχος ενημερώσεων: allowed-versions-v2.json manifest από GitHub raw,
 // σύγκριση semantic version, update/rollback banner στο renderer, και
-// η ροή αναφοράς προβλήματος έκδοσης (report-version-issue) που δημιουργεί
-// GitHub issue μέσω fine-grained PAT.
+// η ροή αναφοράς προβλήματος έκδοσης (report-version-issue) — δημιουργεί
+// GitHub issue μέσω του κοινού createGithubIssue() (modules/problem-report.js,
+// fine-grained PAT).
 //
 // Ξεχωριστό αρχείο manifest από το v1.x's allowed-versions.json (το οποίο
 // παραμένει αμετάβλητο σε αυτή τη θέση, ώστε οι ήδη εγκατεστημένες v1.x
@@ -13,6 +14,7 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { state } from './state.js';
+import { createGithubIssue } from './problem-report.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -111,40 +113,11 @@ ipcMain.handle('get-allowed-versions', async () => {
   return allowed || { versions: [], latestRecommendedVersion: null, safeDowngradeFloor: null, notice: null };
 });
 
-// Γιατί το token είναι embedded (και όχι server-side proxy): η εφαρμογή
-// δεν έχει δικό της backend/server — μόνο 2 τοπικές εγκαταστάσεις χωρίς
-// κοινή υποδομή (βλ. Multi-Install Architecture). Ένα proxy θα σήμαινε
-// να στηθεί/συντηρείται ξεχωριστό server μόνο για αυτή τη λειτουργία,
-// δυσανάλογο για ένα εσωτερικό εργαλείο 2 χρηστών. Αντ' αυτού, το token
-// είναι fine-grained PAT scoped ΜΟΝΟ σε "Issues: write" στο συγκεκριμένο
-// repo — επαληθεύτηκε εμπειρικά ότι απορρίπτεται (403) σε write στο
-// contents API, άρα ακόμα κι αν εξαχθεί από το .exe το χειρότερο δυνατό
-// είναι spam issues, όχι αλλαγή κώδικα/releases/δεδομένων.
-//
-// Rotation αν ποτέ χρειαστεί (π.χ. issue spam κατάχρηση): (1) revoke το
-// τρέχον token στο GitHub (Settings → Developer settings → Fine-grained
-// tokens), (2) δημιούργησε νέο με το ΙΔΙΟ στενό scope (μόνο Issues: write,
-// μόνο αυτό το repo), (3) αντικατέστησε την τιμή στο τοπικό
-// github-token.json (gitignored, ΔΕΝ μπαίνει στο git), (4) νέο release —
-// οι ήδη εγκατεστημένες εκδόσεις κρατάνε το παλιό (πλέον ανενεργό) token
-// μέχρι να αναβαθμιστούν, οπότε το report-version-issue απλά θα αποτυγχάνει
-// σιωπηλά γι' αυτές μέχρι την αναβάθμιση.
-function _loadGithubToken() {
-  try {
-    const raw = fs.readFileSync(path.join(appRootDir, 'github-token.json'), 'utf-8');
-    return JSON.parse(raw).token || null;
-  } catch(e) {
-    return null;
-  }
-}
-
-// Δημιουργεί GitHub issue (όχι αλλαγή αρχείου) — το token έχει δικαίωμα
-// ΜΟΝΟ "Issues: write" στο συγκεκριμένο repo, τίποτα άλλο. Ένας άνθρωπος
-// (εγώ) βλέπει το issue και αποφασίζει αν θα ενημερωθεί το
+// Δημιουργεί GitHub issue μέσω createGithubIssue() (modules/problem-report.js
+// — βλ. εκεί για το security model/token rotation instructions). Ένας
+// άνθρωπος (εγώ) βλέπει το issue και αποφασίζει αν θα ενημερωθεί το
 // allowed-versions-v2.json — δεν αλλάζει τίποτα αυτόματα.
 ipcMain.handle('report-version-issue', async (event, lastGoodVersion, description) => {
-  const token = _loadGithubToken();
-  if (!token) return { ok: false, error: 'Η αναφορά δεν είναι διαθέσιμη σε αυτή την εγκατάσταση' };
   const currentVersion = app.getVersion();
   const hostname = os.hostname() || 'άγνωστο';
   const bodyText = [
@@ -156,39 +129,10 @@ ipcMain.handle('report-version-issue', async (event, lastGoodVersion, descriptio
     description || '(καμία περιγραφή)',
   ].join('\n');
 
-  try {
-    const payload = JSON.stringify({
-      title: `[Αναφορά χρήστη] Πρόβλημα από v${currentVersion} — τελευταία σταθερή κατά τον χρήστη v${lastGoodVersion}`,
-      body:  bodyText,
-    });
-    const result = await new Promise((resolve, reject) => {
-      const request = net.request({
-        method: 'POST',
-        url: 'https://api.github.com/repos/papadcha/lab-galatista/issues',
-        headers: {
-          'Authorization':  `Bearer ${token}`,
-          'Accept':         'application/vnd.github+json',
-          'Content-Type':   'application/json',
-          'User-Agent':     'lab-galatista-app',
-        },
-      });
-      let data = '';
-      request.on('response', (response) => {
-        response.on('data', (chunk) => { data += chunk.toString(); });
-        response.on('end', () => resolve({ status: response.statusCode, data }));
-        response.on('error', reject);
-      });
-      request.on('error', reject);
-      request.write(payload);
-      request.end();
-    });
-    if (result.status !== 201) {
-      return { ok: false, error: `GitHub API σφάλμα ${result.status}` };
-    }
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
+  return createGithubIssue(
+    `[Αναφορά χρήστη] Πρόβλημα από v${currentVersion} — τελευταία σταθερή κατά τον χρήστη v${lastGoodVersion}`,
+    bodyText
+  );
 });
 
 ipcMain.handle('get-app-version', () => app.getVersion());
