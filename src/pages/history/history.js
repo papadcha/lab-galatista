@@ -23,6 +23,16 @@ import { t } from '../../i18n/i18n.js';
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   };
+  const technicianName = id => {
+    if (!id) return null;
+    return (AppState.technicians || []).find(tc => tc.id === id)?.name || null;
+  };
+  const technicianBadgeHTML = id => {
+    const name = technicianName(id);
+    return name
+      ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:right">${t('sampleModal.executed_by', 'Εκτελέστηκε από:')} ${esc(name)}</div>`
+      : '';
+  };
 
   // ============================================================
   // INIT
@@ -267,6 +277,7 @@ import { t } from '../../i18n/i18n.js';
           ${d.Cc  != null ? `<span class="badge badge-none">Cc=${d.Cc}</span>`  : ''}
           <span class="badge badge-ok">${d.classification || ''}</span>
         </div>` : ''}
+        ${technicianBadgeHTML(an?.created_by)}
       `;
     } else if (type === 'fi') {
       const statusClass = testData.overall_status === 'OK' ? 'badge-ok'
@@ -276,7 +287,8 @@ import { t } from '../../i18n/i18n.js';
         <div class="big-value" style="justify-content:flex-end">
           ${testData.fi_index}%
           <span class="badge ${statusClass}">FI</span>
-        </div>`;
+        </div>
+        ${technicianBadgeHTML(testData.created_by)}`;
     } else if (type === 'mb') {
       const statusClass = testData.overall_status === 'OK' ? 'badge-ok'
                         : testData.overall_status === 'WARNING' ? 'badge-warn'
@@ -288,7 +300,8 @@ import { t } from '../../i18n/i18n.js';
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:right">
           V1=${testData.volume_final}ml / M1=${testData.weight_sample}g
-        </div>`;
+        </div>
+        ${technicianBadgeHTML(testData.created_by)}`;
     } else if (type === 'se') {
       const statusClass = testData.overall_status === 'OK' ? 'badge-ok'
                         : testData.overall_status === 'WARNING' ? 'badge-warn'
@@ -302,7 +315,8 @@ import { t } from '../../i18n/i18n.js';
           ${(testData.measurements || []).map((m,i) =>
             `<span class="badge badge-none">Μ${i+1}: ${m.se_value}%</span>`
           ).join('')}
-        </div>`;
+        </div>
+        ${technicianBadgeHTML(testData.created_by)}`;
     }
 
     const statusClass = testData.overall_status === 'OK' ? 'test-ok'

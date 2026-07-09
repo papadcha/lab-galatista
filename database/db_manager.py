@@ -605,7 +605,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 16
+CURRENT_SCHEMA_VERSION = 17
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = _local_db_dir
@@ -740,6 +740,7 @@ def initialize_database():
         14: os.path.join(MIGRATIONS_DIR, 'migration_014_unbake_product_name.sql'),
         15: os.path.join(MIGRATIONS_DIR, 'migration_015_fix_allin_category_data.sql'),
         16: os.path.join(MIGRATIONS_DIR, 'migration_016_document_library_soft_delete.sql'),
+        17: os.path.join(MIGRATIONS_DIR, 'migration_017_audit_trail_technician.sql'),
     }
 
     needs_recalc = False
@@ -1017,10 +1018,10 @@ def create_sample(code: str, date: str, product_id: int,
         cursor = conn.execute("""
             INSERT INTO tbl_samples
                 (code, date, product_id, technician_id, location,
-                 batch, comments, source_id, entry_date, subperiod_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 batch, comments, source_id, entry_date, subperiod_id, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (code, date, product_id, technician_id, location,
-              batch, comments, source_id or 1, entry_date, subperiod_id))
+              batch, comments, source_id or 1, entry_date, subperiod_id, technician_id))
         sample_id = cursor.lastrowid
         conn.commit()
         return sample_id
@@ -1064,10 +1065,10 @@ def create_sample_with_rename(code_info: dict, date: str, product_id: int,
         cursor = conn.execute("""
             INSERT INTO tbl_samples
                 (code, date, product_id, technician_id, location,
-                 batch, comments, source_id, entry_date, subperiod_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 batch, comments, source_id, entry_date, subperiod_id, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (code_info['code'], date, product_id, technician_id,
-              location, batch, comments, source_id or 1, entry_date, subperiod_id))
+              location, batch, comments, source_id or 1, entry_date, subperiod_id, technician_id))
         sample_id = cursor.lastrowid
         conn.commit()
         return sample_id
@@ -1140,6 +1141,8 @@ def update_sample(sample_id: int, **kwargs) -> bool:
     fields = {k: v for k, v in kwargs.items() if k in allowed}
     if not fields:
         return False
+    if 'technician_id' in fields:
+        fields['modified_by'] = fields['technician_id']
     fields['updated_at'] = datetime.now().isoformat()
     set_clause = ', '.join([f"{k}=?" for k in fields])
     values     = list(fields.values()) + [sample_id]
@@ -1374,6 +1377,7 @@ def save_sieve_analysis(sample_id: int, date: str,
                         weight_washed: float,
                         sieve_results: list,
                         comments: Optional[str] = None,
+                        technician_id: Optional[int] = None,
                         as_new_run: bool = False,
                         rejected_reason: Optional[str] = None) -> int:
     """
@@ -1420,7 +1424,7 @@ def save_sieve_analysis(sample_id: int, date: str,
             analysis_id = _insert_sieve_run(
                 conn, sample_id, date,
                 weight_initial, weight_dry, weight_washed,
-                wash_loss, comments, run_no, sieve_results
+                wash_loss, comments, run_no, sieve_results, technician_id
             )
         else:
             if current:
@@ -1429,10 +1433,11 @@ def save_sieve_analysis(sample_id: int, date: str,
                 conn.execute("""
                     UPDATE tbl_sieve_analysis
                        SET date=?, weight_initial=?, weight_dry=?,
-                           weight_washed=?, wash_loss_pct=?, comments=?
+                           weight_washed=?, wash_loss_pct=?, comments=?,
+                           modified_by=?
                      WHERE id=?
                 """, (date, weight_initial, weight_dry, weight_washed,
-                      round(wash_loss, 2), comments, analysis_id))
+                      round(wash_loss, 2), comments, technician_id, analysis_id))
                 conn.execute(
                     "DELETE FROM tbl_sieve_results WHERE sieve_analysis_id=?",
                     (analysis_id,)
@@ -1443,7 +1448,7 @@ def save_sieve_analysis(sample_id: int, date: str,
                 analysis_id = _insert_sieve_run(
                     conn, sample_id, date,
                     weight_initial, weight_dry, weight_washed,
-                    wash_loss, comments, 1, sieve_results
+                    wash_loss, comments, 1, sieve_results, technician_id
                 )
 
         conn.commit()
@@ -1460,15 +1465,16 @@ def save_sieve_analysis(sample_id: int, date: str,
 
 def _insert_sieve_run(conn, sample_id, date,
                       weight_initial, weight_dry, weight_washed,
-                      wash_loss, comments, run_no, sieve_results) -> int:
+                      wash_loss, comments, run_no, sieve_results,
+                      technician_id=None) -> int:
     """Helper: εισαγωγή νέου sieve run + children."""
     cursor = conn.execute("""
         INSERT INTO tbl_sieve_analysis
             (sample_id, date, weight_initial, weight_dry, weight_washed,
-             wash_loss_pct, comments, run_no, is_official)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+             wash_loss_pct, comments, run_no, is_official, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
     """, (sample_id, date, weight_initial, weight_dry,
-          weight_washed, round(wash_loss, 2), comments, run_no))
+          weight_washed, round(wash_loss, 2), comments, run_no, technician_id))
     analysis_id = cursor.lastrowid
     _insert_sieve_results(conn, analysis_id, weight_dry, sieve_results)
     return analysis_id
@@ -1572,6 +1578,7 @@ def save_flakiness(sample_id: int, date: str,
                    fractions: list,
                    weight_m0: Optional[float] = None,
                    comments: Optional[str] = None,
+                   technician_id: Optional[int] = None,
                    as_new_run: bool = False,
                    rejected_reason: Optional[str] = None) -> int:
     """Αποθηκεύει πλακοειδή. weight_m0 = αρχικό βάρος δείγματος για έλεγχο 1% EN 933-3 §8."""
@@ -1610,16 +1617,17 @@ def save_flakiness(sample_id: int, date: str,
                 )
             flakiness_id = _insert_flakiness_run(
                 conn, sample_id, weight_m0, date, fi,
-                comments, run_no, fractions
+                comments, run_no, fractions, technician_id
             )
         else:
             if current:
                 flakiness_id = current['id']
                 conn.execute("""
                     UPDATE tbl_flakiness
-                       SET weight_m0=?, date=?, fi_index=?, comments=?
+                       SET weight_m0=?, date=?, fi_index=?, comments=?,
+                           modified_by=?
                      WHERE id=?
-                """, (weight_m0, date, fi, comments, flakiness_id))
+                """, (weight_m0, date, fi, comments, technician_id, flakiness_id))
                 conn.execute(
                     "DELETE FROM tbl_flakiness_results WHERE flakiness_id=?",
                     (flakiness_id,)
@@ -1628,7 +1636,7 @@ def save_flakiness(sample_id: int, date: str,
             else:
                 flakiness_id = _insert_flakiness_run(
                     conn, sample_id, weight_m0, date, fi,
-                    comments, 1, fractions
+                    comments, 1, fractions, technician_id
                 )
 
         conn.commit()
@@ -1644,13 +1652,14 @@ def save_flakiness(sample_id: int, date: str,
 
 
 def _insert_flakiness_run(conn, sample_id, weight_m0, date,
-                          fi, comments, run_no, fractions) -> int:
+                          fi, comments, run_no, fractions,
+                          technician_id=None) -> int:
     cursor = conn.execute("""
         INSERT INTO tbl_flakiness
             (sample_id, weight_m0, date, fi_index, comments,
-             run_no, is_official)
-        VALUES (?, ?, ?, ?, ?, ?, 1)
-    """, (sample_id, weight_m0, date, fi, comments, run_no))
+             run_no, is_official, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+    """, (sample_id, weight_m0, date, fi, comments, run_no, technician_id))
     flakiness_id = cursor.lastrowid
     _insert_flakiness_results(conn, flakiness_id, fractions)
     return flakiness_id
@@ -1676,6 +1685,7 @@ def save_methylene_blue(sample_id: int, date: str,
                         weight_m0: Optional[float] = None,
                         moisture_pct: Optional[float] = None,
                         comments: Optional[str] = None,
+                        technician_id: Optional[int] = None,
                         as_new_run: bool = False,
                         rejected_reason: Optional[str] = None) -> int:
     """Αποθηκεύει δοκιμή MB.
@@ -1710,11 +1720,11 @@ def save_methylene_blue(sample_id: int, date: str,
                     (sample_id, date, weight_sample, water_volume,
                      volume_initial, volume_final, mb_value,
                      weight_m0, moisture_pct, comments,
-                     run_no, is_official)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                     run_no, is_official, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
             """, (sample_id, date, weight_sample, water_volume,
                   volume_initial, volume_final, round(mb_value, 2),
-                  weight_m0, moisture_pct, comments, run_no))
+                  weight_m0, moisture_pct, comments, run_no, technician_id))
             mb_id = cursor.lastrowid
         else:
             if current:
@@ -1723,22 +1733,23 @@ def save_methylene_blue(sample_id: int, date: str,
                     UPDATE tbl_methylene_blue
                        SET date=?, weight_sample=?, water_volume=?,
                            volume_initial=?, volume_final=?, mb_value=?,
-                           weight_m0=?, moisture_pct=?, comments=?
+                           weight_m0=?, moisture_pct=?, comments=?,
+                           modified_by=?
                      WHERE id=?
                 """, (date, weight_sample, water_volume, volume_initial,
                       volume_final, round(mb_value, 2),
-                      weight_m0, moisture_pct, comments, mb_id))
+                      weight_m0, moisture_pct, comments, technician_id, mb_id))
             else:
                 cursor = conn.execute("""
                     INSERT INTO tbl_methylene_blue
                         (sample_id, date, weight_sample, water_volume,
                          volume_initial, volume_final, mb_value,
                          weight_m0, moisture_pct, comments,
-                         run_no, is_official)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
+                         run_no, is_official, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?)
                 """, (sample_id, date, weight_sample, water_volume,
                       volume_initial, volume_final, round(mb_value, 2),
-                      weight_m0, moisture_pct, comments))
+                      weight_m0, moisture_pct, comments, technician_id))
                 mb_id = cursor.lastrowid
 
         conn.commit()
@@ -1778,6 +1789,7 @@ def get_last_mb_volume(product_id: int) -> Optional[float]:
 def save_sand_equivalent(sample_id: int, date: str,
                          measurements: list,
                          comments: Optional[str] = None,
+                         technician_id: Optional[int] = None,
                          as_new_run: bool = False,
                          rejected_reason: Optional[str] = None) -> int:
     """Αποθηκεύει SE."""
@@ -1818,16 +1830,17 @@ def save_sand_equivalent(sample_id: int, date: str,
                 )
             se_id = _insert_se_run(
                 conn, sample_id, date, se_final, int(requires_3rd),
-                comments, run_no, measurements, se_values
+                comments, run_no, measurements, se_values, technician_id
             )
         else:
             if current:
                 se_id = current['id']
                 conn.execute("""
                     UPDATE tbl_sand_equivalent
-                       SET date=?, se_final=?, requires_3rd=?, comments=?
+                       SET date=?, se_final=?, requires_3rd=?, comments=?,
+                           modified_by=?
                      WHERE id=?
-                """, (date, se_final, int(requires_3rd), comments, se_id))
+                """, (date, se_final, int(requires_3rd), comments, technician_id, se_id))
                 conn.execute(
                     "DELETE FROM tbl_se_measurements WHERE se_id=?", (se_id,)
                 )
@@ -1835,7 +1848,7 @@ def save_sand_equivalent(sample_id: int, date: str,
             else:
                 se_id = _insert_se_run(
                     conn, sample_id, date, se_final, int(requires_3rd),
-                    comments, 1, measurements, se_values
+                    comments, 1, measurements, se_values, technician_id
                 )
 
         conn.commit()
@@ -1851,13 +1864,14 @@ def save_sand_equivalent(sample_id: int, date: str,
 
 
 def _insert_se_run(conn, sample_id, date, se_final, requires_3rd,
-                   comments, run_no, measurements, se_values) -> int:
+                   comments, run_no, measurements, se_values,
+                   technician_id=None) -> int:
     cursor = conn.execute("""
         INSERT INTO tbl_sand_equivalent
             (sample_id, date, se_final, requires_3rd, comments,
-             run_no, is_official)
-        VALUES (?, ?, ?, ?, ?, ?, 1)
-    """, (sample_id, date, se_final, requires_3rd, comments, run_no))
+             run_no, is_official, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+    """, (sample_id, date, se_final, requires_3rd, comments, run_no, technician_id))
     se_id = cursor.lastrowid
     _insert_se_measurements(conn, se_id, measurements, se_values)
     return se_id
@@ -1943,7 +1957,8 @@ def mark_run_rejected(test_type: str, run_id: int, reason: str) -> bool:
         raise
     finally:
         conn.close()
-def update_rejected_reason(test_type: str, run_id: int, reason: str) -> bool:
+def update_rejected_reason(test_type: str, run_id: int, reason: str,
+                           technician_id: Optional[int] = None) -> bool:
     """
     Διορθώνει τον λόγο απόρριψης μιας ήδη απορριφθείσας εκτέλεσης.
     Δεν αλλάζει τίποτα άλλο — τα νούμερα της δοκιμής μένουν κλειδωμένα.
@@ -1965,8 +1980,8 @@ def update_rejected_reason(test_type: str, run_id: int, reason: str) -> bool:
                 "Πρώτα κάντε το απορριφθέν."
             )
         conn.execute(
-            f"UPDATE {entry['table']} SET rejected_reason=? WHERE id=?",
-            (reason, run_id)
+            f"UPDATE {entry['table']} SET rejected_reason=?, modified_by=? WHERE id=?",
+            (reason, technician_id, run_id)
         )
         conn.commit()
         conn.close()
@@ -1982,7 +1997,8 @@ def update_rejected_reason(test_type: str, run_id: int, reason: str) -> bool:
     finally:
         conn.close()
 def promote_run_to_official(test_type: str, run_id: int,
-                            demote_reason: str) -> bool:
+                            demote_reason: str,
+                            technician_id: Optional[int] = None) -> bool:
     """
     Επανα-promotion: παίρνει ένα απορριφθέν run και το κάνει official,
     υποβαθμίζοντας το τρέχον official σε απορριφθέν.
@@ -2020,14 +2036,14 @@ def promote_run_to_official(test_type: str, run_id: int,
         # Σε δύο ξεχωριστά UPDATE μέσα σε ίδιο transaction.
         if current:
             conn.execute(
-                f"UPDATE {table} SET is_official=0, rejected_reason=? WHERE id=?",
-                (demote_reason, current['id'])
+                f"UPDATE {table} SET is_official=0, rejected_reason=?, modified_by=? WHERE id=?",
+                (demote_reason, technician_id, current['id'])
             )
 
         # Καθαρίζουμε το rejected_reason του νέου official
         conn.execute(
-            f"UPDATE {table} SET is_official=1, rejected_reason=NULL WHERE id=?",
-            (run_id,)
+            f"UPDATE {table} SET is_official=1, rejected_reason=NULL, modified_by=? WHERE id=?",
+            (technician_id, run_id)
         )
         conn.commit()
         return True

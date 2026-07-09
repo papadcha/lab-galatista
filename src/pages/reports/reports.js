@@ -45,6 +45,16 @@ import { t } from '../../i18n/i18n.js';
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   };
+  const technicianName = id => {
+    if (!id) return null;
+    return (AppState.technicians || []).find(tc => tc.id === id)?.name || null;
+  };
+  const technicianMetaHTML = id => {
+    const name = technicianName(id);
+    return name
+      ? `<div class="report-meta-row"><span>${t('pdf.preview.technician_label', 'Τεχνικός:')} <strong>${esc(name)}</strong></span></div>`
+      : '';
+  };
 
   function show(id) { el(id)?.classList.remove('hidden'); }
   function hide(id) { el(id)?.classList.add('hidden'); }
@@ -682,7 +692,8 @@ import { t } from '../../i18n/i18n.js';
         <span>${t('pdf.sieve.weight_initial', 'Βάρος αρχικό')}: <strong>${analysis.weight_initial?.toFixed(1) || '—'}g</strong></span>
         <span>${t('pdf.sieve.weight_dry', 'Βάρος ξηρού')}: <strong>${analysis.weight_dry?.toFixed(1) || '—'}g</strong></span>
         <span>${t('pdf.sieve.wash_loss', 'Απώλεια πλύσης')}: <strong>${analysis.wash_loss_pct?.toFixed(2) || '—'}%</strong></span>
-      </div>`;
+      </div>
+      ${technicianMetaHTML(analysis.created_by)}`;
 
     return html;
   }
@@ -752,6 +763,7 @@ import { t } from '../../i18n/i18n.js';
           <span>Βάρος ξηρού: <strong>${analysis.weight_dry?.toFixed(1) || '—'}g</strong></span>
           <span>Απώλεια πλύσης: <strong>${analysis.wash_loss_pct?.toFixed(2) || '—'}%</strong></span>
         </div>
+        ${technicianMetaHTML(analysis.created_by)}
     `;
 
     if (showChart && results.length > 0) {
@@ -850,6 +862,7 @@ import { t } from '../../i18n/i18n.js';
             ${buildLimitsLine(checks, 'g/kg')}
           </tbody>
         </table>
+        ${technicianMetaHTML(data.created_by)}
       </div>
     `;
   }
@@ -888,6 +901,7 @@ import { t } from '../../i18n/i18n.js';
             ${buildLimitsLine(checks, '%')}
           </tbody>
         </table>
+        ${technicianMetaHTML(data.created_by)}
       </div>
     `;
   }
@@ -957,6 +971,7 @@ import { t } from '../../i18n/i18n.js';
             ${buildLimitsLine(checks, '%')}
           </tbody>
         </table>
+        ${technicianMetaHTML(data.created_by)}
       </div>
     `;
   }

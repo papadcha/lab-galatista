@@ -445,6 +445,12 @@ import { t } from '../../i18n/i18n.js';
   // ============================================================
 
   async function saveSample() {
+    const tid = parseInt(el('new-technician').value) || null;
+    if (!tid) {
+      App.toast(t('samples.technician_required', 'Απαιτείται επιλογή τεχνικού'), 'fail');
+      return;
+    }
+
     const btn = el('btn-save');
     btn.disabled    = true;
     btn.textContent = t('samples.saving_button', 'Αποθήκευση...');
@@ -453,7 +459,6 @@ import { t } from '../../i18n/i18n.js';
       const code = el('new-code').value.trim();
       const date = parseDate(el('new-date').value);
       const pid  = parseInt(el('new-product').value);
-      const tid  = parseInt(el('new-technician').value) || null;
       const loc  = el('new-location').value.trim() || null;
       const bat  = el('new-batch').value.trim()    || null;
       const com  = el('new-comments').value.trim() || null;

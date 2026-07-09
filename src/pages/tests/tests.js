@@ -185,6 +185,8 @@ import { t } from '../../i18n/i18n.js';
         ? `<span class="run-badge">Run ${official?.run_no || runCount}</span>`
         : '';
 
+      const executedByName = isDone ? technicianName(official?.created_by) : null;
+
       return `
         <div class="test-card ${statusClass}" data-test="${tt}"
              onclick="TestsPage.selectTest('${tt}')">
@@ -195,6 +197,10 @@ import { t } from '../../i18n/i18n.js';
             <span class="test-card-subtitle">${esc(App.testStandard(tt))}</span>
             <span class="test-card-status ${statusCls}">${statusText}</span>
           </div>
+          ${executedByName ? `
+            <div class="history-peek">
+              ${t('tests.executed_by_prefix', 'Εκτελέστηκε από:')} ${esc(executedByName)}
+            </div>` : ''}
           ${isDone && runCount > 1 ? `
             <div class="history-peek">
               ${runCount - 1} ${runCount - 1 > 1 ? t('tests.previous_runs_plural', 'προηγ. εκτελέσεις') : t('tests.previous_run_singular', 'προηγ. εκτέλεση')}
@@ -236,6 +242,7 @@ import { t } from '../../i18n/i18n.js';
                 <th>Run</th>
                 <th>${t('tests.date_col', 'Ημερομηνία')}</th>
                 <th>${t('tests.result_col', 'Αποτέλεσμα')}</th>
+                <th>${t('tests.technician_col', 'Τεχνικός')}</th>
                 <th>${t('tests.rejection_reason_col', 'Λόγος Απόρριψης')}</th>
                 <th></th>
               </tr>
@@ -246,6 +253,7 @@ import { t } from '../../i18n/i18n.js';
                   <td>Run ${r.run_no}</td>
                   <td>${App.formatDate(r.date)}</td>
                   <td>${formatRunResult(tt, r)}</td>
+                  <td>${esc(technicianName(r.created_by) || '—')}</td>
                   <td class="reject-reason">
                     ${esc(r.rejected_reason || '—')}
                   </td>
@@ -520,6 +528,7 @@ import { t } from '../../i18n/i18n.js';
             })()}
           </tbody>
         </table>
+        ${technicianSelectHTML('sieve-technician')}
         ${renderFormActions('sieve', !!existing)}
       </div>
     `;
@@ -654,11 +663,14 @@ import { t } from '../../i18n/i18n.js';
       }
     }
 
+    const techId = parseInt(el('sieve-technician')?.value) || null;
+    if (!techId) { App.toast(t('samples.technician_required', 'Απαιτείται επιλογή τεχνικού'), 'warn'); return; }
+
     await doSave('sieve', async (asNewRun, reason) => {
       await pyCallStrict('save_sieve_analysis',
         state.sampleId, state.sample.sample.date,
         wInitial, wDry, wWashed, results,
-        null, asNewRun, reason
+        null, techId, asNewRun, reason
       );
     });
   }
@@ -724,6 +736,7 @@ import { t } from '../../i18n/i18n.js';
           <label>${t('tests.comments_label', 'Σχόλια')}</label>
           <input type="text" id="mb-comments" value="${mb?.comments || ''}">
         </div>
+        ${technicianSelectHTML('mb-technician')}
         ${renderFormActions('mb', !!existing)}
       </div>
     `;
@@ -755,11 +768,15 @@ import { t } from '../../i18n/i18n.js';
     if (!weight) { App.toast(t('tests.fill_mb_weight', 'Συμπληρώστε το βάρος δείγματος M₁'), 'warn'); return; }
     if (!vFinal) { App.toast(t('tests.fill_mb_final_volume', 'Συμπληρώστε τον τελικό όγκο V1'), 'warn'); return; }
 
+    const techId = parseInt(el('mb-technician')?.value) || null;
+    if (!techId) { App.toast(t('samples.technician_required', 'Απαιτείται επιλογή τεχνικού'), 'warn'); return; }
+
     await doSave('mb', async (asNewRun, reason) => {
       await pyCallStrict('save_methylene_blue',
         state.sampleId, state.sample.sample.date,
         weight, water, vInit, vFinal,
         el('mb-comments')?.value || '',
+        techId,
         asNewRun, reason
       );
     });
@@ -798,6 +815,7 @@ import { t } from '../../i18n/i18n.js';
           <label>${t('tests.comments_label', 'Σχόλια')}</label>
           <input type="text" id="se-comments" value="${existing?.comments || ''}">
         </div>
+        ${technicianSelectHTML('se-technician')}
         ${renderFormActions('se', !!existing)}
       </div>
     `;
@@ -898,10 +916,14 @@ import { t } from '../../i18n/i18n.js';
       App.toast(t('tests.se_repeat_warning', 'Διαφορά > 4 μονάδες — Επαναλάβετε τη δοκιμή (EN 933-8 §9)'), 'error');
       return;
     }
+    const techId = parseInt(el('se-technician')?.value) || null;
+    if (!techId) { App.toast(t('samples.technician_required', 'Απαιτείται επιλογή τεχνικού'), 'warn'); return; }
+
     await doSave('se', async (asNewRun, reason) => {
       await pyCallStrict('save_sand_equivalent',
         state.sampleId, state.sample.sample.date,
         measurements, el('se-comments')?.value || '',
+        techId,
         asNewRun, reason
       );
     });
@@ -1004,6 +1026,7 @@ import { t } from '../../i18n/i18n.js';
           <label>${t('tests.comments_label', 'Σχόλια')}</label>
           <input type="text" id="fl-comments" value="${existing?.comments || ''}">
         </div>
+        ${technicianSelectHTML('fl-technician')}
         ${renderFormActions('flakiness', !!existing)}
       </div>
     `;
@@ -1065,14 +1088,42 @@ import { t } from '../../i18n/i18n.js';
         return;
       }
     }
+    const techId = parseInt(el('fl-technician')?.value) || null;
+    if (!techId) { App.toast(t('samples.technician_required', 'Απαιτείται επιλογή τεχνικού'), 'warn'); return; }
+
     await doSave('flakiness', async (asNewRun, reason) => {
       await pyCallStrict('save_flakiness',
         state.sampleId, state.sample.sample.date,
         fractions, m0 || null,
         el('fl-comments')?.value || '',
+        techId,
         asNewRun, reason
       );
     });
+  }
+
+  // ============================================================
+  // ΤΕΧΝΙΚΟΣ ΕΚΤΕΛΕΣΗΣ — κοινό dropdown για audit trail
+  // ============================================================
+
+  function technicianName(id) {
+    if (!id) return null;
+    return (AppState.technicians || []).find(tc => tc.id === id)?.name || null;
+  }
+
+  function technicianSelectHTML(selectId) {
+    const options = (AppState.technicians || [])
+      .map(tc => `<option value="${tc.id}">${esc(tc.name)}</option>`)
+      .join('');
+    return `
+      <div class="form-group">
+        <label>${t('tests.executed_by_label', 'Εκτελέστηκε από')}</label>
+        <select id="${selectId}">
+          <option value="">${t('common.select_placeholder', '— Επιλέξτε —')}</option>
+          ${options}
+        </select>
+      </div>
+    `;
   }
 
   // ============================================================
@@ -1251,6 +1302,7 @@ import { t } from '../../i18n/i18n.js';
                     style="width:100%;margin-top:6px;"
                     placeholder="${t('tests.rejection_reason_placeholder', 'Λόγος απόρριψης...')}"></textarea>
         </div>
+        ${technicianSelectHTML('edit-reason-technician')}
       `,
       [
         { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
@@ -1263,9 +1315,11 @@ import { t } from '../../i18n/i18n.js';
   async function _saveEditReason(tt, runId) {
     const reason = el('edit-reason-input')?.value?.trim();
     if (!reason) { App.toast(t('tests.reason_cannot_be_empty', 'Ο λόγος δεν μπορεί να είναι κενός'), 'warn'); return; }
+    const techId = parseInt(el('edit-reason-technician')?.value) || null;
+    if (!techId) { App.toast(t('samples.technician_required', 'Απαιτείται επιλογή τεχνικού'), 'warn'); return; }
     App.closeModal();
     try {
-      await pyCallStrict('update_rejected_reason', tt, runId, reason);
+      await pyCallStrict('update_rejected_reason', tt, runId, reason, techId);
       App.toast(t('tests.reason_updated_toast', 'Λόγος ενημερώθηκε'), 'ok');
       state.history[tt] = await pyCall('get_test_history', tt, state.sampleId) || [];
       renderCards();
@@ -1287,6 +1341,7 @@ import { t } from '../../i18n/i18n.js';
                     style="width:100%;margin-top:6px;"
                     placeholder="${t('tests.demote_reason_placeholder', 'πχ Αποδείχθηκε ότι η νεότερη είχε σφάλμα...')}"></textarea>
         </div>
+        ${technicianSelectHTML('promote-run-technician')}
       `,
       [
         { label: t('common.cancel', 'Ακύρωση'), action: 'App.closeModal()', secondary: true },
@@ -1299,9 +1354,11 @@ import { t } from '../../i18n/i18n.js';
   async function _promoteRun(tt, runId) {
     const reason = el('demote-reason-input')?.value?.trim();
     if (!reason) { App.toast(t('tests.reason_required', 'Ο λόγος είναι υποχρεωτικός'), 'warn'); return; }
+    const techId = parseInt(el('promote-run-technician')?.value) || null;
+    if (!techId) { App.toast(t('samples.technician_required', 'Απαιτείται επιλογή τεχνικού'), 'warn'); return; }
     App.closeModal();
     try {
-      await pyCallStrict('promote_run_to_official', tt, runId, reason);
+      await pyCallStrict('promote_run_to_official', tt, runId, reason, techId);
       App.toast(t('tests.run_restored_official', 'Η εκτέλεση επαναφέρθηκε ως επίσημη'), 'ok');
       state.history[tt] = await pyCall('get_test_history', tt, state.sampleId) || [];
       state.sample = await pyCall('get_full_report', state.sampleId) || state.sample;
@@ -1366,6 +1423,10 @@ import { t } from '../../i18n/i18n.js';
     const newLocation   = el('edit-location')?.value?.trim() || '';
     const newBatch      = el('edit-batch')?.value?.trim() || '';
     const newComments   = el('edit-comments')?.value?.trim() || '';
+    if (!newTechId) {
+      App.toast(t('samples.technician_required', 'Απαιτείται επιλογή τεχνικού'), 'fail');
+      return;
+    }
     App.closeModal();
     try {
       await pyCallStrict('update_sample',

@@ -741,9 +741,10 @@ METHODS = {
         sample_id=args[0], date=args[1],
         weight_initial=args[2], weight_dry=args[3],
         weight_washed=args[4], sieve_results=args[5],
-        comments=args[6]        if len(args) > 6 else None,
-        as_new_run=args[7]      if len(args) > 7 else False,
-        rejected_reason=args[8] if len(args) > 8 else None,
+        comments=args[6]         if len(args) > 6 else None,
+        technician_id=args[7]    if len(args) > 7 else None,
+        as_new_run=args[8]       if len(args) > 8 else False,
+        rejected_reason=args[9]  if len(args) > 9 else None,
     ),
 
     'get_sieve_analysis': lambda args: get_sieve_analysis(
@@ -755,9 +756,10 @@ METHODS = {
         sample_id=args[0], date=args[1],
         weight_sample=args[2], water_volume=args[3],
         volume_initial=args[4], volume_final=args[5],
-        comments=args[6]        if len(args) > 6 else None,
-        as_new_run=args[7]      if len(args) > 7 else False,
-        rejected_reason=args[8] if len(args) > 8 else None,
+        comments=args[6]         if len(args) > 6 else None,
+        technician_id=args[7]    if len(args) > 7 else None,
+        as_new_run=args[8]       if len(args) > 8 else False,
+        rejected_reason=args[9]  if len(args) > 9 else None,
     ),
 
     'suggest_initial_volume': lambda args: suggest_mb_initial_volume(args[0]),
@@ -765,18 +767,20 @@ METHODS = {
     'save_sand_equivalent': lambda args: save_sand_equivalent(
         sample_id=args[0], date=args[1],
         measurements=args[2],
-        comments=args[3]        if len(args) > 3 else None,
-        as_new_run=args[4]      if len(args) > 4 else False,
-        rejected_reason=args[5] if len(args) > 5 else None,
+        comments=args[3]         if len(args) > 3 else None,
+        technician_id=args[4]    if len(args) > 4 else None,
+        as_new_run=args[5]       if len(args) > 5 else False,
+        rejected_reason=args[6]  if len(args) > 6 else None,
     ),
 
     'save_flakiness': lambda args: save_flakiness(
         sample_id=args[0], date=args[1],
         fractions=args[2],
-        weight_m0=args[3]          if len(args) > 3 else None,
-        comments=args[4]           if len(args) > 4 else None,
-        as_new_run=args[5]         if len(args) > 5 else False,
-        rejected_reason=args[6]    if len(args) > 6 else None,
+        weight_m0=args[3]           if len(args) > 3 else None,
+        comments=args[4]            if len(args) > 4 else None,
+        technician_id=args[5]       if len(args) > 5 else None,
+        as_new_run=args[6]          if len(args) > 6 else False,
+        rejected_reason=args[7]     if len(args) > 7 else None,
     ),
 
     'search_samples': lambda args: search_samples(
@@ -849,9 +853,11 @@ METHODS = {
     'mark_run_rejected':        lambda args: mark_run_rejected(
                                     args[0], args[1], args[2]),
     'update_rejected_reason':   lambda args: update_rejected_reason(
-                                    args[0], args[1], args[2]),
+                                    args[0], args[1], args[2],
+                                    args[3] if len(args) > 3 else None),
     'promote_run_to_official':  lambda args: promote_run_to_official(
-                                    args[0], args[1], args[2]),
+                                    args[0], args[1], args[2],
+                                    args[3] if len(args) > 3 else None),
     'delete_test_run':          lambda args: delete_test_run(args[0], args[1]),
 
     # Test metadata

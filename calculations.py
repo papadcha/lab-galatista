@@ -578,6 +578,8 @@ def get_full_sample_report(sample_id: int) -> dict:
             'fractions':      fl_results,
             'spec_checks':    fi_checks,
             'overall_status': get_overall_status(fi_checks),
+            'created_by':     fl['created_by'],
+            'modified_by':    fl['modified_by'],
         }
 
     # Μπλε Μεθυλενίου
@@ -594,6 +596,8 @@ def get_full_sample_report(sample_id: int) -> dict:
             'volume_final':   mb['volume_final'],
             'spec_checks':    mb_checks,
             'overall_status': get_overall_status(mb_checks),
+            'created_by':     mb['created_by'],
+            'modified_by':    mb['modified_by'],
         }
 
     # Ισοδύναμο Άμμου
@@ -614,6 +618,8 @@ def get_full_sample_report(sample_id: int) -> dict:
             'n_measurements': len(measurements),
             'spec_checks':    se_checks,
             'overall_status': get_overall_status(se_checks),
+            'created_by':     se['created_by'],
+            'modified_by':    se['modified_by'],
         }
 
     conn.close()

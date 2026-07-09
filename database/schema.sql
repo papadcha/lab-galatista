@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS tbl_samples (
     subperiod_id    INTEGER,
     source_id       INTEGER REFERENCES tbl_sources(id),
     entry_date      TEXT,
+    created_by      INTEGER REFERENCES tbl_technicians(id),
+    modified_by     INTEGER REFERENCES tbl_technicians(id),
     FOREIGN KEY (product_id) REFERENCES tbl_products(id),
     FOREIGN KEY (technician_id) REFERENCES tbl_technicians(id),
     FOREIGN KEY (subperiod_id) REFERENCES tbl_subperiods(id)
@@ -124,6 +126,8 @@ CREATE TABLE IF NOT EXISTS tbl_sieve_analysis (
     is_official     INTEGER DEFAULT 1,
     rejected_reason TEXT,
     created_at      TEXT DEFAULT (datetime('now')),
+    created_by      INTEGER REFERENCES tbl_technicians(id),
+    modified_by     INTEGER REFERENCES tbl_technicians(id),
     FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sieve_one_official
@@ -155,6 +159,8 @@ CREATE TABLE IF NOT EXISTS tbl_flakiness (
     is_official         INTEGER DEFAULT 1,
     rejected_reason     TEXT,
     created_at          TEXT DEFAULT (datetime('now')),
+    created_by          INTEGER REFERENCES tbl_technicians(id),
+    modified_by         INTEGER REFERENCES tbl_technicians(id),
     FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE,
     FOREIGN KEY (sieve_analysis_id) REFERENCES tbl_sieve_analysis(id)
 );
@@ -192,6 +198,8 @@ CREATE TABLE IF NOT EXISTS tbl_methylene_blue (
     is_official     INTEGER DEFAULT 1,
     rejected_reason TEXT,
     created_at      TEXT DEFAULT (datetime('now')),
+    created_by      INTEGER REFERENCES tbl_technicians(id),
+    modified_by     INTEGER REFERENCES tbl_technicians(id),
     FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mb_one_official
@@ -212,6 +220,8 @@ CREATE TABLE IF NOT EXISTS tbl_sand_equivalent (
     is_official     INTEGER DEFAULT 1,
     rejected_reason TEXT,
     created_at      TEXT DEFAULT (datetime('now')),
+    created_by      INTEGER REFERENCES tbl_technicians(id),
+    modified_by     INTEGER REFERENCES tbl_technicians(id),
     FOREIGN KEY (sample_id) REFERENCES tbl_samples(id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_se_one_official
