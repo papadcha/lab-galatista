@@ -1,6 +1,6 @@
 {
   "name": "daigma-lims",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "description": "ΔAiγμα LiMS — Σύστημα Ποιοτικού Ελέγχου",
   "main": "main.js",
