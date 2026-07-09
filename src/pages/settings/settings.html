@@ -407,6 +407,40 @@
         </button>
       </div>
     </div>
+
+    <div class="form-card">
+      <h2 data-i18n="settings.periodic_email_title">Περιοδική Ενημέρωση Email</h2>
+      <p class="form-card-intro" data-i18n="settings.periodic_email_intro">
+        Αυτόματη σύνοψη (νέα δείγματα, εκκρεμότητες, εκτός προδιαγραφών, λήξη
+        CE) με συνημμένα PDF Περιοδικής Αναφοράς ανά προϊόν — ελέγχεται σε
+        κάθε άνοιγμα της εφαρμογής, στέλνεται όταν περάσει το διάστημα.
+      </p>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>
+            <input type="checkbox" id="periodic-email-enabled">
+            <span data-i18n="settings.periodic_email_enabled_label">Ενεργοποίηση</span>
+          </label>
+        </div>
+        <div class="form-group full-width">
+          <label data-i18n="settings.periodic_email_recipient_label">Διεύθυνση Παραληπτών (π.χ. Google Group)</label>
+          <input type="email" id="periodic-email-recipient"
+                 placeholder="daigma-lims@googlegroups.com">
+        </div>
+        <div class="form-group">
+          <label data-i18n="settings.periodic_email_interval_label">Διάστημα (ημέρες)</label>
+          <input type="number" id="periodic-email-interval" value="7" min="1">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-primary"
+                onclick="SettingsPage.savePeriodicEmail()" data-i18n="settings.save_button">
+          ✓ Αποθήκευση
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ===================== ΑΠΟΘΗΚΕΥΣΗ ===================== -->

@@ -2,12 +2,15 @@
 import { ipcMain } from 'electron';
 import nodemailer from 'nodemailer';
 
-ipcMain.handle('send-email', async (event, smtpConfig, emailData) => {
+export async function sendEmail(smtpConfig, emailData) {
   try {
     const transporter = nodemailer.createTransport({
       host:   smtpConfig.host,
       port:   parseInt(smtpConfig.port) || 587,
       secure: smtpConfig.port == 465,
+      // family:4 — αποφυγή ENETUNREACH σε δίκτυα όπου το IPv6 είναι
+      // ρυθμισμένο αλλά χωρίς πραγματική δρομολόγηση (π.χ. Gmail SMTP).
+      family: 4,
       auth: {
         user: smtpConfig.user,
         pass: smtpConfig.pass,
@@ -26,7 +29,9 @@ ipcMain.handle('send-email', async (event, smtpConfig, emailData) => {
   } catch (e) {
     return { success: false, error: e.message };
   }
-});
+}
+
+ipcMain.handle('send-email', async (event, smtpConfig, emailData) => sendEmail(smtpConfig, emailData));
 
 ipcMain.handle('test-smtp', async (event, smtpConfig) => {
   try {
@@ -34,6 +39,7 @@ ipcMain.handle('test-smtp', async (event, smtpConfig) => {
       host:   smtpConfig.host,
       port:   parseInt(smtpConfig.port) || 587,
       secure: smtpConfig.port == 465,
+      family: 4,
       auth: {
         user: smtpConfig.user,
         pass: smtpConfig.pass,

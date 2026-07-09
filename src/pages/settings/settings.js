@@ -155,7 +155,7 @@ import { t, initI18n } from '../../i18n/i18n.js';
     if (tab === 'materials')   await loadProducts();
     if (tab === 'sources')     await loadSources();
     if (tab === 'technicians') await loadTechnicians();
-    if (tab === 'email')       await loadSmtp();
+    if (tab === 'email')       { await loadSmtp(); await loadPeriodicEmail(); }
     if (tab === 'storage')     await loadStorageSettings();
   }
 
@@ -1559,6 +1559,26 @@ import { t, initI18n } from '../../i18n/i18n.js';
       } else {
         App.toast('✗ ' + t('settings.failure_prefix', 'Αποτυχία: ') + (result?.error || t('settings.unknown_error', 'Άγνωστο σφάλμα')), 'fail');
       }
+    } catch(e) {
+      App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
+    }
+  }
+
+  async function loadPeriodicEmail() {
+    const cfg = await window.pyBridge?.['get-config']?.() || {};
+    el('periodic-email-enabled').checked  = !!cfg.periodicEmailEnabled;
+    el('periodic-email-recipient').value  = cfg.periodicEmailRecipient || '';
+    el('periodic-email-interval').value   = cfg.periodicEmailIntervalDays || 7;
+  }
+
+  async function savePeriodicEmail() {
+    try {
+      await window.pyBridge?.['set-config']?.({
+        periodicEmailEnabled:      el('periodic-email-enabled').checked,
+        periodicEmailRecipient:    val('periodic-email-recipient'),
+        periodicEmailIntervalDays: parseInt(val('periodic-email-interval')) || 7,
+      });
+      App.toast(t('settings.email_settings_saved', 'Ρυθμίσεις email αποθηκεύτηκαν'), 'ok');
     } catch(e) {
       App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + e.message, 'fail');
     }
@@ -3117,6 +3137,7 @@ import { t, initI18n } from '../../i18n/i18n.js';
     loadSpecs, selectSpec, newSpec, deleteSpec, saveSpecs,
     // Email
     saveSmtp, testSmtp,
+    savePeriodicEmail,
     // Storage
     selectDataFolder, clearDataFolder, manualBackup,
     loadBackupList, restoreFromBackup, browseAndRestore,
