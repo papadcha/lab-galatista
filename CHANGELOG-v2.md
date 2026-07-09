@@ -10,6 +10,67 @@
 
 ---
 
+## Audit trail — τεχνικός ανά δείγμα/δοκιμή (2026-07-09)
+
+**Μετά το merge/tag v2.0.0 — δουλειά κατευθείαν στο `master`, δεν έχει
+γίνει ακόμα νέο version bump/tag/release.**
+
+Δεν υπήρχε καταγραφή ποιος τεχνικός κατάχώρησε ένα δείγμα ή εκτέλεσε/
+τροποποίησε μια δοκιμή — σημαντικό κενό για διαπιστευμένο εργαστήριο (CE).
+Το μόνο υπάρχον στοιχείο ήταν το `tbl_samples.technician_id`, που σημαίνει
+"ποιος πήρε το δείγμα", όχι "ποιος το κατάχώρησε" ή "ποιος έκανε τη δοκιμή".
+
+Εύρος περιορίστηκε ρητά σε **δείγματα + εκτέλεση δοκιμών** — reference
+data (προϊόντα, προδιαγραφές, πηγές, ρυθμίσεις, έγγραφα) μένουν εκτός.
+Καμία νέα έννοια login/session· κάθε ενέργεια ζητάει τον τεχνικό
+ξεχωριστά μέσω υποχρεωτικού dropdown (όχι κεντρική "τρέχουσα ταυτότητα").
+
+- **Σχήμα**: νέο `database/migration_017_audit_trail_technician.sql` —
+  στήλες `created_by`/`modified_by` (FK σε `tbl_technicians`) σε
+  `tbl_samples` + 4 πίνακες test-run (sieve/flakiness/mb/se).
+  `CURRENT_SCHEMA_VERSION` 16→17. Χωρίς backfill ιστορικών εγγραφών.
+- **Backend** (`database/db_manager.py`, `backend/server.py`): κάθε
+  `save_*`/`create_sample*`/`update_sample`/`update_rejected_reason`/
+  `promote_run_to_official` γράφει πλέον `created_by` (νέα εγγραφή) ή
+  `modified_by` (επεξεργασία υπάρχουσας) ανάλογα με το branch.
+- **Frontend**: υποχρεωτικό technician picker στην είσοδο/επεξεργασία
+  δείγματος (επαναχρησιμοποίηση υπάρχοντος πεδίου) + 6 νέα σημεία — 4
+  φόρμες δοκιμών (πάντα κενό, καμία προσυμπλήρωση) και τα modals
+  διόρθωσης λόγου απόρριψης/επαναφοράς ως επίσημη εκτέλεση.
+- **Εμφάνιση**: κάρτα δοκιμής + ιστορικό εκτελέσεων (`tests.js`),
+  λεπτομέρεια δείγματος (`history.js`), Δελτίο Αποτελεσμάτων (`reports.js`).
+
+**Bug βρέθηκε+διορθώθηκε κατά την επαλήθευση:** η αρχική προσθήκη στο
+`reports.js` έγινε στο `buildSieveSection()`, που αποδείχθηκε dead code
+(ποτέ δεν καλείται)· η πραγματική συνάρτηση του preview/εκτύπωσης είναι
+η `buildSieveTableOnly()` — διορθώθηκε εκεί.
+
+Επαληθεύτηκε πλήρες end-to-end σε isolated Electron profile (δικό του
+`--user-data-dir`, καμία επαφή με πραγματικά δεδομένα) μέσω Playwright
+`_electron`: mandatory validation μπλόκαρε σωστά σε είσοδο δείγματος και
+σε εκτέλεση δοκιμής· save με δύο διαφορετικούς τεχνικούς (ένας για το
+δείγμα, άλλος για τη δοκιμή) εμφανίστηκε σωστά και ξεχωριστά στο UI, στο
+Ιστορικό, και στην Αναφορά/PDF preview· direct SQL query επιβεβαίωσε τις
+τιμές στη βάση. Migration 017 δοκιμάστηκε ξεχωριστά σε προσομοιωμένη v16
+βάση (v16→v17 clean), και όλες οι write functions δοκιμάστηκαν άμεσα σε
+Python για σωστό created_by/modified_by ανά branch (insert/update/new-run).
+
+**Αρχεία:**
+- `database/migration_017_audit_trail_technician.sql` (νέο)
+- `database/schema.sql`
+- `database/db_manager.py`
+- `backend/server.py`
+- `calculations.py`
+- `src/pages/samples/samples.js`
+- `src/pages/tests/tests.js`
+- `src/pages/history/history.js`
+- `src/pages/reports/reports.js`
+- `src/i18n/el.json`
+
+Commits: `0ed1d62`, `3c063ed` (TODOLIST.md).
+
+---
+
 ## Φάση 5 — py-call whitelist (2026-07-06)
 
 **Τελευταίο βήμα του ESM redesign· με αυτό ολοκληρώνονται όλες οι Φάσεις 1-5.**
