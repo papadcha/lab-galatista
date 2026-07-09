@@ -475,8 +475,20 @@ CREATE TABLE IF NOT EXISTS tbl_documents (
     notes      TEXT,
     created_at TEXT    DEFAULT (datetime('now')),
     updated_at TEXT    DEFAULT (datetime('now')),
-    deleted_at TEXT
+    deleted_at TEXT,
+    quick_access_type       TEXT,
+    quick_access_product_id INTEGER REFERENCES tbl_products(id),
+    quick_access_standard   TEXT,
+    quick_access_group      TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_ce_cert ON tbl_documents(quick_access_type)
+  WHERE quick_access_type='ce_certificate' AND deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_tests ON tbl_documents(quick_access_type, quick_access_product_id)
+  WHERE quick_access_type='official_tests' AND deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_dop ON tbl_documents(quick_access_type, quick_access_standard, quick_access_product_id)
+  WHERE quick_access_type IN ('dop','ce_mark') AND deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_qa_std ON tbl_documents(quick_access_type, quick_access_group, quick_access_standard)
+  WHERE quick_access_type='standard' AND deleted_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS tbl_schema_version (
     version     INTEGER PRIMARY KEY,

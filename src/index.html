@@ -86,6 +86,23 @@
         </li>
       </ul>
 
+      <!-- Γρήγορη Πρόσβαση — badges + cascading στήλες σε src/quick-access.js -->
+      <div id="quick-access-panel">
+        <div class="qa-title" data-i18n="quickAccess.title">Γρήγορη Πρόσβαση</div>
+        <div class="qa-btn" data-qa-type="ce_certificate">
+          <span class="qa-btn-label" data-i18n="quickAccess.ce_certificate">CE Πιστοποιητικό</span>
+        </div>
+        <div class="qa-btn" data-qa-type="official_tests">
+          <span class="qa-btn-label" data-i18n="quickAccess.official_tests">Δοκιμές</span>
+        </div>
+        <div class="qa-btn" data-qa-type="dop">
+          <span class="qa-btn-label" data-i18n="quickAccess.dop">DoP / CE Marks</span>
+        </div>
+        <div class="qa-btn" data-qa-type="standard">
+          <span class="qa-btn-label" data-i18n="quickAccess.standard">Πρότυπα</span>
+        </div>
+      </div>
+
       <!-- Archive Mode Banner -->
       <div id="sidebar-archive-banner" style="display:none;
            background:#b45309;color:#fff;padding:8px 10px;
@@ -139,6 +156,9 @@
 
   <!-- Global Toasts -->
   <div id="toast-container"></div>
+
+  <!-- Γρήγορη Πρόσβαση — cascading στήλες, βλ. src/quick-access.js -->
+  <div id="qa-flyout" class="hidden"></div>
 
   <script type="module" src="main-app.js"></script>
 </body>

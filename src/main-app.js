@@ -19,6 +19,7 @@
 'use strict';
 
 import { initI18n, t, applyI18n } from './i18n/i18n.js';
+import { initQuickAccess, closeQuickAccess } from './quick-access.js';
 
 // ============================================================
 // GLOBAL STATE — Κοινά δεδομένα για όλες τις σελίδες
@@ -110,6 +111,8 @@ const Pages = {
 
 async function navigateTo(pageId) {
   if (!Pages[pageId]) return;
+
+  closeQuickAccess();
 
   // Ενημέρωση sidebar
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1412,6 +1415,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Custom titlebar — κουμπιά minimize/maximize/close (frameless window)
   initTitlebar();
+
+  // Γρήγορη Πρόσβαση — sidebar badges + cascading στήλες
+  initQuickAccess();
 
   // Φόρτωση αρχικής σελίδας πρώτα
   await navigateTo('dashboard');

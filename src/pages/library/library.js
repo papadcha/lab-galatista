@@ -1,6 +1,6 @@
 // ES module — φορτώνεται με πραγματικό <script type="module" src="...">
 // (βλ. main-app.js: Pages.library.module + navigateTo()).
-import { App } from '../../main-app.js';
+import { App, AppState } from '../../main-app.js';
 import { t } from '../../i18n/i18n.js';
 
 (async function () {
@@ -198,6 +198,38 @@ import { t } from '../../i18n/i18n.js';
                  placeholder="https://..." style="width:100%;margin-top:4px;">
         </div>
         <div class="form-group full-width">
+          <label>${t('library.field_quick_access', 'Γρήγορη Πρόσβαση')}</label>
+          <select id="doc-qa-type" style="width:100%;margin-top:4px;" onchange="LibraryPage._onQaTypeChange()">
+            <option value="">${t('library.qa_none', '— Καμία —')}</option>
+            <option value="ce_certificate" ${doc.quick_access_type==='ce_certificate'?'selected':''}>${t('library.qa_ce_certificate', 'CE Πιστοποιητικό')}</option>
+            <option value="official_tests" ${doc.quick_access_type==='official_tests'?'selected':''}>${t('library.qa_official_tests', 'Επίσημες Δοκιμές Περιόδου')}</option>
+            <option value="dop" ${doc.quick_access_type==='dop'?'selected':''}>${t('library.qa_dop', 'DOP')}</option>
+            <option value="ce_mark" ${doc.quick_access_type==='ce_mark'?'selected':''}>${t('library.qa_ce_mark', 'CE Mark')}</option>
+            <option value="standard" ${doc.quick_access_type==='standard'?'selected':''}>${t('library.qa_standard', 'Πρότυπο')}</option>
+          </select>
+          <div id="qa-fields" style="display:flex;gap:8px;margin-top:8px;">
+            <div id="qa-field-product" class="form-group" style="flex:1;display:none;">
+              <label>${t('library.qa_field_product', 'Υλικό')}</label>
+              <select id="doc-qa-product" style="width:100%;margin-top:4px;">
+                <option value="">${t('common.select_placeholder', '— Επιλέξτε —')}</option>
+                ${(AppState.products||[]).map(p => `<option value="${p.id}" ${doc.quick_access_product_id===p.id?'selected':''}>${_esc(p.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div id="qa-field-group" class="form-group" style="flex:1;display:none;">
+              <label>${t('library.qa_field_group', 'Ομάδα')}</label>
+              <select id="doc-qa-group" style="width:100%;margin-top:4px;">
+                <option value="ΕΝ" ${doc.quick_access_group==='ΕΝ'?'selected':''}>ΕΝ</option>
+                <option value="ΠΕΤΕΠ" ${doc.quick_access_group==='ΠΕΤΕΠ'?'selected':''}>ΠΕΤΕΠ</option>
+              </select>
+            </div>
+            <div id="qa-field-standard" class="form-group" style="flex:1;display:none;">
+              <label>${t('library.qa_field_standard', 'Πρότυπο')}</label>
+              <input type="text" id="doc-qa-standard" value="${_esc(doc.quick_access_standard||'')}"
+                     placeholder="${t('library.qa_field_standard_placeholder', 'πχ EN 12620')}" style="width:100%;margin-top:4px;">
+            </div>
+          </div>
+        </div>
+        <div class="form-group full-width">
           <label>${t('library.field_notes', 'Σημειώσεις')}</label>
           <input type="text" id="doc-notes" value="${_esc(doc.notes||'')}"
                  style="width:100%;margin-top:4px;">
@@ -219,6 +251,20 @@ import { t } from '../../i18n/i18n.js';
         { label: _editDocId ? t('library.save_button', '💾 Αποθήκευση') : t('library.add_button_short', '+ Προσθήκη'), action: 'LibraryPage._saveDocument()' },
       ]
     );
+    setTimeout(() => _onQaTypeChange(), 50);
+  }
+
+  function _onQaTypeChange() {
+    const type = document.getElementById('doc-qa-type')?.value || '';
+    const showProduct  = type === 'official_tests' || type === 'dop' || type === 'ce_mark';
+    const showStandard = type === 'dop' || type === 'ce_mark' || type === 'standard';
+    const showGroup    = type === 'standard';
+    const productEl  = document.getElementById('qa-field-product');
+    const standardEl = document.getElementById('qa-field-standard');
+    const groupEl     = document.getElementById('qa-field-group');
+    if (productEl)  productEl.style.display  = showProduct  ? '' : 'none';
+    if (standardEl) standardEl.style.display = showStandard ? '' : 'none';
+    if (groupEl)    groupEl.style.display    = showGroup    ? '' : 'none';
   }
 
   async function _pickDocFile() {
@@ -246,6 +292,12 @@ import { t } from '../../i18n/i18n.js';
       document.getElementById('doc-url')?.value?.trim()        || null,
       document.getElementById('doc-notes')?.value?.trim()      || null,
     ];
+    // Διαβάζονται πριν το App.closeModal() — αδειάζει το #modal-content innerHTML
+    const qaType    = document.getElementById('doc-qa-type')?.value || null;
+    const qaProduct = document.getElementById('doc-qa-product')?.value ? parseInt(document.getElementById('doc-qa-product').value) : null;
+    const qaGroup   = document.getElementById('doc-qa-group')?.value || null;
+    const qaStandard = document.getElementById('doc-qa-standard')?.value?.trim() || null;
+
     let result;
     if (_editDocId) {
       result = await pyCall('update_document', _editDocId, ...payload);
@@ -254,6 +306,11 @@ import { t } from '../../i18n/i18n.js';
     }
     App.closeModal();
     if (result?.ok) {
+      const docId = _editDocId || result.id;
+      await pyCall('set_document_quick_access', docId, qaType,
+        qaType === 'official_tests' || qaType === 'dop' || qaType === 'ce_mark' ? qaProduct : null,
+        qaType === 'dop' || qaType === 'ce_mark' || qaType === 'standard' ? qaStandard : null,
+        qaType === 'standard' ? qaGroup : null);
       App.toast(_editDocId ? t('library.saved_toast', 'Αποθηκεύτηκε') : t('library.added_toast', 'Προστέθηκε'), 'ok');
       await loadSections();
       if (_activeSec) selectSection(_activeSec.id);
@@ -375,6 +432,7 @@ import { t } from '../../i18n/i18n.js';
     editSection,
     _pickDocFile,
     _saveDocument,
+    _onQaTypeChange,
     _saveSection,
     _deleteSection,
     _confirmDeleteDocument,

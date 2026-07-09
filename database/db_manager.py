@@ -243,6 +243,167 @@ def get_documents_for_standards_check() -> list:
     finally:
         conn.close()
 
+def set_document_quick_access(doc_id: int, quick_access_type: str = None,
+                              product_id: int = None, standard: str = None,
+                              group: str = None) -> dict:
+    """
+    Σημαδεύει ένα έγγραφο ως γρήγορη πρόσβαση συγκεκριμένου τύπου
+    ('ce_certificate' | 'official_tests' | 'dop' | 'ce_mark' | 'standard').
+    quick_access_type=None καθαρίζει τη σήμανση.
+
+    Αν κάποιο ΑΛΛΟ έγγραφο κατέχει ήδη την ίδια θέση (ίδιο tuple
+    type+product+standard+group), η παλιά σήμανση αφαιρείται αυτόματα
+    πρώτα — ίδιο πνεύμα με promote_run_to_official (μόνο ένα ενεργό
+    ταυτόχρονα ανά θέση, καμία σύγκρουση στα partial unique indexes).
+    """
+    conn = get_connection()
+    try:
+        if quick_access_type:
+            conn.execute("""
+                UPDATE tbl_documents
+                   SET quick_access_type=NULL, quick_access_product_id=NULL,
+                       quick_access_standard=NULL, quick_access_group=NULL
+                 WHERE id != ?
+                   AND quick_access_type = ?
+                   AND quick_access_product_id IS ?
+                   AND quick_access_standard IS ?
+                   AND quick_access_group IS ?
+                   AND deleted_at IS NULL
+            """, (doc_id, quick_access_type, product_id, standard, group))
+        conn.execute("""
+            UPDATE tbl_documents
+               SET quick_access_type=?, quick_access_product_id=?,
+                   quick_access_standard=?, quick_access_group=?,
+                   updated_at=datetime('now')
+             WHERE id=?
+        """, (quick_access_type, product_id, standard, group, doc_id))
+        conn.commit()
+        return {'ok': True}
+    except Exception as e:
+        conn.rollback()
+        return {'ok': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+
+def get_quick_access_ce_certificate() -> dict:
+    conn = get_connection()
+    try:
+        row = conn.execute("""
+            SELECT * FROM tbl_documents
+             WHERE quick_access_type='ce_certificate' AND deleted_at IS NULL
+             LIMIT 1
+        """).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_quick_access_official_tests_products() -> list:
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT DISTINCT d.quick_access_product_id AS product_id, p.name AS product_name
+              FROM tbl_documents d
+              JOIN tbl_products p ON p.id = d.quick_access_product_id
+             WHERE d.quick_access_type='official_tests' AND d.deleted_at IS NULL
+             ORDER BY p.name
+        """).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_quick_access_official_tests_doc(product_id: int) -> dict:
+    conn = get_connection()
+    try:
+        row = conn.execute("""
+            SELECT * FROM tbl_documents
+             WHERE quick_access_type='official_tests' AND quick_access_product_id=?
+               AND deleted_at IS NULL
+             LIMIT 1
+        """, (product_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_quick_access_dop_standards() -> list:
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT DISTINCT quick_access_standard AS standard
+              FROM tbl_documents
+             WHERE quick_access_type IN ('dop','ce_mark') AND deleted_at IS NULL
+             ORDER BY quick_access_standard
+        """).fetchall()
+        return [r['standard'] for r in rows]
+    finally:
+        conn.close()
+
+
+def get_quick_access_dop_products(standard: str) -> list:
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT DISTINCT d.quick_access_product_id AS product_id, p.name AS product_name
+              FROM tbl_documents d
+              JOIN tbl_products p ON p.id = d.quick_access_product_id
+             WHERE d.quick_access_type IN ('dop','ce_mark')
+               AND d.quick_access_standard=? AND d.deleted_at IS NULL
+             ORDER BY p.name
+        """, (standard,)).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_quick_access_dop_files(standard: str, product_id: int) -> dict:
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT * FROM tbl_documents
+             WHERE quick_access_type IN ('dop','ce_mark')
+               AND quick_access_standard=? AND quick_access_product_id=?
+               AND deleted_at IS NULL
+        """, (standard, product_id)).fetchall()
+        result = {'ce_mark': None, 'dop': None}
+        for r in rows:
+            row = dict(r)
+            result[row['quick_access_type']] = row
+        return result
+    finally:
+        conn.close()
+
+
+def get_quick_access_standard_groups() -> list:
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT DISTINCT quick_access_group AS group_name
+              FROM tbl_documents
+             WHERE quick_access_type='standard' AND deleted_at IS NULL
+             ORDER BY quick_access_group
+        """).fetchall()
+        return [r['group_name'] for r in rows]
+    finally:
+        conn.close()
+
+
+def get_quick_access_standards(group: str) -> list:
+    conn = get_connection()
+    try:
+        rows = conn.execute("""
+            SELECT * FROM tbl_documents
+             WHERE quick_access_type='standard' AND quick_access_group=?
+               AND deleted_at IS NULL
+             ORDER BY quick_access_standard
+        """, (group,)).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
 def export_document_library() -> list:
     """
     Εξάγει όλα τα έγγραφα (ΚΑΙ τα soft-deleted, ώστε η διαγραφή τους να
@@ -255,9 +416,12 @@ def export_document_library() -> list:
         rows = conn.execute("""
             SELECT d.title, d.code, d.version, d.expires_at, d.cloud_path,
                    d.url, d.notes, d.updated_at, d.deleted_at,
+                   d.quick_access_type, d.quick_access_standard, d.quick_access_group,
+                   qp.name AS quick_access_product_name,
                    s.name AS section_name, s.icon AS section_icon
             FROM tbl_documents d
             JOIN tbl_doc_sections s ON s.id = d.section_id
+            LEFT JOIN tbl_products qp ON qp.id = d.quick_access_product_id
             WHERE d.cloud_path IS NOT NULL AND d.cloud_path != ''
         """).fetchall()
         return [dict(r) for r in rows]
@@ -288,6 +452,30 @@ def import_document_library(items: list) -> dict:
             row['name']: row['id']
             for row in conn.execute("SELECT id, name FROM tbl_doc_sections").fetchall()
         }
+        products_by_name = {
+            row['name']: row['id']
+            for row in conn.execute("SELECT id, name FROM tbl_products").fetchall()
+        }
+
+        def _clear_conflicting_quick_access(keep_cloud_path, qa_type, qa_product_id, qa_standard, qa_group):
+            """Ίδιο clear-πριν-set πνεύμα με set_document_quick_access — ώστε
+            ένα εισερχόμενο quick-access flag να μην συγκρουστεί με τα
+            partial unique indexes αν κάποιο άλλο τοπικό έγγραφο κατέχει ήδη
+            την ίδια θέση."""
+            if not qa_type:
+                return
+            conn.execute("""
+                UPDATE tbl_documents
+                   SET quick_access_type=NULL, quick_access_product_id=NULL,
+                       quick_access_standard=NULL, quick_access_group=NULL
+                 WHERE cloud_path != ?
+                   AND quick_access_type = ?
+                   AND quick_access_product_id IS ?
+                   AND quick_access_standard IS ?
+                   AND quick_access_group IS ?
+                   AND deleted_at IS NULL
+            """, (keep_cloud_path, qa_type, qa_product_id, qa_standard, qa_group))
+
         for item in items:
             cloud_path = item.get('cloud_path')
             if not cloud_path:
@@ -295,6 +483,10 @@ def import_document_library(items: list) -> dict:
             incoming_updated_at = item.get('updated_at')
             incoming_deleted_at = item.get('deleted_at')
             local = existing.get(cloud_path)
+            qa_type     = item.get('quick_access_type')
+            qa_standard = item.get('quick_access_standard')
+            qa_group    = item.get('quick_access_group')
+            qa_product_id = products_by_name.get(item.get('quick_access_product_name'))
 
             if local is None:
                 # Νέο έγγραφο — αν φτάνει ήδη διαγραμμένο από την άλλη
@@ -313,13 +505,16 @@ def import_document_library(items: list) -> dict:
                     )
                     section_id = cur.lastrowid
                     sections_by_name[section_name] = section_id
+                if qa_type:
+                    _clear_conflicting_quick_access(cloud_path, qa_type, qa_product_id, qa_standard, qa_group)
                 conn.execute("""
                     INSERT INTO tbl_documents
-                        (section_id, title, code, version, expires_at, cloud_path, url, notes, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?)
+                        (section_id, title, code, version, expires_at, cloud_path, url, notes, updated_at,
+                         quick_access_type, quick_access_product_id, quick_access_standard, quick_access_group)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (section_id, item.get('title'), item.get('code'), item.get('version'),
                       item.get('expires_at'), cloud_path, item.get('url'), item.get('notes'),
-                      incoming_updated_at))
+                      incoming_updated_at, qa_type, qa_product_id, qa_standard, qa_group))
                 added += 1
                 continue
 
@@ -336,14 +531,19 @@ def import_document_library(items: list) -> dict:
                 )
                 deleted += 1
             else:
+                if qa_type:
+                    _clear_conflicting_quick_access(cloud_path, qa_type, qa_product_id, qa_standard, qa_group)
                 conn.execute("""
                     UPDATE tbl_documents
                     SET title=?, code=?, version=?, expires_at=?, url=?, notes=?,
-                        updated_at=?, deleted_at=NULL
+                        updated_at=?, deleted_at=NULL,
+                        quick_access_type=?, quick_access_product_id=?,
+                        quick_access_standard=?, quick_access_group=?
                     WHERE id=?
                 """, (item.get('title'), item.get('code'), item.get('version'),
                       item.get('expires_at'), item.get('url'), item.get('notes'),
-                      incoming_updated_at, local['id']))
+                      incoming_updated_at, qa_type, qa_product_id, qa_standard, qa_group,
+                      local['id']))
                 updated += 1
         conn.commit()
         return {'ok': True, 'added': added, 'updated': updated, 'deleted': deleted}
@@ -605,7 +805,7 @@ def get_connection() -> sqlite3.Connection:
 
 
 # Τρέχουσα έκδοση schema — αυξάνεται με κάθε migration
-CURRENT_SCHEMA_VERSION = 17
+CURRENT_SCHEMA_VERSION = 18
 
 # Φάκελος με τα SQL migrations
 MIGRATIONS_DIR = _local_db_dir
@@ -741,6 +941,7 @@ def initialize_database():
         15: os.path.join(MIGRATIONS_DIR, 'migration_015_fix_allin_category_data.sql'),
         16: os.path.join(MIGRATIONS_DIR, 'migration_016_document_library_soft_delete.sql'),
         17: os.path.join(MIGRATIONS_DIR, 'migration_017_audit_trail_technician.sql'),
+        18: os.path.join(MIGRATIONS_DIR, 'migration_018_document_quick_access.sql'),
     }
 
     needs_recalc = False

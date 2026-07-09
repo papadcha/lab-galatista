@@ -276,6 +276,103 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
   border: 1px solid rgba(220,38,38,0.4);
 }
 
+/* --- Γρήγορη Πρόσβαση (Quick Access) --- */
+#quick-access-panel {
+  margin: 0 8px 8px;
+  padding: 10px 8px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.qa-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 4px 6px;
+}
+
+.qa-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+.qa-btn:hover { background: var(--bg-hover); color: var(--text); }
+.qa-btn.active { background: var(--accent-light); color: #fff; }
+
+/* Cascading columns — body-level flyout, δίπλα στο sidebar */
+#qa-flyout {
+  position: fixed;
+  top: var(--titlebar-h);
+  left: var(--sidebar-w);
+  bottom: 0;
+  display: flex;
+  z-index: 900;
+}
+
+.qa-col {
+  width: 200px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  box-shadow: 8px 0 24px rgba(0,0,0,0.35);
+  padding: 10px 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.qa-col-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 4px 8px;
+}
+
+.qa-col-item {
+  display: flex;
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.qa-col-item:hover    { background: var(--bg-hover); }
+.qa-col-item.selected { background: var(--accent-light); color: #fff; }
+
+.qa-col-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 8px 4px;
+}
+
+.qa-file-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.qa-file-btn:hover { border-color: var(--accent); }
+
 /* CE Expiry Toast */
 .ce-toast {
   position: fixed;
