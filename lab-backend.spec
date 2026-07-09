@@ -24,6 +24,8 @@ a = Analysis(
         ('database/migration_014_unbake_product_name.sql', 'database'),
         ('database/migration_015_fix_allin_category_data.sql', 'database'),
         ('database/migration_016_document_library_soft_delete.sql', 'database'),
+        ('database/migration_017_audit_trail_technician.sql', 'database'),
+        ('database/migration_018_document_quick_access.sql', 'database'),
         ('standards.json',                               '.'),
         ('fonts',                                        'fonts'),
         ('src/assets/logopage.png',                      'src/assets'),
