@@ -8,15 +8,18 @@
 
 - **Καταχώρηση δειγμάτων** — κωδικοποίηση, προϊόν, ημερομηνία, τεχνικός
 - **Δοκιμές** — Κοκκομετρική ανάλυση (EN 933-1), Πλακοειδή (EN 933-3), Ισοδύναμο άμμου (EN 933-8), Μπλε μεθυλενίου (EN 933-9)
+- **Audit trail** — καταγραφή ποιος τεχνικός κατάχώρησε κάθε δείγμα και ποιος εκτέλεσε κάθε δοκιμή
 - **PDF δελτία αποτελεσμάτων** — αυτόματη παραγωγή με λογότυπο, CE στοιχεία, διαγράμματα κοκκομετρίας
 - **Περιοδική αναφορά** — συγκεντρωτικά αποτελέσματα ανά υποπερίοδο
 - **Βιβλιοθήκη PDF** — μαζική παραγωγή για όλα τα ολοκληρωμένα δείγματα
 - **Διαχείριση CE Period** — περίοδοι/υποπερίοδοι, ειδοποιήσεις λήξης
+- **Γρήγορη Πρόσβαση CE** — απευθείας άνοιγμα CE Πιστοποιητικού, Δοκιμών Περιόδου, Ταυτοτήτων Επίδοσης/CE Marks και Προτύπων από το sidebar
 - **Archive Mode** — προβολή και επεξεργασία παλιών περιόδων παράλληλα με την τρέχουσα
 - **Clean Start** — κλείσιμο περιόδου με αυτόματο backup + παραγωγή βιβλιοθήκης PDF
-- **Cloud Sync** — συγχρονισμός DB και PDF μέσω rclone (MEGA, Google Drive, κ.ά.)
+- **Cloud Sync** — συγχρονισμός backup/PDF μέσω rclone (MEGA, Google Drive, κ.ά.) μεταξύ πολλαπλών εγκαταστάσεων
 - **Βιβλιοθήκη Εγγράφων** — προδιαγραφές, πιστοποιητικά, εξοπλισμός με έλεγχο έκδοσης
 - **Αποστολή email** — αποστολή PDF δελτίων μέσω SMTP
+- **Πολυγλωσσική υποδομή** — προς το παρόν μόνο Ελληνικά
 
 ---
 
@@ -24,71 +27,67 @@
 
 | Στρώμα | Τεχνολογία |
 |--------|-----------|
-| UI | Electron 28 |
-| Backend | Python 3 (ReportLab, SQLite) |
-| Βάση δεδομένων | SQLite (migrations 001–010) |
-| Cloud | rclone |
-| Email | nodemailer |
+| UI | Electron (bundled στο installer) |
+| Backend | Python 3 (ReportLab, SQLite) — πακεταρισμένο με PyInstaller |
+| Βάση δεδομένων | SQLite, αυτόματα migrated (τρέχον schema: v18) |
+| Cloud | rclone (bundled στο installer) |
+| Email | nodemailer (SMTP) |
 
 ---
 
-## Απαιτήσεις
+## Εγκατάσταση (Windows) — για διαχειριστή/χειριστή
 
-- **Node.js** 18+ και npm
-- **Python** 3.10+
-- **rclone** (για cloud sync)
-- `pip install reportlab`
+Αυτή είναι η πραγματική ροή που χρησιμοποιείται σήμερα. **Καμία εγκατάσταση Node/Python/rclone δεν χρειάζεται** — όλα είναι bundled μέσα στο installer.
 
----
+### 1. Λήψη & εγκατάσταση
 
-## Εγκατάσταση (Linux)
+1. Κατεβάστε το πιο πρόσφατο `.exe` από τα [GitHub Releases](https://github.com/papadcha/lab-galatista/releases) (π.χ. `ΔAiγμα LiMS Setup X.Y.Z.exe`).
+2. Τρέξτε το installer — επιτρέπει επιλογή φακέλου εγκατάστασης, δημιουργεί συντόμευση στην Επιφάνεια Εργασίας και στο Start Menu.
+3. Ανοίξτε την εφαρμογή.
 
-```bash
-# 1. Clone
-git clone https://github.com/papadcha/lab-galatista
-cd lab-galatista
+**Προαπαιτούμενα**: μόνο Windows 10/11 64-bit. Καμία επιπλέον εγκατάσταση runtime (δεν χρειάζεται .NET, Python, ή Visual C++ redistributable ξεχωριστά).
 
-# 2. Node dependencies
-npm install
+### 2. Πρώτη εκκίνηση — Οδηγός αρχικής ρύθμισης
 
-# 3. Python dependencies
-pip install reportlab --break-system-packages
+Αν λείπουν βασικά στοιχεία, εμφανίζεται μπάνερ **"Απαιτείται αρχική ρύθμιση"** πάνω στο Dashboard σε κάθε εκκίνηση, μέχρι να ολοκληρωθεί ο οδηγός (κουμπί "Ρύθμιση τώρα"):
 
-# 4. Εκκίνηση
-npm start
-```
+1. **Στοιχεία Εργαστηρίου** (υποχρεωτικά): Επωνυμία, Αριθμός Πιστοποιητικού CE, Ισχύς Από/Έως. (Προαιρετικά: Διεύθυνση, Τηλέφωνο, Email, Φορέας Πιστοποίησης.)
+2. **CE Period & Φάκελος Δεδομένων** (υποχρεωτικά): ίδια στοιχεία CE + επιλογή **Φακέλου Δεδομένων** — εδώ αποθηκεύονται τα PDF και τα αντίγραφα ασφαλείας (βλ. § Δομή Δεδομένων παρακάτω). Η εφαρμογή προτείνει αυτόματα ένα όνομα φακέλου βάσει του αριθμού/ημερομηνιών CE.
+3. **Υποπερίοδος** (προαιρετικό, μπορεί να συμπληρωθεί αργότερα από τις Ρυθμίσεις).
 
-Κατά την πρώτη εκκίνηση εμφανίζεται ο **οδηγός αρχικής ρύθμισης** (3 βήματα):
-1. Στοιχεία εργαστηρίου
-2. CE Period & φάκελος δεδομένων
-3. Υποπερίοδος (προαιρετικό)
+### 3. Ρύθμιση Cloud Sync (rclone)
+
+Το `rclone.exe` είναι ήδη bundled — δεν χρειάζεται ξεχωριστή λήψη. Από **Ρυθμίσεις → Αποθήκευση**:
+
+1. Πατήστε το κουμπί ανοίγματος τερματικού rclone — ανοίγει ένα πραγματικό παράθυρο `cmd.exe` με το `rclone config` (το διαδραστικό wizard του ίδιου του rclone, ίδιο config αρχείο αποκλειστικό για την εφαρμογή, όχι κοινό με τυχόν system-wide rclone).
+2. Μέσα σε αυτό, προσθέστε ένα remote (π.χ. MEGA, Google Drive) ακολουθώντας τις οδηγίες του rclone.
+3. Πίσω στις Ρυθμίσεις: επιλέξτε το remote και ορίστε το Remote Path (π.χ. `mymega:daigma-lims`).
 
 ---
 
-## Εγκατάσταση (macOS)
+## Πολλαπλές εγκαταστάσεις (διαχειριστής + χειριστής)
 
-Ίδια βήματα με Linux. Για εκτέλεση χωρίς code signing:
-```bash
-# Αν το macOS μπλοκάρει την εφαρμογή:
-xattr -d com.apple.quarantine /path/to/app
-```
+**Δεν υπάρχει live/realtime συγχρονισμός.** Κάθε εγκατάσταση έχει τη **δική της, ανεξάρτητη** τοπική βάση SQLite — δεν υπάρχει κοινός server. Ο συγχρονισμός γίνεται μέσω **αντιγράφων ασφαλείας**:
 
----
+1. Κάθε εγκατάσταση παράγει περιοδικά ένα snapshot της βάσης της (`backup/<έτος>/`) και το ανεβάζει στο κοινό cloud remote μέσω rclone.
+2. Η **άλλη** εγκατάσταση πρέπει να το κατεβάσει και να το επαναφέρει **χειροκίνητα** — Ρυθμίσεις → Αποθήκευση → λίστα πρόσφατων backups → "Επαναφορά". Αυτό αντικαθιστά την τοπική βάση με το επιλεγμένο backup (κρατώντας πρώτα δικό της αντίγραφο ασφαλείας) και επανεκκινεί την εφαρμογή.
 
-## Ρύθμιση Cloud Sync (rclone)
-
-```bash
-# Διαμόρφωση remote (π.χ. MEGA)
-rclone config
-
-# Στη συνέχεια από τις Ρυθμίσεις → Αποθήκευση:
-# - Επιλογή remote
-# - Ορισμός Remote Path (π.χ. mega:lab-galatista)
-```
+Δηλαδή ένα νέο δείγμα του χειριστή φτάνει στον διαχειριστή μόνο αφού (α) τρέξει το επόμενο backup+sync στον χειριστή, και (β) ο διαχειριστής κάνει χειροκίνητα Επαναφορά — όχι αυτόματα/live. Η Βιβλιοθήκη Εγγράφων συγχρονίζεται ξεχωριστά και ελαφρύτερα (πραγματικό two-way merge μέσω μικρού JSON manifest, όχι ολόκληρη βάση).
 
 ---
 
-## Δομή φακέλου δεδομένων
+## Ενημέρωση σε νέα έκδοση
+
+Η εφαρμογή **δεν κάνει auto-update**. Σε κάθε εκκίνηση ελέγχει (μέσω GitHub) αν υπάρχει νεότερη προτεινόμενη έκδοση και, αν ναι, δείχνει ένα μπάνερ με κουμπί "Λήψη" — αυτό απλώς ανοίγει τη σελίδα του GitHub release στον browser. Η νέα έκδοση πρέπει να κατέβει και να εγκατασταθεί χειροκίνητα (ίδια διαδικασία με την Εγκατάσταση παραπάνω· ο νέος installer πάνω από παλιά εγκατάσταση διατηρεί τη βάση/ρυθμίσεις, αφού αυτές ζουν εκτός του installed φακέλου).
+
+---
+
+## Δομή Δεδομένων
+
+Δύο ξεχωριστές τοποθεσίες:
+
+- **Βάση δεδομένων** (`laboratory.db`), ρυθμίσεις (`lab-config.json`), ιδιωτικό rclone config, logs — ζουν στον **σταθερό, μη-ρυθμιζόμενο** φάκελο του Windows user profile (`%APPDATA%\daigma-lims\`). Δεν χρειάζεται να τον αγγίξετε χειροκίνητα.
+- **Φάκελος Δεδομένων** (επιλέγεται από τον χρήστη στον οδηγό ρύθμισης) — εδώ ζουν μόνο τα PDF, τα backups και οι στατιστικές, δηλαδή ό,τι χρειάζεται να είναι ορατό/προσβάσιμο και ό,τι συγχρονίζεται μέσω cloud:
 
 ```
 LabData/
@@ -110,21 +109,31 @@ LabData/
 ```
 lab-galatista/
 ├── main.js                  # Electron main process
-├── preload.js               # IPC bridge
+├── preload.cjs               # IPC bridge (CommonJS — βλ. σημείωση στο main.js για το γιατί)
 ├── calculations.py          # Υπολογισμοί δοκιμών
 ├── standards.json           # Τελευταίες εκδόσεις προδιαγραφών EN
+├── lab-backend.spec         # PyInstaller build spec (Python backend → .exe)
 ├── backend/
 │   └── server.py            # Python backend (ReportLab, dispatcher)
 ├── database/
 │   ├── db_manager.py        # SQLite functions
 │   ├── schema.sql
-│   └── migration_001-010.sql
+│   └── migration_001…018.sql
+├── modules/                  # Electron main-process, ανά domain
+│   ├── config.js             # backup/restore, data folder, config
+│   ├── cloud-sync.js         # rclone
+│   ├── document-library.js
+│   ├── update-check.js
+│   └── ...
 └── src/
-    ├── main-app.js          # Navigation, wizard, archive mode
+    ├── main-app.js           # Navigation, wizard, sidebar, archive mode
+    ├── quick-access.js       # Γρήγορη Πρόσβαση CE (sidebar)
     ├── index.html
+    ├── i18n/                 # el.json — πολυγλωσσική υποδομή
     └── pages/
         ├── dashboard/
         ├── samples/
+        ├── tests/
         ├── history/
         ├── reports/
         ├── library/
@@ -133,13 +142,41 @@ lab-galatista/
 
 ---
 
-## Ανάπτυξη
+## Ανάπτυξη (μόνο για προγραμματιστές)
+
+Η παρακάτω ροή αφορά **development mode μόνο** — δεν είναι ο τρόπος που εγκαθιστά/χρησιμοποιεί την εφαρμογή ο διαχειριστής/χειριστής (βλ. § Εγκατάσταση παραπάνω). Λειτουργεί σε Windows/Linux/macOS αφού τρέχει απευθείας μέσω Node/system Python, χωρίς packaging.
+
+**Απαιτήσεις:**
+- **Node.js** 18+ και npm
+- **Python** 3.10+, `pip install reportlab`
 
 ```bash
-# Εκκίνηση με DevTools
-npm start
+# 1. Clone
+git clone https://github.com/papadcha/lab-galatista
+cd lab-galatista
 
-# Deploy αλλαγών στο GitHub
+# 2. Node dependencies
+npm install
+
+# 3. Python dependencies
+pip install reportlab --break-system-packages   # macOS/Linux με system Python· στα Windows απλά: pip install reportlab
+
+# 4. Εκκίνηση με DevTools
+npm start
+```
+
+Σε dev mode η βάση/config ζουν στο ίδιο `userData` του Electron (βλ. § Δομή Δεδομένων), απλά κάτω από διαφορετικό app-name path αφού δεν τρέχει packaged.
+
+**Build installer** (χρειάζεται `github-token.json` τοπικά — gitignored secret, βλ. σχόλιο στο `modules/update-check.js` για τη διαδικασία rotation):
+```bash
+npm run build:backend    # PyInstaller → dist/lab-backend
+npm run build:installer  # electron-builder → dist-installer/*.exe
+# ή και τα δύο μαζί:
+npm run dist
+```
+
+**Deploy αλλαγών:**
+```bash
 ./deploy.sh "μήνυμα commit"
 ```
 
