@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
+body { font-family:'IBMPlexSans',Arial,sans-serif; margin:0; padding:0; background:#fff; color:#2c2c2a; }
+.guide-header { position:sticky; top:0; background:#fff; border-bottom:0.5px solid #e5e3dc; padding:14px 20px 12px; z-index:10; }
+.label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding:0 20px 30px; }
+.p { font-size:13px; color:#444; line-height:1.6; margin:10px 0; }
+.group-title { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin:22px 0 8px; padding-bottom:6px; border-bottom:0.5px solid #e5e3dc; }
+.steps { display:flex; flex-direction:column; }
+.step { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+  border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; color:#666; }
+.ttl { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.problem { display:flex; gap:12px; padding:12px; background:#faeeda; border:0.5px solid #edd6a8;
+  border-radius:8px; margin:10px 0; }
+.problem .pttl { font-size:13px; font-weight:600; color:#854f0b; margin:0 0 3px; }
+.problem .pdsc { font-size:12.5px; color:#6b3f09; margin:0; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">Οδηγός Χρήσης</p>
+  <p class="title">Πολλαπλές Εγκαταστάσεις & Ενημέρωση Έκδοσης</p>
+</div>
+<div class="guide-body">
+  <p class="p">
+    Το εργαστήριο συνήθως χρησιμοποιεί δύο ξεχωριστές εγκαταστάσεις της
+    εφαρμογής (π.χ. διαχειριστής + χειριστής), η καθεμία με τη δική της,
+    ανεξάρτητη βάση δεδομένων.
+  </p>
+
+  <div class="group-title">Πώς λειτουργεί ο συγχρονισμός</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Δεν υπάρχει live/realtime σύνδεση</p>
+        <p class="dsc">Κάθε εγκατάσταση δουλεύει ανεξάρτητα, χωρίς κοινό server. Ο συγχρονισμός γίνεται μέσω αντιγράφων ασφαλείας (backup) που ανεβαίνουν σε κοινό cloud remote.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Χειροκίνητη Επαναφορά στην άλλη εγκατάσταση</p>
+        <p class="dsc">Ένα νέο δείγμα φτάνει στην άλλη εγκατάσταση μόνο αφού (α) τρέξει backup+sync εκεί που καταχωρήθηκε, και (β) η άλλη πλευρά κατεβάσει και κάνει χειροκίνητα Επαναφορά (Ρυθμίσεις → Αποθήκευση). Δεν γίνεται αυτόματα.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div style="flex:1">
+        <p class="ttl">Η Βιβλιοθήκη Εγγράφων συγχρονίζεται ξεχωριστά</p>
+        <p class="dsc">Ελαφρύτερο two-way merge μέσω μικρού αρχείου manifest, όχι ολόκληρη βάση — δείτε Βιβλιοθήκη Εγγράφων.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Ενημέρωση σε νέα έκδοση</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Καμία αυτόματη ενημέρωση</p>
+        <p class="dsc">Σε κάθε εκκίνηση, η εφαρμογή ελέγχει αν υπάρχει νεότερη προτεινόμενη έκδοση και δείχνει μπάνερ με κουμπί "Λήψη" — απλά ανοίγει τη σελίδα λήψης στον browser.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Χειροκίνητη εγκατάσταση</p>
+        <p class="dsc">Ο νέος installer πάνω από παλιά εγκατάσταση διατηρεί τη βάση/ρυθμίσεις — δεν χάνονται δεδομένα.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Συχνά προβλήματα</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Δεν βλέπω νέα δείγματα από την άλλη εγκατάσταση</p>
+      <p class="pdsc">Ελέγξτε: έγινε πρόσφατο backup+sync στην πλευρά που καταχωρήθηκε το δείγμα; Έγινε χειροκίνητα Επαναφορά στη δική σας πλευρά;</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

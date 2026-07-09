@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
+body { font-family:'IBMPlexSans',Arial,sans-serif; margin:0; padding:0; background:#fff; color:#2c2c2a; }
+.guide-header { position:sticky; top:0; background:#fff; border-bottom:0.5px solid #e5e3dc; padding:14px 20px 12px; z-index:10; }
+.label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding:0 20px 30px; }
+.p { font-size:13px; color:#444; line-height:1.6; margin:10px 0; }
+.group-title { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin:22px 0 8px; padding-bottom:6px; border-bottom:0.5px solid #e5e3dc; }
+.problem { display:flex; gap:12px; padding:12px; background:#faeeda; border:0.5px solid #edd6a8;
+  border-radius:8px; margin:10px 0; }
+.problem .pttl { font-size:13px; font-weight:600; color:#854f0b; margin:0 0 3px; }
+.problem .pdsc { font-size:12.5px; color:#6b3f09; margin:0; line-height:1.5; }
+.fml { font-family:'IBM Plex Mono',monospace; font-size:12px; background:#f5f5f3;
+  border:0.5px solid #ddd; border-radius:6px; padding:3px 8px; display:inline-block; margin-top:5px; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">Οδηγός Χρήσης</p>
+  <p class="title">Συχνά Προβλήματα</p>
+</div>
+<div class="guide-body">
+  <p class="p">
+    Συγκεντρωτική λίστα με τα πιο συνηθισμένα προβλήματα που έχουν
+    προκύψει στην πράξη, ανεξάρτητα από την οθόνη στην οποία εμφανίζονται.
+  </p>
+
+  <div class="group-title">Σύνδεση Email / SMTP</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Η Δοκιμή Σύνδεσης SMTP αποτυγχάνει με ETIMEDOUT</p>
+      <p class="pdsc">Η πιο συνηθισμένη αιτία είναι ενεργό <b>VPN</b> στον υπολογιστή που μπλοκάρει τις θύρες SMTP (587/465) — απενεργοποιήστε το VPN και ξαναδοκιμάστε. Αν δεν υπάρχει VPN, ελέγξτε firewall/antivirus του υπολογιστή ή περιορισμούς του δικτύου (π.χ. εταιρικό δίκτυο που μπλοκάρει outbound SMTP).</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">ENETUNREACH στη Δοκιμή Σύνδεσης</p>
+      <p class="pdsc">Ο υπολογιστής έχει IPv6 ρυθμισμένο αλλά χωρίς πραγματική δρομολόγηση προς το εξωτερικό δίκτυο· η εφαρμογή πλέον αναγκάζει IPv4 σύνδεση για το SMTP, άρα αυτό δεν θα έπρεπε πια να εμφανίζεται μετά την τελευταία ενημέρωση.</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Λάθος όνομα παραλήπτη στην Περιοδική Ενημέρωση</p>
+      <p class="pdsc">Αν η διεύθυνση παραλήπτη έχει τυπογραφικό λάθος (π.χ. λάθος domain), το email μπορεί να «σταλεί» χωρίς σφάλμα στην εφαρμογή αλλά να μην φτάσει πουθενά ή να επιστρέψει αργότερα ως bounce στο δικό σας inbox αποστολής. Ελέγξτε προσεκτικά τη διεύθυνση στις Ρυθμίσεις → Email.</p>
+    </div>
+  </div>
+
+  <div class="group-title">PDF / Αποθήκευση</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">"Σφάλμα αποθήκευσης PDF"</p>
+      <p class="pdsc">Συνήθως ο τοπικός Φάκελος Δεδομένων δεν είναι προσβάσιμος (μετακινήθηκε, διαγράφηκε, ή είναι σε δίσκο/δίκτυο που δεν συνδέεται πλέον). Ελέγξτε το μονοπάτι στις Ρυθμίσεις → Αποθήκευση.</p>
+    </div>
+  </div>
+
+  <div class="group-title">Εκκίνηση εφαρμογής</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Η αρχική οθόνη (splash) καθυστερεί πολύ</p>
+      <p class="pdsc">Αν καθυστερήσει πάνω από λίγα δευτερόλεπτα χωρίς να ανοίξει η εφαρμογή, κλείστε και ξανανοίξτε — αν επιμένει, πιθανό πρόβλημα με το εσωτερικό component της εφαρμογής, χρειάζεται αναφορά στον προγραμματιστή.</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Toast αναντιστοιχίας Φακέλου Δεδομένων</p>
+      <p class="pdsc">Εμφανίζεται όταν ο τοπικός Φάκελος Δεδομένων δεν ταιριάζει με την ενεργή CE περίοδο της βάσης — συνήθως μετά από επαναφορά backup. Διορθώστε από Ρυθμίσεις → Αποθήκευση.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

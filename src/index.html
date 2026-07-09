@@ -54,7 +54,8 @@
          ================================================ -->
     <nav id="sidebar">
       <div class="sidebar-header">
-        <img src="assets/logo.png" class="logo-img" alt="Λατομεία Γαλάτιστας">
+        <img src="assets/logo.png" class="logo-img" alt="Λατομεία Γαλάτιστας"
+             style="cursor:pointer" title="Οδηγός Χρήσης" onclick="AppGuide.open()">
       </div>
 
       <ul class="nav-menu">
@@ -161,5 +162,6 @@
   <div id="qa-flyout" class="hidden"></div>
 
   <script type="module" src="main-app.js"></script>
+  <script src="pages/guide/guide.js"></script>
 </body>
 </html>

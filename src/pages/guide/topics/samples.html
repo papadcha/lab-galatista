@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
+body { font-family:'IBMPlexSans',Arial,sans-serif; margin:0; padding:0; background:#fff; color:#2c2c2a; }
+.guide-header { position:sticky; top:0; background:#fff; border-bottom:0.5px solid #e5e3dc; padding:14px 20px 12px; z-index:10; }
+.label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding:0 20px 30px; }
+.p { font-size:13px; color:#444; line-height:1.6; margin:10px 0; }
+.group-title { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin:22px 0 8px; padding-bottom:6px; border-bottom:0.5px solid #e5e3dc; }
+.steps { display:flex; flex-direction:column; }
+.step { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+  border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; color:#666; }
+.ttl { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.qty { display:inline-block; margin-top:5px; font-size:12px; font-weight:500;
+  color:#0c447c; background:#e6f1fb; padding:3px 8px; border-radius:6px; }
+.problem { display:flex; gap:12px; padding:12px; background:#faeeda; border:0.5px solid #edd6a8;
+  border-radius:8px; margin:10px 0; }
+.problem .pttl { font-size:13px; font-weight:600; color:#854f0b; margin:0 0 3px; }
+.problem .pdsc { font-size:12.5px; color:#6b3f09; margin:0; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">Οδηγός Χρήσης</p>
+  <p class="title">Καταχώρηση Δείγματος</p>
+</div>
+<div class="guide-body">
+  <p class="p">
+    Εδώ καταχωρείτε ένα νέο δείγμα προς έλεγχο. Μόλις αποθηκευτεί,
+    εμφανίζεται στη σελίδα Δοκιμές έτοιμο για εκτέλεση των απαιτούμενων
+    δοκιμών του.
+  </p>
+
+  <div class="group-title">Πεδία φόρμας</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Κωδικός Δείγματος</p>
+        <p class="dsc">Παράγεται αυτόματα βάσει προϊόντος/ημερομηνίας, με δυνατότητα επεξεργασίας. Χρησιμοποιείται σε όλα τα PDF και στα ονόματα αρχείων.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Ημερομηνία Δειγματοληψίας</p>
+        <p class="dsc">Η πραγματική ημερομηνία λήψης του δείγματος (όχι απαραίτητα σημερινή) — καθορίζει και σε ποια υποπερίοδο CE ανήκει το δείγμα.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div style="flex:1">
+        <p class="ttl">Προέλευση Υλικού & Προϊόν</p>
+        <p class="dsc">Η πηγή (λατομείο/σημείο εξόρυξης) και το προϊόν (π.χ. ΑΜΜΟΣ 0/4). Η κατηγορία του προϊόντος (Λεπτόκοκκο/Χονδρόκοκκο/All-In) καθορίζει ποιες δοκιμές θα ζητηθούν.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">4</div>
+      <div style="flex:1">
+        <p class="ttl">Τεχνικός</p>
+        <p class="dsc">Υποχρεωτικό πεδίο — ο τεχνικός που καταχωρεί το δείγμα καταγράφεται στο audit trail (βλ. Ιστορικό).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">5</div>
+      <div style="flex:1">
+        <p class="ttl">Σημείο Δειγματοληψίας, Παρτίδα, Σχόλια</p>
+        <p class="dsc">Προαιρετικά πεδία τεκμηρίωσης, εμφανίζονται στο PDF Δελτίο Αποτελεσμάτων.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Συχνά προβλήματα</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Ο κωδικός δείγματος δεν αλλάζει ημερομηνία</p>
+      <p class="pdsc">Ο κωδικός βασίζεται στην Ημερομηνία Δειγματοληψίας, όχι στη σημερινή ημερομηνία — αν χρειάζεστε άλλον κωδικό, αλλάξτε πρώτα την ημερομηνία.</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Δεν βλέπω όλες τις δοκιμές που περίμενα</p>
+      <p class="pdsc">Οι απαιτούμενες δοκιμές καθορίζονται αυτόματα από την κατηγορία του προϊόντος (Λεπτόκοκκο/Χονδρόκοκκο/All-In). Αν κάτι λείπει, ελέγξτε την κατηγορία του προϊόντος στις Ρυθμίσεις → Υλικά.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

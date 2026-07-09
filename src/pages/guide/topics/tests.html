@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
+body { font-family:'IBMPlexSans',Arial,sans-serif; margin:0; padding:0; background:#fff; color:#2c2c2a; }
+.guide-header { position:sticky; top:0; background:#fff; border-bottom:0.5px solid #e5e3dc; padding:14px 20px 12px; z-index:10; }
+.label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding:0 20px 30px; }
+.p { font-size:13px; color:#444; line-height:1.6; margin:10px 0; }
+.group-title { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin:22px 0 8px; padding-bottom:6px; border-bottom:0.5px solid #e5e3dc; }
+.steps { display:flex; flex-direction:column; }
+.step { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+  border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; color:#666; }
+.ttl { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.qty { display:inline-block; margin-top:5px; font-size:12px; font-weight:500;
+  color:#0c447c; background:#e6f1fb; padding:3px 8px; border-radius:6px; }
+.problem { display:flex; gap:12px; padding:12px; background:#faeeda; border:0.5px solid #edd6a8;
+  border-radius:8px; margin:10px 0; }
+.problem .pttl { font-size:13px; font-weight:600; color:#854f0b; margin:0 0 3px; }
+.problem .pdsc { font-size:12.5px; color:#6b3f09; margin:0; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">Οδηγός Χρήσης</p>
+  <p class="title">Δοκιμές</p>
+</div>
+<div class="guide-body">
+  <p class="p">
+    Εδώ εκτελείτε τις δοκιμές ενός δείγματος. Οι κάρτες δοκιμών που
+    εμφανίζονται εξαρτώνται από την κατηγορία του προϊόντος του
+    δείγματος.
+  </p>
+
+  <div class="group-title">Οι 4 τύποι δοκιμών</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Κοκκομετρική Ανάλυση</p>
+        <p class="dsc">EN 933-1 — κατανομή μεγέθους κόκκων ανά κόσκινο.</p>
+        <span class="qty">Όλες οι κατηγορίες</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Δείκτης Πλακοειδών</p>
+        <p class="dsc">EN 933-3 — ποσοστό πλακοειδών κόκκων.</p>
+        <span class="qty">Χονδρόκοκκο, All-In</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div style="flex:1">
+        <p class="ttl">Ισοδύναμο Άμμου (SE)</p>
+        <p class="dsc">EN 933-8 — καθαρότητα λεπτόκοκκου κλάσματος.</p>
+        <span class="qty">Λεπτόκοκκο, All-In</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">4</div>
+      <div style="flex:1">
+        <p class="ttl">Μπλε Μεθυλενίου (MB)</p>
+        <p class="dsc">EN 933-9 — περιεκτικότητα σε αργιλικά/λεπτόκοκκα ενεργά ορυκτά.</p>
+        <span class="qty">Λεπτόκοκκο, All-In</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Επιλογές κατά την εκτέλεση</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Οδηγός δοκιμής (βήμα-βήμα)</p>
+        <p class="dsc">Την πρώτη φορά που ανοίγει μια δοκιμή σε νέο δείγμα, εμφανίζεται αυτόματα ένας αναλυτικός οδηγός εκτέλεσης δίπλα στη φόρμα (μπορεί να απενεργοποιηθεί από Ρυθμίσεις → Εργαστήριο).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Επίσημη εκτέλεση (official) vs επανάληψη (rerun)</p>
+        <p class="dsc">Μόνο μία εκτέλεση ανά δοκιμή/δείγμα μετράει ως "επίσημη" για το PDF και τις στατιστικές· μπορείτε να κάνετε επανάληψη και να προάγετε μια νεότερη εκτέλεση σε επίσημη.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div style="flex:1">
+        <p class="ttl">Λόγος απόρριψης</p>
+        <p class="dsc">Αν μια εκτέλεση απορριφθεί, ζητείται αιτιολόγηση — καταγράφεται στο ιστορικό της δοκιμής.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Συχνά προβλήματα</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Δεν βλέπω κάποια δοκιμή</p>
+      <p class="pdsc">Οι εμφανιζόμενες κάρτες εξαρτώνται από την κατηγορία του προϊόντος (π.χ. το SE/MB κρύβονται για Χονδρόκοκκο). Ελέγξτε την κατηγορία του προϊόντος στις Ρυθμίσεις → Υλικά.</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Καταχώρησα λάθος τεχνικό στην εκτέλεση</p>
+      <p class="pdsc">Κάθε εκτέλεση δοκιμής έχει δικό της, ξεχωριστό πεδίο τεχνικού (όχι απαραίτητα ο ίδιος με τον τεχνικό του δείγματος) — μπορεί να διαφέρει ανάλογα με το ποιος πραγματικά εκτέλεσε τη δοκιμή.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

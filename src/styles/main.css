@@ -4035,3 +4035,44 @@ textarea { resize: vertical; min-height: 80px; }
   font-size: 13px;
   letter-spacing: 0.01em;
 }
+
+/* ============================================================
+   ΟΔΗΓΟΣ ΧΡΗΣΗΣ — src/pages/guide/guide.js
+   Layout μέσα στο ήδη υπάρχον #modal-content (App.showModal)
+   ============================================================ */
+.app-guide-layout {
+  display: flex;
+  gap: 16px;
+  height: 60vh;
+}
+#app-guide-topics {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding-right: 12px;
+}
+.app-guide-topic {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.app-guide-topic:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.app-guide-topic.active {
+  background: var(--bg-hover);
+  color: var(--text);
+  font-weight: 600;
+}
+#app-guide-iframe {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}

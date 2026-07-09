@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
+body { font-family:'IBMPlexSans',Arial,sans-serif; margin:0; padding:0; background:#fff; color:#2c2c2a; }
+.guide-header { position:sticky; top:0; background:#fff; border-bottom:0.5px solid #e5e3dc; padding:14px 20px 12px; z-index:10; }
+.label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding:0 20px 30px; }
+.p { font-size:13px; color:#444; line-height:1.6; margin:10px 0; }
+.group-title { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin:22px 0 8px; padding-bottom:6px; border-bottom:0.5px solid #e5e3dc; }
+.steps { display:flex; flex-direction:column; }
+.step { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+  border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; color:#666; }
+.ttl { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.fml { font-family:'IBM Plex Mono',monospace; font-size:12px; background:#f5f5f3;
+  border:0.5px solid #ddd; border-radius:6px; padding:3px 8px; display:inline-block; margin-top:5px; }
+.problem { display:flex; gap:12px; padding:12px; background:#faeeda; border:0.5px solid #edd6a8;
+  border-radius:8px; margin:10px 0; }
+.problem .pttl { font-size:13px; font-weight:600; color:#854f0b; margin:0 0 3px; }
+.problem .pdsc { font-size:12.5px; color:#6b3f09; margin:0; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">Οδηγός Χρήσης · Ρυθμίσεις</p>
+  <p class="title">Email</p>
+</div>
+<div class="guide-body">
+  <p class="p">
+    Εδώ ρυθμίζετε τη σύνδεση SMTP που χρησιμοποιείται για αποστολή PDF
+    δελτίων και για τη νέα αυτόματη περιοδική ενημέρωση.
+  </p>
+
+  <div class="group-title">Ρυθμίσεις SMTP</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Server, Port, Username, Password</p>
+        <p class="dsc">Στοιχεία σύνδεσης του λογαριασμού email αποστολής. Για Gmail χρειάζεται App Password (όχι ο κανονικός κωδικός λογαριασμού) — δημιουργείται από τις ρυθμίσεις ασφαλείας του Google λογαριασμού.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Δοκιμή Σύνδεσης</p>
+        <p class="dsc">Πριν αποθηκεύσετε, δοκιμάστε τη σύνδεση — επιβεβαιώνει ότι τα στοιχεία είναι σωστά χωρίς να στείλει πραγματικό email.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Περιοδική Ενημέρωση Email</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Ενεργοποίηση & Διεύθυνση Παραληπτών</p>
+        <p class="dsc">Στέλνει αυτόματα σύνοψη (νέα δείγματα, εκκρεμείς δοκιμές, εκτός προδιαγραφών, λήξη CE) + ένα PDF Περιοδικής Αναφοράς ανά προϊόν με δεδομένα. Συνιστάται η διεύθυνση να είναι ένα Google Group (π.χ. <span class="fml">daigma@googlegroups.com</span>) που διαχειρίζεστε εσείς οι ίδιοι — προσθέτετε/αφαιρείτε μέλη χωρίς να αλλάζετε τίποτα στην εφαρμογή.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Διάστημα (ημέρες)</p>
+        <p class="dsc">Ελέγχεται σε κάθε άνοιγμα της εφαρμογής (όχι με ρολόι σε πραγματικό χρόνο) — αν έχουν περάσει τόσες μέρες από το τελευταίο email, στέλνεται νέο. Αν δεν υπήρξε καμία νέα δραστηριότητα στο διάστημα, δεν στέλνεται κενό email.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Συχνά προβλήματα</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">ENETUNREACH στη Δοκιμή Σύνδεσης</p>
+      <p class="pdsc">Σημαίνει ότι ο υπολογιστής προσπάθησε να συνδεθεί μέσω IPv6 χωρίς πραγματική δρομολόγηση. Η εφαρμογή πλέον αναγκάζει IPv4 στη σύνδεση SMTP — αν συνεχίζει να εμφανίζεται, ελέγξτε τη σύνδεση δικτύου του υπολογιστή.</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">ETIMEDOUT στη Δοκιμή Σύνδεσης</p>
+      <p class="pdsc">Η σύνδεση απλά κρεμάει χωρίς απάντηση — συνήθως κάποιο firewall ή VPN μπλοκάρει τις θύρες SMTP (587/465). Αν έχετε ενεργό VPN, δοκιμάστε πρώτα να το απενεργοποιήσετε και ξαναδοκιμάστε τη σύνδεση.</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">"Αποτυχία: Invalid login"</p>
+      <p class="pdsc">Λάθος username/password, ή χρήση κανονικού κωδικού αντί για App Password σε λογαριασμό Gmail με ενεργό 2-factor authentication.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

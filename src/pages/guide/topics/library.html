@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
+body { font-family:'IBMPlexSans',Arial,sans-serif; margin:0; padding:0; background:#fff; color:#2c2c2a; }
+.guide-header { position:sticky; top:0; background:#fff; border-bottom:0.5px solid #e5e3dc; padding:14px 20px 12px; z-index:10; }
+.label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding:0 20px 30px; }
+.p { font-size:13px; color:#444; line-height:1.6; margin:10px 0; }
+.group-title { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin:22px 0 8px; padding-bottom:6px; border-bottom:0.5px solid #e5e3dc; }
+.steps { display:flex; flex-direction:column; }
+.step { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+  border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; color:#666; }
+.ttl { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.problem { display:flex; gap:12px; padding:12px; background:#faeeda; border:0.5px solid #edd6a8;
+  border-radius:8px; margin:10px 0; }
+.problem .pttl { font-size:13px; font-weight:600; color:#854f0b; margin:0 0 3px; }
+.problem .pdsc { font-size:12.5px; color:#6b3f09; margin:0; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">Οδηγός Χρήσης</p>
+  <p class="title">Βιβλιοθήκη Εγγράφων</p>
+</div>
+<div class="guide-body">
+  <p class="p">
+    Εδώ αποθηκεύονται προδιαγραφές, πιστοποιητικά και έγγραφα εξοπλισμού
+    — οργανωμένα σε ενότητες, με έλεγχο έκδοσης έναντι των επίσημων
+    προτύπων EN.
+  </p>
+
+  <div class="group-title">Λειτουργίες</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Ενότητες εγγράφων</p>
+        <p class="dsc">Οργάνωση σε φακέλους/ενότητες, μεταφόρτωση αρχείων, άνοιγμα με το προεπιλεγμένο πρόγραμμα του υπολογιστή.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Έλεγχος νέας έκδοσης προτύπου</p>
+        <p class="dsc">Αν ένα καταχωρημένο πρότυπο EN έχει νεότερη επίσημη έκδοση, εμφανίζεται ειδοποίηση (badge στο sidebar + banner στη σελίδα).</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div style="flex:1">
+        <p class="ttl">Γρήγορη Πρόσβαση CE (sidebar)</p>
+        <p class="dsc">Σημειώνοντας ένα έγγραφο ως "γρήγορη πρόσβαση" (CE Πιστοποιητικό, Δοκιμές Περιόδου, DoP/CE Marks, Πρότυπα), εμφανίζεται μόνιμο κουμπί στο sidebar για απευθείας άνοιγμα — χωρίς να χρειάζεται να μπείτε στη Βιβλιοθήκη.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">4</div>
+      <div style="flex:1">
+        <p class="ttl">Sync Βιβλιοθήκης</p>
+        <p class="dsc">Συγχρονίζει τα μεταδεδομένα εγγράφων ανάμεσα σε πολλαπλές εγκαταστάσεις μέσω του ίδιου cloud remote (Ρυθμίσεις → Αποθήκευση) — προσθήκες μόνο, όχι διαγραφές/επεξεργασίες.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Συχνά προβλήματα</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Έκανα edit/delete σε έγγραφο αλλά δεν φάνηκε στην άλλη εγκατάσταση</p>
+      <p class="pdsc">Το sync της Βιβλιοθήκης μεταδίδει προς το παρόν μόνο νέες προσθήκες, όχι επεξεργασίες/διαγραφές — χρειάζεται χειροκίνητη ενέργεια και στις δύο εγκαταστάσεις.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

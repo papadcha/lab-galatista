@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
+body { font-family:'IBMPlexSans',Arial,sans-serif; margin:0; padding:0; background:#fff; color:#2c2c2a; }
+.guide-header { position:sticky; top:0; background:#fff; border-bottom:0.5px solid #e5e3dc; padding:14px 20px 12px; z-index:10; }
+.label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding:0 20px 30px; }
+.p { font-size:13px; color:#444; line-height:1.6; margin:10px 0; }
+.group-title { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin:22px 0 8px; padding-bottom:6px; border-bottom:0.5px solid #e5e3dc; }
+.steps { display:flex; flex-direction:column; }
+.step { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+  border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; color:#666; }
+.ttl { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.problem { display:flex; gap:12px; padding:12px; background:#faeeda; border:0.5px solid #edd6a8;
+  border-radius:8px; margin:10px 0; }
+.problem .pttl { font-size:13px; font-weight:600; color:#854f0b; margin:0 0 3px; }
+.problem .pdsc { font-size:12.5px; color:#6b3f09; margin:0; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">Οδηγός Χρήσης</p>
+  <p class="title">Εκθέσεις</p>
+</div>
+<div class="guide-body">
+  <p class="p">
+    Εδώ παράγετε τα επίσημα PDF έγγραφα του εργαστηρίου: το Δελτίο
+    Αποτελεσμάτων ενός δείγματος, και τη συγκεντρωτική Περιοδική Αναφορά
+    ενός προϊόντος.
+  </p>
+
+  <div class="group-title">Δελτίο Αποτελεσμάτων</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Επιλογή δείγματος</p>
+        <p class="dsc">Παράγει PDF με όλα τα επίσημα αποτελέσματα δοκιμών του δείγματος, λογότυπο, στοιχεία CE και διάγραμμα κοκκομετρίας.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Αποθήκευση ή Email</p>
+        <p class="dsc">Το PDF μπορεί να αποθηκευτεί αυτόματα στον σωστό υποφάκελο του Φακέλου Δεδομένων, ή να σταλεί κατευθείαν με email μέσω των ρυθμίσεων SMTP.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Περιοδική Αναφορά</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Επιλογή προϊόντος & εύρους ημερομηνιών</p>
+        <p class="dsc">Συγκεντρωτικά αποτελέσματα (μέσοι όροι MB/SE/Πλακοειδών, κοκκομετρία) όλων των δειγμάτων ενός προϊόντος μέσα στο επιλεγμένο διάστημα, με σύγκριση έναντι της δηλωμένης τιμής της υποπεριόδου.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Φίλτρο πηγής (προαιρετικό)</p>
+        <p class="dsc">Μπορεί να περιοριστεί σε δείγματα από συγκεκριμένη προέλευση υλικού.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Συχνά προβλήματα</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">"Σφάλμα αποθήκευσης PDF"</p>
+      <p class="pdsc">Συνήθως σημαίνει ότι ο τοπικός Φάκελος Δεδομένων (Ρυθμίσεις → Αποθήκευση) δεν είναι προσβάσιμος. Ελέγξτε ότι ο φάκελος υπάρχει και ότι δεν έχει μετακινηθεί/διαγραφεί.</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Η Περιοδική Αναφορά λέει "Δεν βρέθηκαν δείγματα"</p>
+      <p class="pdsc">Δεν υπάρχει κανένα δείγμα του επιλεγμένου προϊόντος (και πηγής, αν έχει οριστεί) μέσα στο επιλεγμένο εύρος ημερομηνιών.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

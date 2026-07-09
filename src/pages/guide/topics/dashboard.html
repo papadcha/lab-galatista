@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Regular.ttf'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'IBMPlexSans'; src: url('../../../../fonts/IBMPlexSans-Bold.ttf');    font-weight: 700; font-display: swap; }
+
+body { font-family:'IBMPlexSans',Arial,sans-serif; margin:0; padding:0; background:#fff; color:#2c2c2a; }
+.guide-header { position:sticky; top:0; background:#fff; border-bottom:0.5px solid #e5e3dc; padding:14px 20px 12px; z-index:10; }
+.label { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:0; }
+.title { font-size:17px; font-weight:500; margin:4px 0 0; }
+.guide-body { padding:0 20px 30px; }
+.p { font-size:13px; color:#444; line-height:1.6; margin:10px 0; }
+.group-title { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
+  color:#888; margin:22px 0 8px; padding-bottom:6px; border-bottom:0.5px solid #e5e3dc; }
+.steps { display:flex; flex-direction:column; }
+.step { display:flex; gap:14px; padding:13px 0; border-bottom:0.5px solid #eee; }
+.step:last-child { border-bottom:none; }
+.num { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#f5f5f3;
+  border:0.5px solid #ccc; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:500; color:#666; }
+.ttl { font-size:14px; font-weight:500; margin:0 0 3px; }
+.dsc { font-size:13px; color:#666; margin:0; line-height:1.5; }
+.problem { display:flex; gap:12px; padding:12px; background:#faeeda; border:0.5px solid #edd6a8;
+  border-radius:8px; margin:10px 0; }
+.problem .pttl { font-size:13px; font-weight:600; color:#854f0b; margin:0 0 3px; }
+.problem .pdsc { font-size:12.5px; color:#6b3f09; margin:0; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="guide-header">
+  <p class="label">Οδηγός Χρήσης</p>
+  <p class="title">Αρχική (Dashboard)</p>
+</div>
+<div class="guide-body">
+  <p class="p">
+    Η Αρχική είναι η πρώτη οθόνη που βλέπετε κάθε φορά που ανοίγει η
+    εφαρμογή. Δείχνει μια γρήγορη εικόνα της τρέχουσας κατάστασης του
+    εργαστηρίου, χωρίς να χρειάζεται να ψάξετε αλλού.
+  </p>
+
+  <div class="group-title">Τι δείχνει</div>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="flex:1">
+        <p class="ttl">Ενεργή CE Περίοδος</p>
+        <p class="dsc">Ο αριθμός πιστοποιητικού CE και το διάστημα ισχύος (Από–Έως), όπως έχουν καταχωρηθεί στις Ρυθμίσεις.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <p class="ttl">Δείγματα περιόδου / σήμερα</p>
+        <p class="dsc">Πόσα δείγματα έχουν καταχωρηθεί μέσα στην τρέχουσα CE περίοδο, και πόσα σήμερα συγκεκριμένα.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div style="flex:1">
+        <p class="ttl">Εκκρεμείς δοκιμές</p>
+        <p class="dsc">Δείγματα που έχουν τουλάχιστον μία απαιτούμενη δοκιμή χωρίς επίσημη (official) εκτέλεση ακόμα.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">4</div>
+      <div style="flex:1">
+        <p class="ttl">Εκτός προδιαγραφών</p>
+        <p class="dsc">Δείγματα με τουλάχιστον ένα αποτέλεσμα (MB/SE/Πλακοειδή) εκτός των ορίων που ισχύουν για το προϊόν τους.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="num">5</div>
+      <div style="flex:1">
+        <p class="ttl">Πρόσφατα δείγματα</p>
+        <p class="dsc">Λίστα με τα τελευταία καταχωρημένα δείγματα, με γρήγορη πρόσβαση στη λεπτομέρειά τους.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-title">Συχνά προβλήματα</div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Toast ειδοποίησης για λήξη CE</p>
+      <p class="pdsc">Εμφανίζεται όταν η ενεργή CE περίοδος πλησιάζει ή έχει περάσει τη λήξη της. Μπορείτε να το κλείσετε προσωρινά ("αναβολή") ή να μεταβείτε κατευθείαν στις Ρυθμίσεις για ανανέωση.</p>
+    </div>
+  </div>
+  <div class="problem">
+    <div>
+      <p class="pttl">Toast αναντιστοιχίας Φακέλου Δεδομένων</p>
+      <p class="pdsc">Εμφανίζεται όταν ο τοπικός Φάκελος Δεδομένων (Ρυθμίσεις → Αποθήκευση) δεν ταιριάζει με αυτόν της ενεργής CE περιόδου στη βάση — συνήθως μετά από επαναφορά backup ή αλλαγή υπολογιστή. Χρειάζεται χειροκίνητη διόρθωση από τις Ρυθμίσεις.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
