@@ -10,6 +10,78 @@
 
 ---
 
+## Γρήγορη Πρόσβαση CE — sidebar quick-access (2026-07-09)
+
+**Μετά το merge/tag v2.0.0 — δουλειά κατευθείαν στο `master`, δεν έχει
+γίνει ακόμα νέο version bump/tag/release.**
+
+Για να δει κανείς το τρέχον CE Πιστοποιητικό, μια Ταυτότητα Επίδοσης, μια
+δοκιμή εξωτερικού εργαστηρίου ή ένα πρότυπο, έπρεπε να μπει στη Βιβλιοθήκη
+Εγγράφων και να ψάξει χειροκίνητα. Προστέθηκαν 4 badges "Γρήγορη Πρόσβαση"
+στο sidebar (πάνω από το ήδη υπάρχον CE badge footer) που ανοίγουν
+cascading στήλες δίπλα στο sidebar μέχρι το σωστό PDF — το βάθος
+πλοήγησης διαφέρει ανά κατηγορία, αποφασισμένο ρητά με τον χρήστη μέσω
+mockup (Artifact) πριν την υλοποίηση:
+
+```
+Πιστοποιητικό CE   → 1 αρχείο (καμία λίστα)
+Δοκιμές (περιόδου) → Υλικό → 1 αρχείο                       [1 επίπεδο]
+Πρότυπα            → Ομάδα (ΕΝ/ΠΕΤΕΠ) → Πρότυπο → 1 αρχείο  [2 επίπεδα]
+DoP / CE Marks     → Πρότυπο → Υλικό → {CE Mark, DOP}       [3 επίπεδα]
+```
+
+Ο αριθμός καταχωρήσεων σε κάθε στήλη είναι πάντα δυναμικός (query στη
+βάση καθώς ο χρήστης κλικάρει, καμία hardcoded λίστα) — αναφορά:
+ΑΜΜΟΣ έχει 3 πρότυπα, ΓΑΡΜΠΙΛΙ/ΣΥΝΤΡΙΜΜΑ 2, 3Α/Ε4/ΣΚΥΡΑ 1.
+
+- **Σχήμα**: νέο `database/migration_018_document_quick_access.sql` —
+  στήλες `quick_access_type`/`quick_access_product_id`/
+  `quick_access_standard`/`quick_access_group` στο `tbl_documents` + 4
+  partial unique indexes (ίδιο πνεύμα με το `is_official` στους
+  test-run πίνακες — μόνο ένα ενεργό έγγραφο ανά "θέση" τη φορά).
+  `CURRENT_SCHEMA_VERSION` 17→18.
+- **Backend**: νέο `set_document_quick_access()` (db_manager.py) με
+  clear-πριν-set λογική (matching `promote_run_to_official`) + 8 lazy
+  getters, μία ανά επίπεδο στήλης. `export_document_library()`/
+  `import_document_library()` ενημερώθηκαν ώστε η σήμανση να
+  διαδίδεται σωστά μεταξύ των 2 εγκαταστάσεων — το
+  `quick_access_product_id` (raw FK, διαφέρει ανά βάση) συγχρονίζεται
+  μέσω ονόματος προϊόντος, όχι raw id (ίδιο μάθημα με το
+  `merge_sample_from_backup`).
+- **Frontend**: επεκτάθηκε το edit-document modal της Βιβλιοθήκης
+  (`src/pages/library/library.js`) με dropdown "Γρήγορη Πρόσβαση" +
+  conditional υπο-πεδία. Νέο `src/quick-access.js` module (κυκλική
+  εισαγωγή με το `main-app.js` — ασφαλής, όλη η χρήση γίνεται μέσα σε
+  function bodies) υλοποιεί το cascading UI, με hook στο `navigateTo()`
+  ώστε οι ανοιχτές στήλες να κλείνουν αυτόματα σε αλλαγή σελίδας. Το
+  sidebar HTML είχε σχόλιο "Κλειδωμένο, δεν αλλάζει ποτέ" — αγνοήθηκε
+  σκόπιμα μετά από ρητή επιβεβαίωση του χρήστη.
+
+Επαληθεύτηκε πλήρες end-to-end σε isolated Electron profile (δικό του
+`--user-data-dir`, καμία επαφή με πραγματικά δεδομένα) μέσω Playwright
+`_electron`: migration 017→018 clean, `set_document_quick_access`
+uniqueness/auto-clear συμπεριφορά, και πλήρες ζωντανό UI walkthrough —
+και οι 4 βαθμοί βάθους δούλεψαν σωστά, το πιο βαθύ σενάριο (DoP)
+επιβεβαιώθηκε με πραγματικά δυναμικά αποτελέσματα, click-outside-close
+και αλλαγή-σελίδας-κλείνει-στήλες δούλεψαν, το edit-document modal
+έδειξε σωστά προσυμπληρωμένα πεδία σε ήδη σημαδεμένο έγγραφο.
+
+**Αρχεία:**
+- `database/migration_018_document_quick_access.sql` (νέο)
+- `database/schema.sql`
+- `database/db_manager.py`
+- `backend/server.py`
+- `src/index.html`
+- `src/styles/main.css`
+- `src/main-app.js`
+- `src/quick-access.js` (νέο)
+- `src/pages/library/library.js`
+- `src/i18n/el.json`
+
+Commits: `f36387a`, `fa9d922` (TODOLIST.md).
+
+---
+
 ## Audit trail — τεχνικός ανά δείγμα/δοκιμή (2026-07-09)
 
 **Μετά το merge/tag v2.0.0 — δουλειά κατευθείαν στο `master`, δεν έχει
