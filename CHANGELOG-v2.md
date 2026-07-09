@@ -10,6 +10,84 @@
 
 ---
 
+## Οδηγός Χρήσης της εφαρμογής — in-app modal (2026-07-09)
+
+**Μετά το tag v2.1.0 — δουλειά κατευθείαν στο `master`.**
+
+Roadmap item από το TODOLIST.md ("ΜΕΤΑ ΤΑ 2 ΜΕΓΑΛΑ UPDATE") που περίμενε
+"περαιτέρω συζήτηση όταν έρθει η ώρα" — υλοποιήθηκε σήμερα. Modal με 13
+θέματα (μια ενότητα ανά βασική οθόνη + tab Ρυθμίσεων, ένα troubleshooting
+και ένα multi-install/update), ανοίγει πατώντας το app icon στο sidebar
+header (`.logo-img`, μόνιμα ορατό σε κάθε σελίδα).
+
+- **Reuse εύρημα**: αντί για νέο overlay/CSS από το μηδέν, βρέθηκε ότι
+  υπάρχει ήδη γενικό modal component (`App.showModal()`/`App.closeModal()`,
+  `src/main-app.js:213-241`, `#modal-overlay`/`#modal`) — theme-aware
+  (dark mode compatible μέσω CSS custom properties), επαναχρησιμοποιήθηκε
+  αυτούσιο. Μόνο μικρό CSS block προστέθηκε (τέλος `main.css`) για το
+  εσωτερικό two-column layout (λίστα θεμάτων + iframe).
+- **Modular pattern**: ίδιο ακριβώς σχήμα με τους ήδη υπάρχοντες οδηγούς
+  δοκιμών (`src/pages/tests/guides/*.html`, `GUIDE_FILES` στο tests.js) —
+  κάθε θέμα είναι ανεξάρτητο static HTML αρχείο
+  (`src/pages/guide/topics/*.html`), αλλαγή σε ένα δεν αγγίζει τα άλλα.
+- **Περιεχόμενο**: στοιχεία από το README.md + ανά-οθόνη εξήγηση (τι κάνει,
+  τι επιλογές έχει ο χρήστης, συχνά προβλήματα ένα προς ένα) — κατ'
+  απαίτηση χρήστη. Περιλαμβάνει ρητά το πρόσφατο εύρημα SMTP
+  ENETUNREACH/VPN-ETIMEDOUT στα θέματα Email και Συχνά Προβλήματα.
+
+Επαληθεύτηκε ζωντανά από τον χρήστη (Playwright automation μπλόκαρε σε
+env-specific spawn ENOENT bug άσχετο με το feature — έγινε manual
+verification): άνοιγμα modal, πλοήγηση σε όλα τα 13 θέματα, κλείσιμο.
+
+**Αρχεία:**
+- `src/pages/guide/guide.js` (νέο)
+- `src/pages/guide/topics/*.html` (13 νέα)
+- `src/index.html`
+- `src/styles/main.css`
+
+---
+
+## Αυτόματη περιοδική ενημέρωση email (2026-07-09)
+
+**Μετά το tag v2.1.0 — δουλειά κατευθείαν στο `master`.**
+
+Roadmap item #26 (project_pending, εγκρίθηκε 2026-07-02). Σύνοψη (νέα
+δείγματα, εκκρεμείς δοκιμές, εκτός προδιαγραφών, λήξη CE) + ένα PDF
+Περιοδικής Αναφοράς ανά ενεργό προϊόν με δεδομένα στο διάστημα,
+ρυθμιζόμενο διάστημα από τις Ρυθμίσεις.
+
+- **Μηχανισμός**: έλεγχος σε κάθε εκκίνηση της εφαρμογής (όχι live
+  cron/εξωτερικός scheduler) — ίδιο pattern με το ήδη δοκιμασμένο
+  `checkCeExpiryAndNotify` (`modules/ce-period.js`). Νέο πεδίο
+  `periodicEmailLastSentAt` στο `lab-config.json` καθορίζει πότε "έφτασε
+  η ώρα", αντί για wall-clock timer — έτσι δεν χρειάζεται η εφαρμογή να
+  μένει ανοιχτή τη συγκεκριμένη στιγμή, αρκεί να ανοίγει τουλάχιστον μία
+  φορά ανά διάστημα.
+- **Παραλήπτες**: μία σταθερή διεύθυνση (π.χ. Google Group) που
+  διαχειρίζεται ο χρήστης εκτός εφαρμογής — καμία νέα λίστα παραληπτών
+  μέσα στο app.
+- **Καμία δραστηριότητα → καμία αποστολή**: αν δεν υπήρξαν νέα δείγματα
+  στο διάστημα, δεν στέλνεται κενό email, αλλά το ρολόι προωθείται ούτως
+  ή άλλως (πρόταση χρήστη).
+- **Συνημμένα**: ένα PDF Περιοδικής Αναφοράς ανά προϊόν με δεδομένα,
+  reuse του ήδη υπάρχοντος `generate_periodic_pdf` — καμία αλλαγή σε
+  Python.
+- **Παράλληλο fix**: `family:4` στα δύο `nodemailer.createTransport()`
+  calls (`modules/email.js`) για αποφυγή `ENETUNREACH` σε δίκτυα όπου το
+  IPv6 δεν δρομολογείται πραγματικά.
+
+Επαληθεύτηκε ζωντανά (isolated Electron profile + πραγματική αποστολή σε
+πραγματικό Google Group με συνημμένο PDF).
+
+**Αρχεία:**
+- `modules/periodic-email.js` (νέο)
+- `modules/email.js`
+- `main.js`
+- `src/pages/settings/settings.html`
+- `src/pages/settings/settings.js`
+
+---
+
 ## Γρήγορη Πρόσβαση CE — sidebar quick-access (2026-07-09)
 
 **Μετά το merge/tag v2.0.0 — δουλειά κατευθείαν στο `master`, δεν έχει
