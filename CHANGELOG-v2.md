@@ -10,6 +10,58 @@
 
 ---
 
+## v2.4.0 — Αναφορά προβλήματος, χρωματιστό CE badge, auto-download updates (2026-07-15)
+
+**Μετά το tag v2.3.0 — δουλειά κατευθείαν στο `master`.**
+
+Τρία ανεξάρτητα κομμάτια δουλειάς, μαζεμένα σε ένα release.
+
+### Αναφορά Προβλήματος/Crash προς τον developer
+
+Νέο `modules/problem-report.js`: `createGithubIssue()` (εξήχθη από το ήδη
+υπάρχον `report-version-issue` στο update-check.js — ίδιο fine-grained
+PAT/security model), `sendProblemReport()` (GitHub issue + email μέσω
+`sendEmail()`/SMTP, best-effort ανά κανάλι, σταθερός παραλήπτης developer),
+και crash-detection (`markCleanShutdown()` σε `app.on('before-quit')` vs
+τελευταίο `[FATAL]` του main.log — αν πιο πρόσφατο το FATAL, θεωρείται
+crash). 2 entry points: χειροκίνητο κουμπί "📋 Αναφορά Σφάλματος" στο modal
+Ιστορικού Εκδόσεων + αυτόματο modal πρότασης στο επόμενο άνοιγμα αν
+ανιχνευτεί crash. Επαληθεύτηκε πλήρως ζωντανά (πραγματικά test GitHub
+issues, προσομοιωμένο crash που έδειξε το modal σωστά).
+
+### Χρωματιστό CE badge στο sidebar
+
+Το CE badge (sidebar footer) χρωματίζεται πλέον ανάλογα με το πόσο κοντά
+είναι η λήξη του πιστοποιητικού (πράσινο/κίτρινο/κόκκινο, ίδιες κατηγορίες
+με το ήδη υπάρχον `_expiry_status`: ok/warning/urgent/expired) — η ίδια η
+ημερομηνία λήξης φαίνεται πλέον μόνο σε tooltip (hover), όχι σε μόνιμο
+κείμενο. Το version footer δείχνει τώρα και το όνομα της εφαρμογής
+("ΔAiγμα LiMS") πάνω από τον αριθμό έκδοσης. Παράπλευρο εύρημα: διορθώθηκε
+ένα προϋπάρχον bug όπου η κλάση CSS `warning` δεν ταίριαζε ποτέ με το
+selector `.warn`, οπότε το κίτρινο προειδοποιητικό badge δεν χρωματιζόταν
+ποτέ σωστά.
+
+### Αυτόματη λήψη ενημερώσεων στο background
+
+Το update-checker πλέον κατεβάζει μόνος του τον installer της νέας
+προτεινόμενης έκδοσης στο background μόλις τη βρει — χωρίς καμία ενέργεια
+χρήστη· μόνο η ίδια η εγκατάσταση (τρέξιμο του installer wizard) παραμένει
+χειροκίνητη. Ο ληφθέν installer επαληθεύεται (magic bytes "MZ", πραγματικό
+Windows executable) πριν αποθηκευτεί, με ασφαλές fallback στο παλιό
+"άνοιξε τον σύνδεσμο στον browser" αν η λήψη αποτύχει (offline, κλπ). Το
+`build.nsis.artifactName` στο package.json πινακίδωσε πλέον ρητά το όνομα
+του installer αρχείου (`Setup.${version}.exe`) ώστε το direct-download URL
+να είναι προβλέψιμο σε κάθε μελλοντικό release.
+
+**Αρχεία:**
+- `modules/problem-report.js` (νέο)
+- `modules/update-check.js`
+- `preload.cjs`
+- `src/index.html`, `src/main-app.js`, `src/styles/main.css`
+- `package.json`, `allowed-versions-v2.json`
+
+---
+
 ## Αλλαγή appId — gr.galatista.lab → com.daigma.lims (2026-07-09)
 
 **Μετά το tag v2.2.0 — δουλειά κατευθείαν στο `master`.**

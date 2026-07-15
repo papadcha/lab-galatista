@@ -1,6 +1,6 @@
 {
   "name": "daigma-lims",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "type": "module",
   "description": "ΔAiγμα LiMS — Σύστημα Ποιοτικού Ελέγχου",
   "main": "main.js",
@@ -88,7 +88,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "ΔAiγμα LiMS",
-      "license": "LICENSE.txt"
+      "license": "LICENSE.txt",
+      "artifactName": "Setup.${version}.exe"
     }
   }
 }

@@ -178,6 +178,7 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'is-python-ready':         ()                  => ipcRenderer.invoke('python-is-ready'),
   'on-update-available':     (cb)                => ipcRenderer.once('update-available', (_e, info) => cb(info)),
   'open-update-url':         (url)               => ipcRenderer.invoke('open-update-url', url),
+  'install-update':          (localPath)         => ipcRenderer.invoke('install-update', localPath),
   'get-app-version':         ()                  => ipcRenderer.invoke('get-app-version'),
   'get-version-history':     ()                  => ipcRenderer.invoke('get-version-history'),
   'get-allowed-versions':    ()                  => ipcRenderer.invoke('get-allowed-versions'),

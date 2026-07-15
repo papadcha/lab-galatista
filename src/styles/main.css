@@ -251,6 +251,29 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
   font-family: 'IBM Plex Mono', monospace;
 }
 
+/* Χρωματισμός του CE badge ανάλογα με το πόσο κοντά είναι η λήξη — η ίδια
+   η ημερομηνία φαίνεται μόνο σε tooltip (title attribute), όχι σε κείμενο. */
+.ce-badge.ce-status-ok {
+  background: rgba(22,163,74,0.10);
+  border-color: rgba(22,163,74,0.35);
+}
+.ce-badge.ce-status-warning {
+  background: rgba(245,158,11,0.15);
+  border-color: rgba(245,158,11,0.4);
+}
+.ce-badge.ce-status-urgent {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.4);
+}
+.ce-badge.ce-status-expired {
+  background: rgba(220,38,38,0.2);
+  border-color: rgba(220,38,38,0.5);
+}
+.ce-badge.ce-status-error {
+  background: rgba(136,146,170,0.12);
+  border-color: var(--border-light);
+}
+
 .ce-expiry-warn {
   margin-top: 6px;
   padding: 5px 8px;
@@ -260,7 +283,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
   text-align: center;
   cursor: default;
 }
-.ce-expiry-warn.warn {
+.ce-expiry-warn.warning {
   background: rgba(245,158,11,0.15);
   color: #f59e0b;
   border: 1px solid rgba(245,158,11,0.3);

@@ -596,17 +596,25 @@ function _formatCeDate(d) {
   return d;
 }
 
+// Χρωματίζει το CE badge ανάλογα με το πόσο κοντά είναι η λήξη· η ίδια η
+// ημερομηνία λήξης φαίνεται πλέον μόνο στο tooltip (title), όχι σε μόνιμο κείμενο.
+function _applyCeBadgeStatus(badgeEl, status, validTo) {
+  if (!badgeEl) return;
+  badgeEl.classList.remove('ce-status-ok', 'ce-status-warning', 'ce-status-urgent', 'ce-status-expired', 'ce-status-error');
+  if (status) badgeEl.classList.add('ce-status-' + status);
+  badgeEl.title = validTo ? 'Ισχύς έως ' + _formatCeDate(validTo) : '';
+}
+
 async function updateSidebarCeBadge() {
   try {
-    const period = await pyCall('get_active_ce_period');
-    const ceEl   = document.getElementById('sidebar-ce-number');
-    const expEl  = document.getElementById('sidebar-ce-expiry');
-    const warnEl = document.getElementById('sidebar-ce-warn');
+    const period  = await pyCall('get_active_ce_period');
+    const ceEl    = document.getElementById('sidebar-ce-number');
+    const warnEl  = document.getElementById('sidebar-ce-warn');
+    const badgeEl = document.getElementById('sidebar-ce-badge');
     if (!period || !period.ce_number) return;
 
-    if (ceEl)  ceEl.textContent  = period.ce_number;
-    if (expEl && period.valid_to)
-      expEl.textContent = 'Ισχύς έως ' + _formatCeDate(period.valid_to);
+    if (ceEl) ceEl.textContent = period.ce_number;
+    _applyCeBadgeStatus(badgeEl, period._expiry_status || 'ok', period.valid_to);
 
     // Expiry warning badge
     if (warnEl) {
@@ -634,10 +642,10 @@ async function updateSidebarCeBadge() {
   } catch (e) {
     const lab = AppState.labInfo;
     if (!lab) return;
-    const ceEl  = document.getElementById('sidebar-ce-number');
-    const expEl = document.getElementById('sidebar-ce-expiry');
-    if (ceEl && lab.ce_number)    ceEl.textContent  = lab.ce_number;
-    if (expEl && lab.ce_valid_to) expEl.textContent = 'Ισχύς έως ' + _formatCeDate(lab.ce_valid_to);
+    const ceEl    = document.getElementById('sidebar-ce-number');
+    const badgeEl = document.getElementById('sidebar-ce-badge');
+    if (ceEl && lab.ce_number) ceEl.textContent = lab.ce_number;
+    if (lab.ce_valid_to) _applyCeBadgeStatus(badgeEl, null, lab.ce_valid_to);
   }
 }
 
@@ -826,6 +834,13 @@ function _showUpdateBanner(info) {
   const existing = document.getElementById('update-banner');
   if (existing) return;
 
+  // Αν η background λήψη πέτυχε (main.js), ο installer είναι ήδη έτοιμος
+  // τοπικά — το κουμπί τρέχει κατευθείαν τον installer wizard (η ίδια η
+  // εγκατάσταση παραμένει χειροκίνητη, clicks στο wizard). Αλλιώς fallback
+  // στο παλιό flow: άνοιγμα του συνδέσμου στον browser.
+  const ready = !!info.localPath;
+  const btnLabel = ready ? '⚙ Εγκατάσταση' : '⬇ Λήψη';
+
   const isRollback = info.kind === 'rollback';
   const banner = document.createElement('div');
   banner.id        = 'update-banner';
@@ -836,7 +851,7 @@ function _showUpdateBanner(info) {
       <div class="update-banner-title">Η έκδοσή σας (v${_esc(info.current)}) έχει γνωστό πρόβλημα</div>
       <div class="update-banner-msg">Προτείνεται προσωρινή επιστροφή σε v${_esc(info.latest)}${info.notes ? ' — ' + _esc(info.notes) : ''}</div>
     </div>
-    <button class="btn-primary btn-sm" id="update-banner-btn">Λήψη v${_esc(info.latest)}</button>
+    <button class="btn-primary btn-sm" id="update-banner-btn">${btnLabel} v${_esc(info.latest)}</button>
     <button class="btn-secondary btn-sm" style="margin-left:4px;"
             onclick="document.getElementById('update-banner')?.remove()">✕</button>
   ` : `
@@ -845,13 +860,23 @@ function _showUpdateBanner(info) {
       <div class="update-banner-title">Νέα έκδοση διαθέσιμη: v${_esc(info.latest)}</div>
       <div class="update-banner-msg">Τρέχουσα: v${_esc(info.current)}</div>
     </div>
-    <button class="btn-primary btn-sm" id="update-banner-btn">Λήψη</button>
+    <button class="btn-primary btn-sm" id="update-banner-btn">${btnLabel}</button>
     <button class="btn-secondary btn-sm" style="margin-left:4px;"
             onclick="document.getElementById('update-banner')?.remove()">✕</button>
   `;
   document.body.appendChild(banner);
-  document.getElementById('update-banner-btn')?.addEventListener('click', () => {
-    window.pyBridge?.['open-update-url']?.(info.url);
+  document.getElementById('update-banner-btn')?.addEventListener('click', async () => {
+    if (ready) {
+      const btn = document.getElementById('update-banner-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Άνοιγμα...'; }
+      const res = await window.pyBridge?.['install-update']?.(info.localPath);
+      if (!res?.ok) {
+        App.toast('Δεν ήταν δυνατή η εκκίνηση του installer: ' + (res?.error || 'άγνωστο σφάλμα'), 'fail');
+        window.pyBridge?.['open-update-url']?.(info.url); // fallback στον browser
+      }
+    } else {
+      window.pyBridge?.['open-update-url']?.(info.url);
+    }
   });
 }
 
@@ -1467,7 +1492,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ver = await window.pyBridge['get-app-version']();
     const el = document.getElementById('sidebar-version');
     if (el && ver) {
-      el.textContent = 'v' + ver;
+      const appName = t('app.title', 'ΔAiγμα LiMS');
+      el.innerHTML = `<div style="font-weight:600;">${appName}</div><div>v${ver}</div>`;
       el.style.cursor = 'pointer';
       el.title = 'Δες τι άλλαξε';
       el.addEventListener('click', showVersionHistory);
