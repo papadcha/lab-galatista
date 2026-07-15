@@ -1493,7 +1493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const el = document.getElementById('sidebar-version');
     if (el && ver) {
       const appName = t('app.title', 'ΔAiγμα LiMS');
-      el.innerHTML = `<div style="font-weight:600;">${appName}</div><div>v${ver}</div>`;
+      el.textContent = `${appName} v${ver}`;
       el.style.cursor = 'pointer';
       el.title = 'Δες τι άλλαξε';
       el.addEventListener('click', showVersionHistory);
