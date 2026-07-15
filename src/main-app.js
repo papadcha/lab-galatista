@@ -823,23 +823,35 @@ function _showCloudSyncFailToast(info) {
   document.body.appendChild(toast);
 }
 
-// Listener για νέα έκδοση
+// Listener για νέα έκδοση — το banner εμφανίζεται αμέσως, πριν καν
+// ολοκληρωθεί η background λήψη του installer (βλ. update-check.js).
+let _updateBannerInfo = null;
 if (window.pyBridge?.['on-update-available']) {
   window.pyBridge['on-update-available']((info) => {
     _showUpdateBanner(info);
   });
 }
 
+// Έρχεται ξεχωριστά, μόλις (αν) ολοκληρωθεί η background λήψη — αναβαθμίζει
+// το ήδη ορατό banner από "⬇ Λήψη" σε "⚙ Εγκατάσταση" χωρίς να το ξανακτίζει.
+if (window.pyBridge?.['on-update-ready']) {
+  window.pyBridge['on-update-ready']((info) => {
+    if (!_updateBannerInfo || _updateBannerInfo.latest !== info.latest) return;
+    _updateBannerInfo.localPath = info.localPath;
+    const btn = document.getElementById('update-banner-btn');
+    if (btn) btn.textContent = btn.textContent.replace('⬇ Λήψη', '⚙ Εγκατάσταση');
+  });
+}
+
 function _showUpdateBanner(info) {
   const existing = document.getElementById('update-banner');
   if (existing) return;
+  _updateBannerInfo = info;
 
-  // Αν η background λήψη πέτυχε (main.js), ο installer είναι ήδη έτοιμος
-  // τοπικά — το κουμπί τρέχει κατευθείαν τον installer wizard (η ίδια η
-  // εγκατάσταση παραμένει χειροκίνητη, clicks στο wizard). Αλλιώς fallback
-  // στο παλιό flow: άνοιγμα του συνδέσμου στον browser.
-  const ready = !!info.localPath;
-  const btnLabel = ready ? '⚙ Εγκατάσταση' : '⬇ Λήψη';
+  // Αν η background λήψη έχει ήδη προλάβει να ολοκληρωθεί, ξεκινάει κατευθείαν
+  // ως "έτοιμο" — αλλιώς ξεκινάει ως "⬇ Λήψη" και αναβαθμίζεται αργότερα
+  // (βλ. on-update-ready παραπάνω) μόλις/αν ολοκληρωθεί η λήψη.
+  const btnLabel = info.localPath ? '⚙ Εγκατάσταση' : '⬇ Λήψη';
 
   const isRollback = info.kind === 'rollback';
   const banner = document.createElement('div');
@@ -866,7 +878,9 @@ function _showUpdateBanner(info) {
   `;
   document.body.appendChild(banner);
   document.getElementById('update-banner-btn')?.addEventListener('click', async () => {
-    if (ready) {
+    // Διαβάζει το localPath ΤΩΡΑ (όχι από κλειστή τιμή στη δημιουργία του banner)
+    // — μπορεί να έχει ενημερωθεί στο μεταξύ από το on-update-ready παραπάνω.
+    if (info.localPath) {
       const btn = document.getElementById('update-banner-btn');
       if (btn) { btn.disabled = true; btn.textContent = 'Άνοιγμα...'; }
       const res = await window.pyBridge?.['install-update']?.(info.localPath);

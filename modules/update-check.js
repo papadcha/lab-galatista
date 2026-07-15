@@ -34,18 +34,29 @@ function _cmpVersion(a, b) {
   return 0;
 }
 
-function _fetchJsonViaNet(url, headers = {}) {
+// timeoutMs προστατεύει από hang (π.χ. VPN/δίκτυο που "κόβει" σιωπηλά τη
+// σύνδεση χωρίς error/close event) — χωρίς αυτό, μια κολλημένη σύνδεση
+// κρατάει το Promise ανεπίλυτο επ' άπειρον.
+function _fetchJsonViaNet(url, headers = {}, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (fn, arg) => { if (!settled) { settled = true; clearTimeout(timer); fn(arg); } };
+
+    const timer = setTimeout(() => {
+      try { request.abort(); } catch {}
+      done(reject, new Error('Timeout'));
+    }, timeoutMs);
+
     const request = net.request({ method: 'GET', url, headers });
     let data = '';
     request.on('response', (response) => {
       response.on('data', (chunk) => { data += chunk.toString(); });
       response.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch(e) { reject(e); }
+        try { done(resolve, JSON.parse(data)); } catch(e) { done(reject, e); }
       });
-      response.on('error', reject);
+      response.on('error', (e) => done(reject, e));
     });
-    request.on('error', reject);
+    request.on('error', (e) => done(reject, e));
     request.end();
   });
 }
@@ -70,31 +81,47 @@ async function _fetchAllowedVersions() {
 // μόνο αφού επιβεβαιωθεί ότι είναι πραγματικά Windows executable (μαγικά
 // bytes "MZ"), όχι π.χ. η HTML σελίδα του GitHub releases (αν το downloadUrl
 // στο manifest δείχνει κατά λάθος εκεί αντί για direct asset link).
-function _downloadFile(url, destPath) {
+// idleTimeoutMs: resets σε κάθε chunk δεδομένων — προστατεύει από hang σε
+// κολλημένη/αργή σύνδεση (VPN κλπ) χωρίς να κόβει μια απλά αργή αλλά ενεργή
+// λήψη ενός installer ~100MB.
+function _downloadFile(url, destPath, idleTimeoutMs = 20000) {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    let timer;
+    const clear = () => clearTimeout(timer);
+    const done = (fn, arg) => { if (!settled) { settled = true; clear(); fn(arg); } };
+    const resetTimer = () => {
+      clear();
+      timer = setTimeout(() => {
+        try { request.abort(); } catch {}
+        done(reject, new Error('Timeout λήψης (καμία δραστηριότητα δικτύου)'));
+      }, idleTimeoutMs);
+    };
+
     const request = net.request({ method: 'GET', url });
     const chunks = [];
+    resetTimer();
     request.on('response', (response) => {
       if (response.statusCode >= 400) {
-        reject(new Error('HTTP ' + response.statusCode));
+        done(reject, new Error('HTTP ' + response.statusCode));
         return;
       }
-      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('data', (chunk) => { resetTimer(); chunks.push(chunk); });
       response.on('end', () => {
         const buf = Buffer.concat(chunks);
         if (buf.length < 2 || buf[0] !== 0x4D || buf[1] !== 0x5A) {
-          reject(new Error('Το ληφθέν αρχείο δεν είναι έγκυρο installer (.exe)'));
+          done(reject, new Error('Το ληφθέν αρχείο δεν είναι έγκυρο installer (.exe)'));
           return;
         }
         try {
           fs.mkdirSync(path.dirname(destPath), { recursive: true });
           fs.writeFileSync(destPath, buf);
-          resolve();
-        } catch (e) { reject(e); }
+          done(resolve);
+        } catch (e) { done(reject, e); }
       });
-      response.on('error', reject);
+      response.on('error', (e) => done(reject, e));
     });
-    request.on('error', reject);
+    request.on('error', (e) => done(reject, e));
     request.end();
   });
 }
@@ -140,17 +167,27 @@ export async function checkForUpdates() {
   if (!kind) return;
 
   const fallbackUrl = entry?.downloadUrl || `https://github.com/papadcha/lab-galatista/releases/tag/v${recommended}`;
-  const localPath = await _downloadUpdateInBackground(recommended, entry?.downloadUrl);
 
+  // Το banner εμφανίζεται ΑΜΕΣΩΣ — δεν περιμένει τη λήψη του installer.
+  // Αν περίμενε (await) εδώ, μια κολλημένη/αργή σύνδεση θα κρατούσε το
+  // banner αόρατο επ' άπειρον, με κανένα σφάλμα να το προδίδει (ακριβώς το
+  // bug που έκανε το v2.4.0 «αόρατο» σε κάποιο μηχάνημα).
   if (state.mainWindow && !state.mainWindow.isDestroyed()) {
     state.mainWindow.webContents.send('update-available', {
       kind,
       current:   currentVersion,
       latest:    recommended,
       url:       fallbackUrl,
-      localPath, // αν υπάρχει, ο installer είναι ήδη κατεβασμένος και έτοιμος να τρέξει
+      localPath: null, // ο installer δεν έχει κατέβει ακόμα — το κουμπί ξεκινά ως "⬇ Λήψη"
       notes:     kind === 'rollback' ? allowed.notice : (entry?.notes || ''),
     });
+  }
+
+  // Η λήψη τρέχει ξεχωριστά, στο background — αν πετύχει, ενημερώνει το
+  // ήδη ορατό banner ώστε το κουμπί να γίνει "⚙ Εγκατάσταση".
+  const localPath = await _downloadUpdateInBackground(recommended, entry?.downloadUrl);
+  if (localPath && state.mainWindow && !state.mainWindow.isDestroyed()) {
+    state.mainWindow.webContents.send('update-ready', { latest: recommended, localPath });
   }
 }
 

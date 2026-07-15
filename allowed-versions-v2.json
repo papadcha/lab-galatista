@@ -1,6 +1,6 @@
 {
   "_comment": "Manifest ΜΟΝΟ για τη γραμμή v2.x (ΔAiγμα LiMS, μετά το ESM redesign) — ξεχωριστό από το allowed-versions.json (που παραμένει ως έχει, μόνο για τις v1.x εγκαταστάσεις, βλ. branch v1-maintenance) ώστε οι δύο γραμμές να μην μπερδεύονται μέσω του ίδιου live-fetched αρχείου. Χειροκίνητα συντηρούμενο, ενημερώνεται σε κάθε v2.x release. Από v2.4.0+: το downloadUrl ΠΡΕΠΕΙ να είναι το direct asset link (https://github.com/papadcha/lab-galatista/releases/download/vX.Y.Z/Setup.X.Y.Z.exe, βλ. build.nsis.artifactName στο package.json) — όχι η γενική σελίδα releases — γιατί το update-check.js το κατεβάζει αυτόματα στο background.",
-  "latestRecommendedVersion": "2.4.1",
+  "latestRecommendedVersion": "2.4.2",
   "safeDowngradeFloor": "2.0.0",
   "notice": null,
   "versions": [
@@ -9,6 +9,7 @@
     { "version": "2.2.0", "date": "2026-07-09", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v2.2.0/Ai.LiMS.Setup.2.2.0.exe", "notes": "Οδηγός Χρήσης (in-app help) + Αυτόματη περιοδική ενημέρωση email" },
     { "version": "2.3.0", "date": "2026-07-09", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v2.3.0/Ai.LiMS.Setup.2.3.0.exe", "notes": "Τεχνική αλλαγή: νέο appId (com.daigma.lims) — ξεχωριστό από την v1.x γραμμή, καμία λειτουργική αλλαγή" },
     { "version": "2.4.0", "date": "2026-07-15", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v2.4.0/Setup.2.4.0.exe", "notes": "Αναφορά προβλήματος/crash προς τον developer + χρωματιστό CE badge στο sidebar (λήξη σε tooltip) + αυτόματη λήψη ενημερώσεων στο background" },
-    { "version": "2.4.1", "date": "2026-07-15", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v2.4.1/Setup.2.4.1.exe", "notes": "Fix: sidebar version footer σε μία γραμμή + το CE badge ξανα-ανοίγει το πιστοποιητικό στο κλικ (διατηρώντας το tooltip λήξης)" }
+    { "version": "2.4.1", "date": "2026-07-15", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v2.4.1/Setup.2.4.1.exe", "notes": "Fix: sidebar version footer σε μία γραμμή + το CE badge ξανα-ανοίγει το πιστοποιητικό στο κλικ (διατηρώντας το tooltip λήξης)" },
+    { "version": "2.4.2", "date": "2026-07-15", "downloadUrl": "https://github.com/papadcha/lab-galatista/releases/download/v2.4.2/Setup.2.4.2.exe", "notes": "Κρίσιμο fix: το update banner μπλοκαριζόταν επ' άπειρον αν κολλούσε η background λήψη του installer (χωρίς timeout) — τώρα εμφανίζεται αμέσως και αναβαθμίζεται όταν ολοκληρωθεί η λήψη" }
   ]
 }
