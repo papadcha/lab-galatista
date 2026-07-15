@@ -10,6 +10,27 @@
 
 ---
 
+## v2.4.1 — Fixes: sidebar footer μία γραμμή, CE badge click-to-open (2026-07-15)
+
+**Μετά το tag v2.4.0 — δουλειά κατευθείαν στο `master`.**
+
+Δύο μικρά fixes σε ό,τι άλλαξε το v2.4.0 στο sidebar footer, βρέθηκαν στη
+ζωντανή δοκιμή του χρήστη αμέσως μετά το release:
+
+- Το "ΔAiγμα LiMS" + αριθμός έκδοσης έσπαγε σε 2 γραμμές αντί να χωράει σε
+  μία (187px, άνετα εντός του sidebar) — περιττό split σε δύο `<div>`.
+- Το CE badge είχε χάσει το click-to-open του πιστοποιητικού όταν προστέθηκε
+  το tooltip λήξης στο v2.4.0 — έμεινε μόνο hover, όχι click. Έγινε reuse
+  του ήδη υπάρχοντος `openBadge('ce_certificate')` (quick-access.js), με
+  `stopPropagation()` ώστε να μη συγκρούεται με το "click έξω κλείνει το
+  flyout" listener. Επαληθεύτηκε ζωντανά με πραγματικό σημαδεμένο έγγραφο:
+  tooltip λήξης στο hover ΚΑΙ άνοιγμα εγγράφου στο κλικ δουλεύουν μαζί.
+
+**Αρχεία:**
+- `src/main-app.js`, `src/quick-access.js`, `src/styles/main.css`
+
+---
+
 ## v2.4.0 — Αναφορά προβλήματος, χρωματιστό CE badge, auto-download updates (2026-07-15)
 
 **Μετά το tag v2.3.0 — δουλειά κατευθείαν στο `master`.**
