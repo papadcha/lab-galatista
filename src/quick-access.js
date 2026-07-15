@@ -34,7 +34,7 @@ export function closeQuickAccess() {
   if (_flyoutEl) { _flyoutEl.innerHTML = ''; _flyoutEl.classList.add('hidden'); }
 }
 
-async function openBadge(type) {
+export async function openBadge(type) {
   _openType = type;
   document.querySelectorAll('.qa-btn').forEach(b => b.classList.toggle('active', b.dataset.qaType === type));
   _flyoutEl.innerHTML = '';

@@ -236,6 +236,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  cursor: pointer;
 }
 
 .ce-mark {

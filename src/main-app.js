@@ -19,7 +19,7 @@
 'use strict';
 
 import { initI18n, t, applyI18n } from './i18n/i18n.js';
-import { initQuickAccess, closeQuickAccess } from './quick-access.js';
+import { initQuickAccess, closeQuickAccess, openBadge } from './quick-access.js';
 
 // ============================================================
 // GLOBAL STATE — Κοινά δεδομένα για όλες τις σελίδες
@@ -1505,6 +1505,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Γρήγορη Πρόσβαση — sidebar badges + cascading στήλες
   initQuickAccess();
+
+  // Το ίδιο το CE badge (αριθμός πιστοποιητικού) ανοίγει κατευθείαν το
+  // σημαδεμένο CE Πιστοποιητικό της Βιβλιοθήκης — ίδιο mechanism με το
+  // αντίστοιχο κουμπί "Γρήγορη Πρόσβαση" (openBadge('ce_certificate')).
+  document.getElementById('sidebar-ce-badge')?.addEventListener('click', (e) => {
+    e.stopPropagation(); // αλλιώς το "click έξω κλείνει το flyout" listener (quick-access.js) το ξανακλείνει αμέσως
+    openBadge('ce_certificate');
+  });
 
   // Φόρτωση αρχικής σελίδας πρώτα
   await navigateTo('dashboard');
