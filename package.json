@@ -11,7 +11,7 @@
     "build:backend": "pyinstaller --clean --noconfirm lab-backend.spec",
     "smoke-test:backend": "node scripts/smoke-test-backend.mjs",
     "prebuild:installer": "node scripts/check-builder-files.js",
-    "build:installer": "electron-builder --win --x64",
+    "build:installer": "electron-builder --win --x64 --publish never",
     "dist": "npm run build:backend && npm run smoke-test:backend && npm run build:installer"
   },
   "keywords": [],
