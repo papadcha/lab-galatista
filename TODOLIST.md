@@ -64,6 +64,16 @@
       να έχει πραγματικό νόημα: νέο `src/i18n/<locale>.json` + μία
       ακόμα `<option>` στο `settings.html`, καμία άλλη συρματολόγηση.
 
+- [ ] Presence detection μέσω MEGA/rclone sync — κάθε client (πολλαπλά
+      μηχανήματα του ίδιου χρήστη) γράφει periodic heartbeat
+      (`presence.json`: user, last_seen, computer) στο ίδιο MEGA remote που
+      ήδη χρησιμοποιείται για DB backup/sync (`modules/cloud-sync.js`, IPC
+      handlers `cloud-test`/`cloud-sync`). Sync στην εκκίνηση + κάθε 1-2
+      λεπτά όσο τρέχει η εφαρμογή. UI: "● online" αν `last_seen` < 2 λεπτά,
+      αλλιώς "τελευταία σύνδεση: πριν Χ". Αφορά και τα τρία projects
+      (lab-galatista, expvault, invoicebook) — εδώ είναι η πηγή του
+      rclone-sync pattern που θα ξαναχρησιμοποιηθεί.
+
 ## ΜΕΓΑΛΕΣ / ΑΝΑΒΛΗΘΗΚΑΝ
 
 - [ ] Linux installer (AppImage/deb, χρειάζεται Linux build env/CI)
