@@ -1,6 +1,6 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-07-24 (προστέθηκε εκκρεμότητα επιβεβαίωσης dual-install migration)
+Τελευταία ενημέρωση: 2026-08-01 (presence detection υλοποιήθηκε στο expvault — εκκρεμεί ακόμα εδώ/invoicebook)
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί). Το τεχνικό ιστορικό
 του ESM redesign ζει στο `CHANGELOG-v2.md`. Οι διορθώσεις της v1.x
@@ -64,15 +64,22 @@
       να έχει πραγματικό νόημα: νέο `src/i18n/<locale>.json` + μία
       ακόμα `<option>` στο `settings.html`, καμία άλλη συρματολόγηση.
 
-- [ ] Presence detection μέσω MEGA/rclone sync — κάθε client (πολλαπλά
-      μηχανήματα του ίδιου χρήστη) γράφει periodic heartbeat
-      (`presence.json`: user, last_seen, computer) στο ίδιο MEGA remote που
-      ήδη χρησιμοποιείται για DB backup/sync (`modules/cloud-sync.js`, IPC
-      handlers `cloud-test`/`cloud-sync`). Sync στην εκκίνηση + κάθε 1-2
-      λεπτά όσο τρέχει η εφαρμογή. UI: "● online" αν `last_seen` < 2 λεπτά,
-      αλλιώς "τελευταία σύνδεση: πριν Χ". Αφορά και τα τρία projects
-      (lab-galatista, expvault, invoicebook) — εδώ είναι η πηγή του
-      rclone-sync pattern που θα ξαναχρησιμοποιηθεί.
+- [x] **expvault** — υλοποιήθηκε 2026-08-01 (`backend/presence.py`, branch
+      `v2`), προσαρμοσμένο στο pattern του `backup.py` εκεί (rclone μόνο από
+      Python backend, όχι από τη JS main process όπως εδώ). Heartbeat
+      key `<computer>__<user>.json` (όχι μόνο hostname, ώστε δύο μηχανήματα
+      με ίδιο default hostname να μην αλληλοεπικαλύπτονται) στο
+      `<remote>/presence/`.
+- [ ] **lab-galatista** / **invoicebook** — εκκρεμεί ακόμα. Presence
+      detection μέσω MEGA/rclone sync — κάθε client (πολλαπλά μηχανήματα
+      του ίδιου χρήστη) γράφει periodic heartbeat (`presence.json`: user,
+      last_seen, computer) στο ίδιο MEGA remote που ήδη χρησιμοποιείται για
+      DB backup/sync (`modules/cloud-sync.js`, IPC handlers
+      `cloud-test`/`cloud-sync`). Sync στην εκκίνηση + κάθε 1-2 λεπτά όσο
+      τρέχει η εφαρμογή. UI: "● online" αν `last_seen` < 2 λεπτά, αλλιώς
+      "τελευταία σύνδεση: πριν Χ". Εδώ είναι η πηγή του rclone-sync pattern
+      που ξαναχρησιμοποιήθηκε στο expvault — για lab-galatista/invoicebook
+      μένει ακόμα να χτιστεί το ίδιο.
 
 ## ΜΕΓΑΛΕΣ / ΑΝΑΒΛΗΘΗΚΑΝ
 
