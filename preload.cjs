@@ -127,6 +127,8 @@ contextBridge.exposeInMainWorld('pyBridge', {
   'retention-preview':      ()       => ipcRenderer.invoke('retention-preview'),
   'retention-run-cleanup':  ()       => ipcRenderer.invoke('retention-run-cleanup'),
   'cloud-open-terminal':()           => ipcRenderer.invoke('cloud-open-terminal'),
+  'presence-list':      ()           => ipcRenderer.invoke('presence-list'),
+  'presence-whoami':    ()           => ipcRenderer.invoke('presence-whoami'),
   'open-external-link': (url)        => ipcRenderer.invoke('open-external-link', url),
   'close-guide':  ()         => ipcRenderer.invoke('close-guide'),
   'on-guide-closed': (cb)    => ipcRenderer.on('guide-closed', (_e, tt) => cb(tt)),

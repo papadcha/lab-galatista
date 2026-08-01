@@ -171,16 +171,69 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 24px 16px 20px;
+  gap: 6px;
+  padding: 14px 16px 18px;
   border-bottom: 1px solid var(--border);
 }
 
 .logo-img {
-  width: 90px;
+  width: 68px;
   height: auto;
   object-fit: contain;
   flex-shrink: 0;
+}
+
+.sidebar-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: .2px;
+}
+
+.sidebar-version-top {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: .7;
+  cursor: pointer;
+}
+
+/* --- Presence badge (sidebar) --- */
+.presence-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.presence-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.presence-badge.presence-clear {
+  background: rgba(22,163,74,0.10);
+  border: 1px solid rgba(22,163,74,0.35);
+  color: #16a34a;
+}
+.presence-badge.presence-clear .presence-dot {
+  background: #16a34a;
+}
+
+.presence-badge.presence-alert {
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: #ef4444;
+}
+.presence-badge.presence-alert .presence-dot {
+  background: #ef4444;
 }
 
 /* --- Nav Menu --- */
@@ -224,7 +277,7 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
 
 /* --- Sidebar Footer --- */
 .sidebar-footer {
-  padding: 12px 16px;
+  padding: 20px 16px 16px;
   border-top: 1px solid var(--border);
 }
 

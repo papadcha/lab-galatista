@@ -17,6 +17,7 @@ import { markCleanShutdown, detectPreviousCrash } from './modules/problem-report
 import './modules/pdf-generation.js'; // side-effect: ipcMain.handle('generate-report-pdf'/'print-to-pdf'/'generate-periodic-pdf'/'save-pdf'/'save-statistics'/'open-pdf'/'print-pdf', ...)
 import './modules/email.js'; // side-effect: ipcMain.handle('send-email'/'test-smtp', ...)
 import './modules/document-library.js'; // side-effect: ipcMain.handle('upload-document'/'open-document'/'delete-document-cloud'/'generate-pdf-library'/'force-quit', ...)
+import { sendHeartbeat } from './modules/presence.js'; // side-effect: ipcMain.handle('presence-list', ...)
 
 // Το ESM module graph φορτώνεται ολόκληρο πριν τρέξει οποιοδήποτε top-level
 // statement εδώ, οπότε η θέση αυτής της κλήσης δεν προλαβαίνει logging ΜΕΣΑ
@@ -94,8 +95,19 @@ ipcMain.handle('window-is-maximized', () => state.mainWindow?.isMaximized() ?? f
 // ΕΚΔΗΛΩΣΕΙΣ APP
 // ============================================================
 
+const PRESENCE_INTERVAL_MS = 90 * 1000; // εντός του 1-2 λεπτών του spec
+let presenceInterval = null;
+
+function startPresenceHeartbeat() {
+  const sendOnce = () => sendHeartbeat().catch(e =>
+    console.error('[Presence] heartbeat απέτυχε:', e.message));
+  sendOnce();
+  presenceInterval = setInterval(sendOnce, PRESENCE_INTERVAL_MS);
+}
+
 app.whenReady().then(() => {
   createWindow();
+  startPresenceHeartbeat();
 
   // Εκκίνηση Python backend
   try {
@@ -189,6 +201,7 @@ async function initActivePeriodStart() {
 }
 
 app.on('window-all-closed', () => {
+  if (presenceInterval) clearInterval(presenceInterval);
   // Τερματισμός Python
   if (state.pyProcess && !state.pyProcess.killed) {
     state.pyProcess.kill();

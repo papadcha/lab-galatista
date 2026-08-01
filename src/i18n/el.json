@@ -1,5 +1,7 @@
 {
   "app.title": "ΔAiγμα LiMS",
+  "sidebar.presence_alone": "Μόνος",
+  "sidebar.presence_none_else": "Κανένας άλλος χρήστης online",
 
   "nav.dashboard": "Αρχική",
   "nav.samples": "Καταχώρηση",
@@ -471,6 +473,23 @@
   "settings.retention_preview_button": "👁 Προεπισκόπηση Καθαρισμού",
   "settings.retention_cleanup_now_button": "🧹 Καθαρισμός Τώρα",
   "settings.retention_force_release_button": "🔓 Εξαναγκασμένη Απελευθέρωση",
+
+  "settings.presence_title": "👥 Συνδεδεμένοι χρήστες",
+  "settings.presence_refresh_button": "🔄 Ανανέωση",
+  "settings.presence_loading": "Φόρτωση...",
+  "settings.presence_none": "Κανένας χρήστης δεν έχει καταγραφεί ακόμα.",
+  "settings.presence_last_seen_prefix": "τελευταία σύνδεση:",
+  "settings.presence_user": "Χρήστης",
+  "settings.presence_computer": "Υπολογιστής",
+  "settings.presence_status": "Κατάσταση",
+  "settings.presence_just_now": "μόλις τώρα",
+  "settings.presence_ago": "πριν",
+  "settings.presence_minute": "λεπτό",
+  "settings.presence_minutes": "λεπτά",
+  "settings.presence_hour": "ώρα",
+  "settings.presence_hours": "ώρες",
+  "settings.presence_day": "μέρα",
+  "settings.presence_days": "μέρες",
 
   "settings.ce_management_title": "📋 Διαχείριση CE Περιόδων",
   "settings.ce_management_intro": "Κάθε CE περίοδος έχει ξεχωριστό φάκελο δεδομένων. Όταν το εξωτερικό εργαστήριο εκδώσει νέα έκθεση, καταχωρείστε νέα υποπερίοδο με τα αποτελέσματα.",

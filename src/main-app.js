@@ -649,6 +649,45 @@ async function updateSidebarCeBadge() {
   }
 }
 
+// Presence badge στην κορυφή του sidebar — πράσινο ("Μόνος") όταν κανένας
+// άλλος χρήστης δεν είναι online, κόκκινο όταν υπάρχει τουλάχιστον ένας.
+// "Άλλος" = διαφορετικό user+computer από το δικό μας (presence-whoami),
+// "online" = last_seen < 2 λεπτά, ίδιο threshold με το Settings → Storage tab.
+async function updateSidebarPresenceBadge() {
+  const badgeEl = document.getElementById('sidebar-presence-badge');
+  const textEl  = document.getElementById('sidebar-presence-text');
+  if (!badgeEl || !textEl || !window.pyBridge?.['presence-list']) return;
+
+  try {
+    const [users, me] = await Promise.all([
+      window.pyBridge['presence-list'](),
+      window.pyBridge['presence-whoami']?.() ?? Promise.resolve(null),
+    ]);
+    const ONLINE_MS = 2 * 60 * 1000;
+    const now = Date.now();
+    const others = (users || []).filter(u => {
+      if (me && u.user === me.user && u.computer === me.computer) return false;
+      const lastMs = new Date(u.last_seen).getTime();
+      return !isNaN(lastMs) && (now - lastMs) < ONLINE_MS;
+    });
+    const online = others.length > 0;
+
+    badgeEl.classList.toggle('presence-alert', online);
+    badgeEl.classList.toggle('presence-clear', !online);
+    textEl.textContent = online
+      ? `${others.length} online`
+      : t('sidebar.presence_alone', 'Μόνος');
+    badgeEl.title = online
+      ? others.map(u => `${u.user} (${u.computer})`).join(', ')
+      : t('sidebar.presence_none_else', 'Κανένας άλλος χρήστης online');
+  } catch (e) {
+    // Χωρίς configured remote/rclone το presence-list επιστρέφει απλά άδεια
+    // λίστα (χωρίς exception) — ένα throw εδώ σημαίνει κάτι πιο ασυνήθιστο
+    // (π.χ. IPC δεν είναι έτοιμο ακόμα)· απόκρυψη αντί για σπασμένο badge.
+    badgeEl.style.display = 'none';
+  }
+}
+
 function _showCeExpiryToast(status, daysLeft) {
   // Έλεγχος snooze — το main process το ελέγχει επίσης, αλλά ελέγχουμε και εδώ
   if (document.getElementById('ce-expiry-toast')) return; // ήδη εμφανίζεται
@@ -1501,18 +1540,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (lab) { AppState.labInfo = lab; }
   await updateSidebarCeBadge();
 
-  // Εμφάνιση έκδοσης στο sidebar footer — κλικ ανοίγει το ιστορικό εκδόσεων
+  // Εμφάνιση έκδοσης κάτω από τον τίτλο, στην κορυφή του sidebar —
+  // κλικ ανοίγει το ιστορικό εκδόσεων
   if (window.pyBridge?.['get-app-version']) {
     const ver = await window.pyBridge['get-app-version']();
     const el = document.getElementById('sidebar-version');
     if (el && ver) {
-      const appName = t('app.title', 'ΔAiγμα LiMS');
-      el.textContent = `${appName} v${ver}`;
-      el.style.cursor = 'pointer';
+      el.textContent = `v${ver}`;
       el.title = 'Δες τι άλλαξε';
       el.addEventListener('click', showVersionHistory);
     }
   }
+
+  // Presence badge — πράσινο όταν δεν υπάρχει άλλος online χρήστης, κόκκινο
+  // αν υπάρχει. Ίδιο 2-λεπτο online threshold με το Settings → Storage tab.
+  await updateSidebarPresenceBadge();
+  setInterval(updateSidebarPresenceBadge, 60 * 1000);
 
   // Custom titlebar — κουμπιά minimize/maximize/close (frameless window)
   initTitlebar();

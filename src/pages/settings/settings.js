@@ -1650,6 +1650,7 @@ import { t, initI18n } from '../../i18n/i18n.js';
     } else {
       if (step3Body) step3Body.classList.remove('hidden');
     }
+    await refreshPresence();
   }
 
   // ── Διατήρηση Backup στο Cloud ──────────────────────────────
@@ -1768,6 +1769,61 @@ import { t, initI18n } from '../../i18n/i18n.js';
       await previewRetentionCleanup();
     } else {
       App.toast(t('settings.generic_error_prefix', 'Σφάλμα: ') + (result?.error || ''), 'fail');
+    }
+  }
+
+  // ── Παρουσία χρηστών (presence) ─────────────────────────────
+
+  function _relativeTimeGr(iso) {
+    const then = new Date(iso);
+    if (!iso || isNaN(then)) return '';
+    const diffSec = Math.max(0, Math.round((Date.now() - then.getTime()) / 1000));
+    if (diffSec < 60) return t('settings.presence_just_now', 'μόλις τώρα');
+    const diffMin = Math.round(diffSec / 60);
+    if (diffMin < 60) return `${t('settings.presence_ago', 'πριν')} ${diffMin} ${diffMin === 1 ? t('settings.presence_minute', 'λεπτό') : t('settings.presence_minutes', 'λεπτά')}`;
+    const diffHr = Math.round(diffMin / 60);
+    if (diffHr < 24) return `${t('settings.presence_ago', 'πριν')} ${diffHr} ${diffHr === 1 ? t('settings.presence_hour', 'ώρα') : t('settings.presence_hours', 'ώρες')}`;
+    const diffDay = Math.round(diffHr / 24);
+    return `${t('settings.presence_ago', 'πριν')} ${diffDay} ${diffDay === 1 ? t('settings.presence_day', 'μέρα') : t('settings.presence_days', 'μέρες')}`;
+  }
+
+  async function refreshPresence() {
+    const el = document.getElementById('presence-list');
+    if (!el) return;
+    try {
+      const users = await pyBridgeCall('presence-list');
+      if (!users || users.length === 0) {
+        el.innerHTML = `<div style="padding:16px;color:var(--text-muted);text-align:center;">${t('settings.presence_none', 'Κανένας χρήστης δεν έχει καταγραφεί ακόμα.')}</div>`;
+        return;
+      }
+      const ONLINE_MS = 2 * 60 * 1000; // "online" αν last_seen < 2 λεπτά
+      const now = Date.now();
+      const rows = users
+        .slice()
+        .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen))
+        .map(u => {
+          const lastMs = new Date(u.last_seen).getTime();
+          const online = !isNaN(lastMs) && (now - lastMs) < ONLINE_MS;
+          const status = online
+            ? `<span style="color:#22c55e;">● online</span>`
+            : `<span style="color:var(--text-muted);">${t('settings.presence_last_seen_prefix', 'τελευταία σύνδεση:')} ${_relativeTimeGr(u.last_seen)}</span>`;
+          return `<tr style="border-top:1px solid var(--border);">
+            <td style="padding:8px 12px;font-size:13px;">${_esc(u.user)}</td>
+            <td style="padding:8px 12px;color:var(--text-muted);font-size:12px;font-family:'IBM Plex Mono',monospace;">${_esc(u.computer)}</td>
+            <td style="padding:8px 12px;text-align:right;font-size:12px;">${status}</td>
+          </tr>`;
+        }).join('');
+      el.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr>
+            <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_user', 'Χρήστης')}</th>
+            <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_computer', 'Υπολογιστής')}</th>
+            <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_status', 'Κατάσταση')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    } catch (e) {
+      el.innerHTML = `<div style="padding:16px;color:var(--fail-light,#ef4444);">${t('settings.generic_error_prefix', 'Σφάλμα: ')}${_esc(e.message)}</div>`;
     }
   }
 
@@ -3151,6 +3207,8 @@ import { t, initI18n } from '../../i18n/i18n.js';
     saveRetentionDays, toggleRetentionAuto,
     forceReleaseRetentionLock, _doForceReleaseRetentionLock,
     previewRetentionCleanup, runRetentionCleanupNow, _doRunRetentionCleanupNow,
+    // Presence detection
+    refreshPresence,
     // CE Periods
     loadCePeriods, showNewSubperiodModal, _saveNewSubperiod,
     showEditSubperiodModal, _saveEditSubperiod,

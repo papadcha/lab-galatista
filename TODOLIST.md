@@ -1,6 +1,6 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-08-01 (presence detection υλοποιήθηκε στο expvault — εκκρεμεί ακόμα εδώ/invoicebook)
+Τελευταία ενημέρωση: 2026-08-01 (presence detection υλοποιήθηκε και εδώ, μετά το expvault — εκκρεμεί ακόμα στο invoicebook)
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί). Το τεχνικό ιστορικό
 του ESM redesign ζει στο `CHANGELOG-v2.md`. Οι διορθώσεις της v1.x
@@ -70,16 +70,26 @@
       key `<computer>__<user>.json` (όχι μόνο hostname, ώστε δύο μηχανήματα
       με ίδιο default hostname να μην αλληλοεπικαλύπτονται) στο
       `<remote>/presence/`.
-- [ ] **lab-galatista** / **invoicebook** — εκκρεμεί ακόμα. Presence
-      detection μέσω MEGA/rclone sync — κάθε client (πολλαπλά μηχανήματα
-      του ίδιου χρήστη) γράφει periodic heartbeat (`presence.json`: user,
-      last_seen, computer) στο ίδιο MEGA remote που ήδη χρησιμοποιείται για
-      DB backup/sync (`modules/cloud-sync.js`, IPC handlers
-      `cloud-test`/`cloud-sync`). Sync στην εκκίνηση + κάθε 1-2 λεπτά όσο
-      τρέχει η εφαρμογή. UI: "● online" αν `last_seen` < 2 λεπτά, αλλιώς
-      "τελευταία σύνδεση: πριν Χ". Εδώ είναι η πηγή του rclone-sync pattern
-      που ξαναχρησιμοποιήθηκε στο expvault — για lab-galatista/invoicebook
-      μένει ακόμα να χτιστεί το ίδιο.
+- [x] **lab-galatista** — υλοποιήθηκε 2026-08-01 (`modules/presence.js`,
+      νέος IPC handler `presence-list` στο `preload.cjs`, heartbeat interval
+      στο `main.js`, UI στο Settings → Storage tab). Κλέβει το pattern του
+      `backend/presence.py` του expvault (heartbeat key
+      `<computer>__<user>.json`, main-process-only `sendHeartbeat()` — όχι
+      εκτεθειμένο ως IPC), προσαρμοσμένο στο εδώ JS-only rclone μοτίβο
+      (`runRclone()`/`isNetworkError()` από το `modules/cloud-sync.js`, ίδιο
+      manifest-merge σχήμα με `sync-document-library`). Presence μοιράζεται
+      το ίδιο `cloudRemotePath` config κλειδί με το cloud sync, οπότε
+      εξαρτάται από το ίδιο βήμα 1 (rclone εγκατεστημένο) — δεν προστέθηκε
+      νέο UI ρύθμισης remote.
+- [ ] **invoicebook** — εκκρεμεί ακόμα. Presence detection μέσω MEGA/rclone
+      sync — κάθε client (πολλαπλά μηχανήματα του ίδιου χρήστη) γράφει
+      periodic heartbeat (`presence.json`: user, last_seen, computer) στο
+      ίδιο MEGA remote που ήδη χρησιμοποιείται για DB backup/sync. Sync
+      στην εκκίνηση + κάθε 1-2 λεπτά όσο τρέχει η εφαρμογή. UI: "● online"
+      αν `last_seen` < 2 λεπτά, αλλιώς "τελευταία σύνδεση: πριν Χ". Τώρα
+      υπάρχουν δύο reference υλοποιήσεις (expvault: Python backend,
+      lab-galatista: JS main process) — για invoicebook μένει να επιλεγεί
+      ποιο pattern ταιριάζει ανάλογα με την αρχιτεκτονική του.
 
 ## ΜΕΓΑΛΕΣ / ΑΝΑΒΛΗΘΗΚΑΝ
 

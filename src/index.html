@@ -56,6 +56,13 @@
       <div class="sidebar-header">
         <img src="assets/logo.png" class="logo-img" alt="Λατομεία Γαλάτιστας"
              style="cursor:pointer" title="Οδηγός Χρήσης" onclick="AppGuide.open()">
+        <div class="sidebar-title" data-i18n="app.title">ΔAiγμα LiMS</div>
+        <div id="sidebar-version" class="sidebar-version-top"></div>
+        <div class="presence-badge presence-clear" id="sidebar-presence-badge"
+             onclick="navigateTo('settings')">
+          <span class="presence-dot"></span>
+          <span id="sidebar-presence-text">—</span>
+        </div>
       </div>
 
       <ul class="nav-menu">
@@ -127,7 +134,6 @@
           <span class="ce-info" id="sidebar-ce-number">1128-CPR-0196</span>
         </div>
         <div id="sidebar-ce-warn" style="display:none;"></div>
-        <div id="sidebar-version" style="font-size:0.72em;color:var(--text-muted);margin-top:6px;opacity:0.6;"></div>
       </div>
     </nav>
 
