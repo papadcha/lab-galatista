@@ -10,6 +10,56 @@
 
 ---
 
+## Presence detection + redesign sidebar/Ιστορικό Εκδόσεων (2026-08-01)
+
+**Μετά το tag v2.4.2 — δουλειά κατευθείαν στο `master`.**
+
+Presence detection πάνω στο ήδη υπάρχον rclone cloud-sync remote —
+`modules/presence.js` γράφει periodic heartbeat (`<computer>__<user>.json`)
+σε `<cloudRemotePath>/presence/`, το ίδιο manifest-merge μοτίβο με το
+`sync-document-library`. Πόρτα του `backend/presence.py` του expvault (ίδιο
+heartbeat key, ίδια απόφαση: `sendHeartbeat()` μόνο από το main process,
+ποτέ εκτεθειμένο ως IPC). Ακολούθησε μια σειρά ζωντανών επαναλήψεων
+σχεδιασμού με τον χρήστη (screenshot-driven, επιβεβαιωμένο σε 2 μηχανήματα
+— MacBook Air 13"/Zenbook 14") μέχρι την τελική μορφή:
+
+- **Sidebar header**: το λογότυπο "ΔAi" έγινε ξεχωριστό high-res κομμένο
+  asset (`src/assets/logo-wordmark.png`, από το ήδη υπάρχον print-quality
+  `logopage.png`, Δ recolored σε λευκό μέσω alpha-dematte — το παλιό crop
+  από το 256x256 app-icon `logo.png` έδινε blur όταν μεγάλωνε). Η έκδοση +
+  presence status ενώθηκαν σε ΕΝΑ pill-button (πράσινο/κόκκινο, χωρίς
+  ξεχωριστό λεκτικό "Μόνος" — απορρίφθηκε ρητά). Version box, CE badge, και
+  "Γρήγορη Πρόσβαση" panel μοιράζονται πλέον το ίδιο πλάτος/gutter.
+- **Modal Ιστορικού Εκδόσεων**: η λίστα συνδεδεμένων χρηστών μετακόμισε εδώ
+  από το Settings → Storage tab (κλικ στο sidebar badge ανοίγει πλέον αυτό
+  το modal, όχι τις Ρυθμίσεις). Fix ενός προϋπάρχοντος bug: το `VERSIONS.md`
+  είναι χειροκίνητα word-wrapped σαν αρχείο κειμένου, και το
+  `white-space:pre-wrap` έκανε τις περιγραφές να "κόβονται" στη μέση του
+  modal ανεξαρτήτως πλάτους — λύθηκε συγχωνεύοντας συνεχόμενες γραμμές ανά
+  bullet πριν το render (`_parseVersionsMd`).
+- **Presence list**: όχι πίνακας, δυναμικές ισομεγέθεις κάρτες σε μία
+  γραμμή (μία ανά online χρήστη — 1 online = πλήρους πλάτους, 4 online = 4
+  ίσες στήλες). Μόνο currently-online χρήστες εμφανίζονται, όχι
+  offline/παλιά installs. Το δικό μας entry συνθέτεται client-side αν δεν
+  έχει προλάβει να συγχρονιστεί το πραγματικό heartbeat, ώστε η λίστα να
+  μην ισχυρίζεται ΠΟΤΕ "κανένας χρήστης" ενώ κάποιος την κοιτάει. Χρώματα
+  reused από ήδη υπάρχοντα σημεία του app (όχι αυθαίρετα): `#F47100`
+  (πορτοκαλί "Ai" του λογότυπου, δική μας κάρτα όταν υπάρχει άλλος online),
+  `#16a34a` (πράσινο έκδοσης στο sidebar, δική μας κάρτα όταν είμαστε
+  μόνοι), `#dc2626` (κόκκινο διαγραφής/`--fail`, κάρτες άλλων online).
+
+**Εκκρεμεί**: το ίδιο pattern στο expvault (ήδη έχει presence μέσω Python
+backend) και στο invoicebook (χρειάζεται πρώτα cloud-sync infra).
+
+**Αρχεία:**
+- `main.js`, `modules/presence.js`, `preload.cjs`
+- `src/assets/logo-wordmark.png`, `src/i18n/el.json`, `src/index.html`,
+  `src/main-app.js`, `src/styles/main.css`
+- `src/pages/settings/settings.html`, `src/pages/settings/settings.js`
+  (presence UI αφαιρέθηκε από εδώ, μετακόμισε στο main-app.js)
+
+---
+
 ## v2.4.2 — Κρίσιμο fix: το update banner μπλοκαριζόταν επ' άπειρον (2026-07-15)
 
 **Μετά το tag v2.4.1 — δουλειά κατευθείαν στο `master`.**

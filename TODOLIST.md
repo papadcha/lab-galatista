@@ -1,6 +1,6 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-08-01 (presence detection υλοποιήθηκε και εδώ, μετά το expvault — εκκρεμεί ακόμα στο invoicebook)
+Τελευταία ενημέρωση: 2026-08-01 (presence detection υλοποιήθηκε και εδώ, μετά το expvault — εκκρεμεί ακόμα στο invoicebook· ακολούθησε redesign sidebar/Ιστορικό Εκδόσεων, βλ. CHANGELOG-v2.md)
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί). Το τεχνικό ιστορικό
 του ESM redesign ζει στο `CHANGELOG-v2.md`. Οι διορθώσεις της v1.x
@@ -72,15 +72,21 @@
       `<remote>/presence/`.
 - [x] **lab-galatista** — υλοποιήθηκε 2026-08-01 (`modules/presence.js`,
       νέος IPC handler `presence-list` στο `preload.cjs`, heartbeat interval
-      στο `main.js`, UI στο Settings → Storage tab). Κλέβει το pattern του
-      `backend/presence.py` του expvault (heartbeat key
-      `<computer>__<user>.json`, main-process-only `sendHeartbeat()` — όχι
-      εκτεθειμένο ως IPC), προσαρμοσμένο στο εδώ JS-only rclone μοτίβο
-      (`runRclone()`/`isNetworkError()` από το `modules/cloud-sync.js`, ίδιο
-      manifest-merge σχήμα με `sync-document-library`). Presence μοιράζεται
-      το ίδιο `cloudRemotePath` config κλειδί με το cloud sync, οπότε
-      εξαρτάται από το ίδιο βήμα 1 (rclone εγκατεστημένο) — δεν προστέθηκε
-      νέο UI ρύθμισης remote.
+      στο `main.js`). Κλέβει το pattern του `backend/presence.py` του
+      expvault (heartbeat key `<computer>__<user>.json`, main-process-only
+      `sendHeartbeat()` — όχι εκτεθειμένο ως IPC), προσαρμοσμένο στο εδώ
+      JS-only rclone μοτίβο (`runRclone()`/`isNetworkError()` από το
+      `modules/cloud-sync.js`, ίδιο manifest-merge σχήμα με
+      `sync-document-library`). Presence μοιράζεται το ίδιο
+      `cloudRemotePath` config κλειδί με το cloud sync, οπότε εξαρτάται από
+      το ίδιο βήμα 1 (rclone εγκατεστημένο) — δεν προστέθηκε νέο UI
+      ρύθμισης remote. **UI redesign την ίδια μέρα** (βλ. CHANGELOG-v2.md
+      "Presence detection + redesign sidebar/Ιστορικό Εκδόσεων"): η λίστα
+      ΔΕΝ ζει πια στο Settings → Storage tab — μετακόμισε στο modal
+      "Ιστορικό Εκδόσεων" (κλικ στο 2-σε-1 έκδοση+presence badge του
+      sidebar), ως γραμμή δυναμικών κάρτων μόνο για online χρήστες,
+      συγκεκριμένη παλέτα χρωμάτων (`#F47100`/`#16a34a`/`#dc2626`).
+      Επιβεβαιωμένο από τον χρήστη σε 2 μηχανήματα.
 - [ ] **invoicebook** — εκκρεμεί ακόμα. Presence detection μέσω MEGA/rclone
       sync — κάθε client (πολλαπλά μηχανήματα του ίδιου χρήστη) γράφει
       periodic heartbeat (`presence.json`: user, last_seen, computer) στο
