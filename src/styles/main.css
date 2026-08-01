@@ -233,6 +233,19 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
   background: rgba(239,68,68,0.15);
   border-color: rgba(239,68,68,0.4);
 }
+
+/* Ίδιο status coloring στο πλαίσιο presence μέσα στο modal Ιστορικού
+   Εκδόσεων (main-app.js _renderPresenceList) — αχνό πράσινο όταν κανείς
+   άλλος δεν είναι online, πιο έντονο κόκκινο όταν υπάρχει τουλάχιστον
+   ένας (βλ. [[feedback_status_color_design]]). */
+#presence-section-box.presence-clear {
+  background: rgba(22,163,74,0.10);
+  border-color: rgba(22,163,74,0.35);
+}
+#presence-section-box.presence-alert {
+  background: rgba(220,38,38,0.15);
+  border-color: rgba(220,38,38,0.4);
+}
 .presence-badge.presence-alert #sidebar-presence-text {
   color: #ef4444;
 }

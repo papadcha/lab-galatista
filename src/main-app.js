@@ -950,7 +950,17 @@ function _parseVersionsMd(text) {
       i++; // παράλειψη γραμμής παυλών
       continue;
     }
-    if (current && line.trim()) current.body.push(line.trim());
+    const trimmed = line.trim();
+    if (!current || !trimmed) continue;
+    // Το VERSIONS.md είναι χειροκίνητα word-wrapped (~70 χαρακτήρες) σαν
+    // αρχείο κειμένου — γραμμές που ΔΕΝ ξεκινούν νέο bullet ("- ...") είναι
+    // συνέχεια του προηγούμενου, ενώνονται σε ένα μπλοκ ώστε να μπορεί να
+    // αναδιπλωθεί φυσικά στο πλάτος του modal (βλ. showVersionHistory).
+    if (trimmed.startsWith('- ') || !current.body.length) {
+      current.body.push(trimmed);
+    } else {
+      current.body[current.body.length - 1] += ' ' + trimmed;
+    }
   }
   if (current) entries.push(current);
   return entries;
@@ -999,7 +1009,7 @@ async function showVersionHistory() {
           </div>
           ${action}
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;white-space:pre-wrap;">${_esc(e.body.join('\n'))}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${e.body.map(_esc).join('<br>')}</div>
       </div>`;
   }).join('');
 
@@ -1009,8 +1019,8 @@ async function showVersionHistory() {
 
   const content = `
     ${noticeHtml}
-    <div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;">${entriesHtml}</div>
-    <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px;">
+    <div id="presence-section-box" style="border-radius:8px;padding:12px;margin-bottom:14px;
+         background:var(--bg-card);border:1px solid var(--border);transition:background .2s,border-color .2s;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div style="font-weight:600;font-size:13px;">${t('settings.presence_title', '👥 Συνδεδεμένοι χρήστες')}</div>
         <button class="btn-secondary btn-sm" onclick="App._renderPresenceList()">${t('settings.presence_refresh_button', '🔄 Ανανέωση')}</button>
@@ -1019,6 +1029,7 @@ async function showVersionHistory() {
         <div style="padding:16px;color:var(--text-muted);text-align:center;">${t('settings.presence_loading', 'Φόρτωση...')}</div>
       </div>
     </div>
+    <div style="max-height:22vh;overflow-y:auto;margin-bottom:14px;">${entriesHtml}</div>
     <div style="border-top:1px solid var(--border);padding-top:12px;">
       <div style="font-weight:600;font-size:13px;margin-bottom:6px;">🐞 Αναφορά Προβλήματος</div>
       <p class="form-hint" style="margin-bottom:8px;">
@@ -1059,54 +1070,65 @@ async function showVersionHistory() {
 // Λίστα συνδεδεμένων χρηστών μέσα στο modal Ιστορικού Εκδόσεων — μετακόμισε
 // εδώ από το Settings → Storage tab (2026-08-01, κλικ στο sidebar version/
 // presence pill ανοίγει πλέον αυτό το modal αντί για δύο ξεχωριστά σημεία).
-function _relativeTimeGr(iso) {
-  const then = new Date(iso);
-  if (!iso || isNaN(then)) return '';
-  const diffSec = Math.max(0, Math.round((Date.now() - then.getTime()) / 1000));
-  if (diffSec < 60) return t('settings.presence_just_now', 'μόλις τώρα');
-  const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${t('settings.presence_ago', 'πριν')} ${diffMin} ${diffMin === 1 ? t('settings.presence_minute', 'λεπτό') : t('settings.presence_minutes', 'λεπτά')}`;
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${t('settings.presence_ago', 'πριν')} ${diffHr} ${diffHr === 1 ? t('settings.presence_hour', 'ώρα') : t('settings.presence_hours', 'ώρες')}`;
-  const diffDay = Math.round(diffHr / 24);
-  return `${t('settings.presence_ago', 'πριν')} ${diffDay} ${diffDay === 1 ? t('settings.presence_day', 'μέρα') : t('settings.presence_days', 'μέρες')}`;
-}
+// Δείχνει μόνο ποιος είναι online ΤΩΡΑ — offline/παλιά installs δεν έχουν
+// θέση εδώ, οπότε δεν χρειάζεται πια σχετικό ("πριν Χ λεπτά") κείμενο.
 
 async function _renderPresenceList() {
-  const el = document.getElementById('presence-list');
+  const el  = document.getElementById('presence-list');
+  const box = document.getElementById('presence-section-box');
   if (!el || !window.pyBridge?.['presence-list']) return;
   try {
-    const users = await window.pyBridge['presence-list']();
-    if (!users || users.length === 0) {
-      el.innerHTML = `<div style="padding:16px;color:var(--text-muted);text-align:center;">${t('settings.presence_none', 'Κανένας χρήστης δεν έχει καταγραφεί ακόμα.')}</div>`;
-      return;
+    const [fetched, me] = await Promise.all([
+      window.pyBridge['presence-list'](),
+      window.pyBridge['presence-whoami']?.() ?? Promise.resolve(null),
+    ]);
+    const users = (fetched || []).slice();
+
+    // Όποιος βλέπει αυτή τη λίστα είναι, εξ ορισμού, online αυτή τη στιγμή —
+    // αν το δικό του heartbeat δεν έχει προλάβει να συγχρονιστεί ακόμα (ή δεν
+    // υπάρχει καν configured cloud remote), προσθέτουμε το δικό του entry
+    // εδώ ώστε η λίστα να μην ισχυρίζεται ποτέ "κανένας χρήστης" ενώ κάποιος
+    // την κοιτάει.
+    const alreadyListed = me && users.some(u => u.user === me.user && u.computer === me.computer);
+    if (me && !alreadyListed) {
+      users.push({ user: me.user, computer: me.computer, last_seen: new Date().toISOString(), _isMe: true });
     }
+
     const ONLINE_MS = 2 * 60 * 1000;
     const now = Date.now();
-    const rows = users
+    const isOnline = u => u._isMe || (() => {
+      const lastMs = new Date(u.last_seen).getTime();
+      return !isNaN(lastMs) && (now - lastMs) < ONLINE_MS;
+    })();
+    // Μόνο online χρήστες εμφανίζονται — δεν κρατάμε θέση για offline/παλιά
+    // installs, δεν έχει νόημα εδώ (μόνο "ποιος είναι εδώ ΤΩΡΑ").
+    const onlineUsers = users.filter(isOnline);
+    const others = onlineUsers.filter(u => !u._isMe);
+    if (box) {
+      box.classList.toggle('presence-alert', others.length > 0);
+      box.classList.toggle('presence-clear', others.length === 0);
+    }
+
+    // Ακριβή χρώματα από το υπόλοιπο app (όχι αυθαίρετα): πορτοκαλί = το
+    // "Ai" του λογότυπου (δική μας κάρτα όταν υπάρχει έστω κι ένας άλλος),
+    // πράσινο = το χρώμα της έκδοσης στο sidebar (δική μας κάρτα όταν είμαστε
+    // μόνοι), κόκκινο = το --fail/διαγραφή του app (κάρτες άλλων online).
+    const ME_ORANGE = '#F47100', ME_GREEN = '#16a34a', OTHER_RED = '#dc2626';
+    // Δυναμικές ισομεγέθεις στήλες σε μία γραμμή — όσοι online, τόσες
+    // στήλες (1 online → 1 στήλη πλήρους πλάτους, 4 online → 4 ίσες).
+    const cards = onlineUsers
       .slice()
       .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen))
       .map(u => {
-        const lastMs = new Date(u.last_seen).getTime();
-        const online = !isNaN(lastMs) && (now - lastMs) < ONLINE_MS;
-        const status = online
-          ? `<span style="color:#22c55e;">● online</span>`
-          : `<span style="color:var(--text-muted);">${t('settings.presence_last_seen_prefix', 'τελευταία σύνδεση:')} ${_relativeTimeGr(u.last_seen)}</span>`;
-        return `<tr style="border-top:1px solid var(--border);">
-          <td style="padding:8px 12px;font-size:13px;">${_esc(u.user)}</td>
-          <td style="padding:8px 12px;color:var(--text-muted);font-size:12px;font-family:'IBM Plex Mono',monospace;">${_esc(u.computer)}</td>
-          <td style="padding:8px 12px;text-align:right;font-size:12px;">${status}</td>
-        </tr>`;
+        const color = u._isMe ? (others.length === 0 ? ME_GREEN : ME_ORANGE) : OTHER_RED;
+        return `<div style="flex:1 1 0;min-width:0;padding:8px 10px;border-radius:8px;
+             background:${color}4D;border:1px solid ${color}99;overflow:hidden;
+             white-space:nowrap;text-overflow:ellipsis;">
+          <span style="font-weight:700;font-size:13px;color:${color};">${_esc(u.user)}</span>
+          <span style="font-size:12px;color:var(--text-muted);"> — ${_esc(u.computer)}</span>
+        </div>`;
       }).join('');
-    el.innerHTML = `
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr>
-          <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_user', 'Χρήστης')}</th>
-          <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_computer', 'Υπολογιστής')}</th>
-          <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_status', 'Κατάσταση')}</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+    el.innerHTML = `<div style="display:flex;gap:8px;padding:10px;">${cards}</div>`;
   } catch (e) {
     el.innerHTML = `<div style="padding:16px;color:var(--fail-light,#ef4444);">${t('settings.generic_error_prefix', 'Σφάλμα: ')}${_esc(e.message)}</div>`;
   }
