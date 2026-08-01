@@ -171,8 +171,8 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 14px 16px 14px;
+  gap: 8px;
+  padding: 14px 8px 14px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -192,51 +192,53 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
 }
 
 .sidebar-version-top {
-  font-size: 11px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-muted);
-  opacity: .7;
+}
+/* Το κείμενο παίρνει πιο έντονη απόχρωση του ίδιου χρώματος με το φόντο
+   του κουτιού (αντί για ουδέτερο γκρι), ώστε να ξεχωρίζει πάνω του. */
+.presence-badge.presence-clear .sidebar-version-top {
+  color: #16a34a;
+}
+.presence-badge.presence-alert .sidebar-version-top {
+  color: #ef4444;
 }
 
-/* --- Presence badge (sidebar) --- */
+/* --- Presence badge (sidebar) — ίδιο πλάτος/ύφος (box, όχι pill) με το
+   Γρήγορη Πρόσβαση panel και το CE badge στο footer, για συνέπεια. Χωρίς
+   ξεχωριστή κουκκίδα — το ίδιο το φόντο/περίγραμμα δείχνει το status,
+   ίδιο μοτίβο με τα .ce-badge.ce-status-* παρακάτω. --- */
 .presence-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
+  justify-content: center;
+  gap: 8px;
+  align-self: stretch;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 2px;
-}
-
-.presence-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
 }
 
 .presence-badge.presence-clear {
-  background: rgba(22,163,74,0.10);
-  border: 1px solid rgba(22,163,74,0.35);
-  color: #16a34a;
-}
-.presence-badge.presence-clear .presence-dot {
-  background: #16a34a;
+  background: rgba(22,163,74,0.16);
+  border-color: rgba(22,163,74,0.35);
 }
 
 .presence-badge.presence-alert {
   background: rgba(239,68,68,0.15);
-  border: 1px solid rgba(239,68,68,0.4);
+  border-color: rgba(239,68,68,0.4);
+}
+.presence-badge.presence-alert #sidebar-presence-text {
   color: #ef4444;
 }
-.presence-badge.presence-alert .presence-dot {
-  background: #ef4444;
-}
 
-/* Χωρίς κείμενο (μόνο η κουκκίδα) όταν είμαστε μόνοι — το κουμπί παραμένει
-   ορατό ως pill, απλά χωρίς ετικέτα να διαβαστεί. */
+/* Χωρίς κείμενο όταν είμαστε μόνοι — το κουτί παραμένει ορατό (πράσινο
+   φόντο/περίγραμμα), απλά χωρίς ετικέτα να διαβαστεί. */
 #sidebar-presence-text:empty {
   display: none;
 }
@@ -282,13 +284,14 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
 
 /* --- Sidebar Footer --- */
 .sidebar-footer {
-  padding: 20px 16px 16px;
+  padding: 20px 8px 16px;
   border-top: 1px solid var(--border);
 }
 
 .ce-badge {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 8px 10px;
   background: var(--bg-card);
@@ -299,21 +302,21 @@ body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 
 
 .ce-mark {
   font-weight: 700;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--accent);
   letter-spacing: 1px;
 }
 
 .ce-info {
-  font-size: 10px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-muted);
-  font-family: 'IBM Plex Mono', monospace;
 }
 
 /* Χρωματισμός του CE badge ανάλογα με το πόσο κοντά είναι η λήξη — η ίδια
    η ημερομηνία φαίνεται μόνο σε tooltip (title attribute), όχι σε κείμενο. */
 .ce-badge.ce-status-ok {
-  background: rgba(22,163,74,0.10);
+  background: rgba(22,163,74,0.16);
   border-color: rgba(22,163,74,0.35);
 }
 .ce-badge.ce-status-warning {
