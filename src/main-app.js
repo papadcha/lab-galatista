@@ -649,10 +649,13 @@ async function updateSidebarCeBadge() {
   }
 }
 
-// Presence badge στην κορυφή του sidebar — πράσινο ("Μόνος") όταν κανένας
-// άλλος χρήστης δεν είναι online, κόκκινο όταν υπάρχει τουλάχιστον ένας.
+// Presence dot μέσα στο 2-σε-1 badge (έκδοση + presence) στην κορυφή του
+// sidebar — πράσινο όταν κανένας άλλος χρήστης δεν είναι online, κόκκινο
+// (+ μέτρημα) όταν υπάρχει τουλάχιστον ένας. Όταν είμαστε μόνοι δεν
+// εμφανίζεται καθόλου κείμενο (μόνο η κουκκίδα) — καμία ετικέτα δεν
+// χρειάζεται για την default/common περίπτωση.
 // "Άλλος" = διαφορετικό user+computer από το δικό μας (presence-whoami),
-// "online" = last_seen < 2 λεπτά, ίδιο threshold με το Settings → Storage tab.
+// "online" = last_seen < 2 λεπτά, ίδιο threshold με τη λίστα στο ιστορικό εκδόσεων.
 async function updateSidebarPresenceBadge() {
   const badgeEl = document.getElementById('sidebar-presence-badge');
   const textEl  = document.getElementById('sidebar-presence-text');
@@ -674,12 +677,10 @@ async function updateSidebarPresenceBadge() {
 
     badgeEl.classList.toggle('presence-alert', online);
     badgeEl.classList.toggle('presence-clear', !online);
-    textEl.textContent = online
-      ? `${others.length} online`
-      : t('sidebar.presence_alone', 'Μόνος');
+    textEl.textContent = online ? `${others.length} online` : '';
     badgeEl.title = online
       ? others.map(u => `${u.user} (${u.computer})`).join(', ')
-      : t('sidebar.presence_none_else', 'Κανένας άλλος χρήστης online');
+      : 'Δες τι άλλαξε';
   } catch (e) {
     // Χωρίς configured remote/rclone το presence-list επιστρέφει απλά άδεια
     // λίστα (χωρίς exception) — ένα throw εδώ σημαίνει κάτι πιο ασυνήθιστο
@@ -1009,6 +1010,15 @@ async function showVersionHistory() {
   const content = `
     ${noticeHtml}
     <div style="max-height:45vh;overflow-y:auto;margin-bottom:14px;">${entriesHtml}</div>
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-weight:600;font-size:13px;">${t('settings.presence_title', '👥 Συνδεδεμένοι χρήστες')}</div>
+        <button class="btn-secondary btn-sm" onclick="App._renderPresenceList()">${t('settings.presence_refresh_button', '🔄 Ανανέωση')}</button>
+      </div>
+      <div id="presence-list" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:13px;">
+        <div style="padding:16px;color:var(--text-muted);text-align:center;">${t('settings.presence_loading', 'Φόρτωση...')}</div>
+      </div>
+    </div>
     <div style="border-top:1px solid var(--border);padding-top:12px;">
       <div style="font-weight:600;font-size:13px;margin-bottom:6px;">🐞 Αναφορά Προβλήματος</div>
       <p class="form-hint" style="margin-bottom:8px;">
@@ -1043,7 +1053,65 @@ async function showVersionHistory() {
   App.showModal('Ιστορικό Εκδόσεων', content, [
     { label: 'Κλείσιμο', action: 'App.closeModal()' },
   ]);
+  _renderPresenceList();
 }
+
+// Λίστα συνδεδεμένων χρηστών μέσα στο modal Ιστορικού Εκδόσεων — μετακόμισε
+// εδώ από το Settings → Storage tab (2026-08-01, κλικ στο sidebar version/
+// presence pill ανοίγει πλέον αυτό το modal αντί για δύο ξεχωριστά σημεία).
+function _relativeTimeGr(iso) {
+  const then = new Date(iso);
+  if (!iso || isNaN(then)) return '';
+  const diffSec = Math.max(0, Math.round((Date.now() - then.getTime()) / 1000));
+  if (diffSec < 60) return t('settings.presence_just_now', 'μόλις τώρα');
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${t('settings.presence_ago', 'πριν')} ${diffMin} ${diffMin === 1 ? t('settings.presence_minute', 'λεπτό') : t('settings.presence_minutes', 'λεπτά')}`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${t('settings.presence_ago', 'πριν')} ${diffHr} ${diffHr === 1 ? t('settings.presence_hour', 'ώρα') : t('settings.presence_hours', 'ώρες')}`;
+  const diffDay = Math.round(diffHr / 24);
+  return `${t('settings.presence_ago', 'πριν')} ${diffDay} ${diffDay === 1 ? t('settings.presence_day', 'μέρα') : t('settings.presence_days', 'μέρες')}`;
+}
+
+async function _renderPresenceList() {
+  const el = document.getElementById('presence-list');
+  if (!el || !window.pyBridge?.['presence-list']) return;
+  try {
+    const users = await window.pyBridge['presence-list']();
+    if (!users || users.length === 0) {
+      el.innerHTML = `<div style="padding:16px;color:var(--text-muted);text-align:center;">${t('settings.presence_none', 'Κανένας χρήστης δεν έχει καταγραφεί ακόμα.')}</div>`;
+      return;
+    }
+    const ONLINE_MS = 2 * 60 * 1000;
+    const now = Date.now();
+    const rows = users
+      .slice()
+      .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen))
+      .map(u => {
+        const lastMs = new Date(u.last_seen).getTime();
+        const online = !isNaN(lastMs) && (now - lastMs) < ONLINE_MS;
+        const status = online
+          ? `<span style="color:#22c55e;">● online</span>`
+          : `<span style="color:var(--text-muted);">${t('settings.presence_last_seen_prefix', 'τελευταία σύνδεση:')} ${_relativeTimeGr(u.last_seen)}</span>`;
+        return `<tr style="border-top:1px solid var(--border);">
+          <td style="padding:8px 12px;font-size:13px;">${_esc(u.user)}</td>
+          <td style="padding:8px 12px;color:var(--text-muted);font-size:12px;font-family:'IBM Plex Mono',monospace;">${_esc(u.computer)}</td>
+          <td style="padding:8px 12px;text-align:right;font-size:12px;">${status}</td>
+        </tr>`;
+      }).join('');
+    el.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr>
+          <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_user', 'Χρήστης')}</th>
+          <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_computer', 'Υπολογιστής')}</th>
+          <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;color:var(--text-muted);">${t('settings.presence_status', 'Κατάσταση')}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  } catch (e) {
+    el.innerHTML = `<div style="padding:16px;color:var(--fail-light,#ef4444);">${t('settings.generic_error_prefix', 'Σφάλμα: ')}${_esc(e.message)}</div>`;
+  }
+}
+App._renderPresenceList = _renderPresenceList;
 
 async function _submitVersionIssueReport() {
   const lastGood = document.getElementById('report-last-good-version')?.value;
@@ -1540,20 +1608,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (lab) { AppState.labInfo = lab; }
   await updateSidebarCeBadge();
 
-  // Εμφάνιση έκδοσης κάτω από τον τίτλο, στην κορυφή του sidebar —
-  // κλικ ανοίγει το ιστορικό εκδόσεων
+  // Έκδοση + presence μαζί σε ένα pill στην κορυφή του sidebar (2-σε-1) —
+  // κλικ οπουδήποτε πάνω του ανοίγει το ιστορικό εκδόσεων (inline onclick
+  // στο index.html), που πλέον περιλαμβάνει και τη λίστα συνδεδεμένων
+  // χρηστών (βλ. showVersionHistory/_renderPresenceList).
   if (window.pyBridge?.['get-app-version']) {
     const ver = await window.pyBridge['get-app-version']();
     const el = document.getElementById('sidebar-version');
-    if (el && ver) {
-      el.textContent = `v${ver}`;
-      el.title = 'Δες τι άλλαξε';
-      el.addEventListener('click', showVersionHistory);
-    }
+    if (el && ver) el.textContent = `v${ver}`;
   }
 
   // Presence badge — πράσινο όταν δεν υπάρχει άλλος online χρήστης, κόκκινο
-  // αν υπάρχει. Ίδιο 2-λεπτο online threshold με το Settings → Storage tab.
+  // αν υπάρχει. Ίδιο 2-λεπτο online threshold με τη λίστα στο ιστορικό εκδόσεων.
   await updateSidebarPresenceBadge();
   setInterval(updateSidebarPresenceBadge, 60 * 1000);
 

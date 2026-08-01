@@ -1,7 +1,5 @@
 {
   "app.title": "ΔAiγμα LiMS",
-  "sidebar.presence_alone": "Μόνος",
-  "sidebar.presence_none_else": "Κανένας άλλος χρήστης online",
 
   "nav.dashboard": "Αρχική",
   "nav.samples": "Καταχώρηση",
