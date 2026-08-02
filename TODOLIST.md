@@ -1,6 +1,6 @@
 # ΕΡΓΑΣΤΗΡΙΟ ΓΑΛΑΤΙΣΤΑΣ — ΕΚΚΡΕΜΟΤΗΤΕΣ (TO-DO)
 
-Τελευταία ενημέρωση: 2026-08-01 (presence detection υλοποιήθηκε και εδώ, μετά το expvault — εκκρεμεί ακόμα στο invoicebook· ακολούθησε redesign sidebar/Ιστορικό Εκδόσεων, βλ. CHANGELOG-v2.md)
+Τελευταία ενημέρωση: 2026-08-01 (presence detection υλοποιήθηκε — εκκρεμεί ακόμα στο invoicebook· ακολούθησε redesign sidebar/Ιστορικό Εκδόσεων, βλ. CHANGELOG-v2.md)
 Το ιστορικό εκδόσεων ζει σε ξεχωριστό αρχείο: `VERSIONS.md`
 (bundled μέσα στην ίδια την εφαρμογή — βλ. εκεί). Το τεχνικό ιστορικό
 του ESM redesign ζει στο `CHANGELOG-v2.md`. Οι διορθώσεις της v1.x
@@ -64,20 +64,15 @@
       να έχει πραγματικό νόημα: νέο `src/i18n/<locale>.json` + μία
       ακόμα `<option>` στο `settings.html`, καμία άλλη συρματολόγηση.
 
-- [x] **expvault** — υλοποιήθηκε 2026-08-01 (`backend/presence.py`, branch
-      `v2`), προσαρμοσμένο στο pattern του `backup.py` εκεί (rclone μόνο από
-      Python backend, όχι από τη JS main process όπως εδώ). Heartbeat
-      key `<computer>__<user>.json` (όχι μόνο hostname, ώστε δύο μηχανήματα
-      με ίδιο default hostname να μην αλληλοεπικαλύπτονται) στο
-      `<remote>/presence/`.
 - [x] **lab-galatista** — υλοποιήθηκε 2026-08-01 (`modules/presence.js`,
       νέος IPC handler `presence-list` στο `preload.cjs`, heartbeat interval
-      στο `main.js`). Κλέβει το pattern του `backend/presence.py` του
-      expvault (heartbeat key `<computer>__<user>.json`, main-process-only
-      `sendHeartbeat()` — όχι εκτεθειμένο ως IPC), προσαρμοσμένο στο εδώ
-      JS-only rclone μοτίβο (`runRclone()`/`isNetworkError()` από το
-      `modules/cloud-sync.js`, ίδιο manifest-merge σχήμα με
-      `sync-document-library`). Presence μοιράζεται το ίδιο
+      στο `main.js`). Heartbeat key `<computer>__<user>.json` (όχι μόνο
+      hostname, ώστε δύο μηχανήματα με ίδιο default hostname να μην
+      αλληλοεπικαλύπτονται), main-process-only `sendHeartbeat()` — όχι
+      εκτεθειμένο ως IPC, προσαρμοσμένο στο εδώ JS-only rclone μοτίβο
+      (`runRclone()`/`isNetworkError()` από το `modules/cloud-sync.js`,
+      ίδιο manifest-merge σχήμα με `sync-document-library`). Presence
+      μοιράζεται το ίδιο
       `cloudRemotePath` config κλειδί με το cloud sync, οπότε εξαρτάται από
       το ίδιο βήμα 1 (rclone εγκατεστημένο) — δεν προστέθηκε νέο UI
       ρύθμισης remote. **UI redesign την ίδια μέρα** (βλ. CHANGELOG-v2.md
@@ -92,10 +87,9 @@
       periodic heartbeat (`presence.json`: user, last_seen, computer) στο
       ίδιο MEGA remote που ήδη χρησιμοποιείται για DB backup/sync. Sync
       στην εκκίνηση + κάθε 1-2 λεπτά όσο τρέχει η εφαρμογή. UI: "● online"
-      αν `last_seen` < 2 λεπτά, αλλιώς "τελευταία σύνδεση: πριν Χ". Τώρα
-      υπάρχουν δύο reference υλοποιήσεις (expvault: Python backend,
-      lab-galatista: JS main process) — για invoicebook μένει να επιλεγεί
-      ποιο pattern ταιριάζει ανάλογα με την αρχιτεκτονική του.
+      αν `last_seen` < 2 λεπτά, αλλιώς "τελευταία σύνδεση: πριν Χ". Υπάρχει
+      ήδη μια reference υλοποίηση (backend + UI) εδώ στο lab-galatista που
+      μπορεί να προσαρμοστεί ανάλογα με την αρχιτεκτονική του invoicebook.
 
 ## ΜΕΓΑΛΕΣ / ΑΝΑΒΛΗΘΗΚΑΝ
 

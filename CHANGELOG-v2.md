@@ -17,9 +17,8 @@
 Presence detection πάνω στο ήδη υπάρχον rclone cloud-sync remote —
 `modules/presence.js` γράφει periodic heartbeat (`<computer>__<user>.json`)
 σε `<cloudRemotePath>/presence/`, το ίδιο manifest-merge μοτίβο με το
-`sync-document-library`. Πόρτα του `backend/presence.py` του expvault (ίδιο
-heartbeat key, ίδια απόφαση: `sendHeartbeat()` μόνο από το main process,
-ποτέ εκτεθειμένο ως IPC). Ακολούθησε μια σειρά ζωντανών επαναλήψεων
+`sync-document-library`. Ίδια απόφαση: `sendHeartbeat()` καλείται μόνο από
+το main process, ποτέ εκτεθειμένο ως IPC. Ακολούθησε μια σειρά ζωντανών επαναλήψεων
 σχεδιασμού με τον χρήστη (screenshot-driven, επιβεβαιωμένο σε 2 μηχανήματα
 — MacBook Air 13"/Zenbook 14") μέχρι την τελική μορφή:
 
@@ -48,8 +47,7 @@ heartbeat key, ίδια απόφαση: `sendHeartbeat()` μόνο από το m
   `#16a34a` (πράσινο έκδοσης στο sidebar, δική μας κάρτα όταν είμαστε
   μόνοι), `#dc2626` (κόκκινο διαγραφής/`--fail`, κάρτες άλλων online).
 
-**Εκκρεμεί**: το ίδιο pattern στο expvault (ήδη έχει presence μέσω Python
-backend) και στο invoicebook (χρειάζεται πρώτα cloud-sync infra).
+**Εκκρεμεί**: το ίδιο pattern στο invoicebook (χρειάζεται πρώτα cloud-sync infra).
 
 **Αρχεία:**
 - `main.js`, `modules/presence.js`, `preload.cjs`
